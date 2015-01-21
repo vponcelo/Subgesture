@@ -15,10 +15,7 @@ fprintf('Generation %d\n\n',params.generations-options.Generations+state.Generat
 
 global S;
 
-length(S)
-
 x = 1:1:params.generations-options.Generations+state.Generation;
-length(x)
 S_eu = S_eu*ones(1,length(x));
 
 if strcmp(params.scoreMeasure,'overlap');
@@ -47,8 +44,6 @@ end
 
 S = [S s];
 
-length(S)
-
 if length(S) ~= length(x)
     warning('Score length is must be equal to the x axis in order to plot');
 	return;
@@ -73,6 +68,8 @@ end
 
 if state.Generation > 0 && mod(state.Generation,1) == 0
     global DATATYPE;
+    global CACHE;
+    global MODEL;
     global PERCENTDATA;
     global COORDS;
     global JOINTS;
