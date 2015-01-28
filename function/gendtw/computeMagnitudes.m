@@ -89,21 +89,19 @@ if mod(length(segs),2) == 1
 end
 
 fr_fixed = 0;
-if ~strcmp(params.Baseline,BASELINE{1})    
-    if strcmp(params.Baseline,BASELINE{3})
-        params.N = length(segs)-1;
-        lengths = zeros(1,params.N);
-        for i = 1:length(segs)
-            lengths(i) = segs(2*(i-1)+1)-segs(2*(i-1)+1)+1;
-        end
-        params.nmin = 1;
-        params.nmax = max(lengths)+1;
-        fr_fixed = round(mean(lengths));
-        if ~fr_fixed
-            error('computeMagnitudes:fixFrNull','There is no fixed subsequence length');
-        end
-        params.N = round(size(X,1)/fr_fixed);
+if strcmp(params.Baseline,BASELINE{3})
+    params.N = length(segs)-1;
+    lengths = zeros(1,params.N);
+    for i = 1:length(segs)
+        lengths(i) = segs(2*(i-1)+1)-segs(2*(i-1)+1)+1;
     end
+    params.nmin = 1;
+    params.nmax = max(lengths)+1;
+    fr_fixed = round(mean(lengths));
+    if ~fr_fixed
+        error('computeMagnitudes:fixFrNull','There is no fixed subsequence length');
+    end
+    params.N = round(size(X,1)/fr_fixed);
 end
 
 %% Show skeletons (only for 2D pixels)

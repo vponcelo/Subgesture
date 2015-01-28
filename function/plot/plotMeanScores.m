@@ -79,6 +79,8 @@ if state.Generation > 0 && mod(state.Generation,1) == 0
         try
             save(strcat(filename,'.mat'),'S','CACHE','state','options','MODEL','-v7.3');
             hgsave(gcf,filename);
+            set(gcf, 'Position', [0 0 1920 1440]);
+            saveas(gcf,filename,'png');
         catch e
             %display(e.Message);
         end

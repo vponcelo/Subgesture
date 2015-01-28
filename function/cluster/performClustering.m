@@ -6,10 +6,12 @@ function Ctrain = performClustering(X,Y,type,numClusters,numIterations)
 %   numClusters: number of centroids to clusterize the data
 %   numIterations: number of iterations for the clustering process
 
+global DATATYPE;
+
 % Output:
 %   Ctrain: training data clusters
 
-if ~exist('results/chalearn2012/clustering/clusters.mat','file'),
+if ~exist(strcat('results/',DATATYPE,'/clustering/clusters.mat'),'file'),
     display('Clustering data...');
 
     if numClusters == 0,
@@ -38,9 +40,9 @@ if ~exist('results/chalearn2012/clustering/clusters.mat','file'),
             doHaca(X,Y);
     end
     
-    save('results/chalearn2012/clustering/clusters.mat','Ctrain');
+    save(strcat('results/',DATATYPE,'/clustering/clusters.mat'),'Ctrain');
 
     display('Done!');
 else
-    load('results/chalearn2012/clustering/clusters.mat');
+    load(strcat('results/',DATATYPE,'/clustering/clusters.mat'));
 end

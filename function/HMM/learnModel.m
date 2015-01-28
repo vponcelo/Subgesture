@@ -1,4 +1,4 @@
-function [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xval,model)
+function [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xval)
 
 % Output:
 %   pTrain: estimated probabilities of each training sample
@@ -15,15 +15,12 @@ function [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xv
 %   Xtrain: Training Data
 %   Xval: Test Data
 
-switch model
-    case 1,
-    % for s=1:3,
-        hmmStates = 3;
-        [hmmTR, hmmE]=learnHMM(hmmStates,Dtrain);
-        pTrain = evaluateSequences(Ctrain,Xtrain,hmmTR,hmmE);
-        pVal = evaluateSequences(Ctrain,Xval,hmmTR,hmmE);   
-    % end
-end
+% for s=1:3,
+    hmmStates = 3;
+    [hmmTR, hmmE]=learnHMM(hmmStates,Dtrain);
+    pTrain = evaluateSequences(Ctrain,Xtrain,hmmTR,hmmE);
+    pVal = evaluateSequences(Ctrain,Xval,hmmTR,hmmE);   
+% end
 
 %% Create an S states HMM and estimate their probabilities
 % if ~exist('hmmPars.mat','file'),

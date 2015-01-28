@@ -83,7 +83,7 @@ for k = 1:length(model.M)
                 if isempty(model.bestThs)
                     thresholds{k}(K,i) = tMin + (i-1)*interv;
                 else
-                    thresholds{k}(K,i) = model.bestThs(i);
+                    thresholds{k}(K,i) = model.bestThs(k);
                 end
                 idx = find(W(end,:) <= thresholds{k}(K,i));
                 idx(ismember(idx,idxEval)) = [];
@@ -149,6 +149,7 @@ if strcmp(model.scoreMeasure,'overlap')
         [bestOverlaps(i),pos] = max(overlaps{i});
         model.bestThs(i) = thresholds{i}(pos);
     end
+    model.bestThs
     score = mean(bestOverlaps);
 %     gtF = Y.Lfr;
 %     save('predictions.mat','predictionsF','gtF');

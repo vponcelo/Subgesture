@@ -38,7 +38,7 @@ if iscell(X),
     cnames = {'gesture1','gesture2','gesture3','gesture4'};
 else
     X = X';
-    segT = newSeg('s', Y.seg, 'G', L2G(Y.L, length(unique(L))));
+    segT = newSeg('s', Y.seg, 'G', L2G(Y.L, length(unique(Y.L))));
     cnames = Y.cnames;
 end
 para.nMi = 6;
