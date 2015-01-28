@@ -19,23 +19,17 @@ clear CACHE S BASELINE OPTIONS STATE;
 % display('Press a key to continue...');
 % pause();
 
-%% Obtain all samples grouped by gestures
-XLearn_l = getGroupedGestures(X,Y,datapart);
-
-%% Get median models from training/learning data
-fprintf('Computing mean gesture Models from training for the m=%d distinct gestures ...\n',length(XLearn_l)-1);
-% profile -memory on
-params.M = getMedianModels(XLearn_l,length(XLearn_l)-1,'direct','nogmm');
-% profreport
-display('Done!');
-
-%% Generate validation sequence
+%% Generate learning sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
 l = [];
 [Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,nSampGest);
 
-%% Obtain Cross Validation subsets over learning data
-Indices = crossvalind('Kfold',length(X),folds);
+%% Obtain Cross Validation subsets over training data
+if folds > 1
+    Indices = crossvalind('Kfold',length(Xdev{1}),folds);
+else
+    Xtrain = Xdev{1}; Ytrain = Ydev{1}.Lfr;
+end
 hmmTR_f = cell(1,folds);
 hmmE_f = cell(1,folds);
 pVal_f = zeros(folds,round(length(X)/folds));
@@ -48,8 +42,10 @@ if ~exist(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'file'),
 
         display(sprintf('\n Fold %d',k));
 
-        %% Obtain Learning data
-        [Xtrain,Xval,Ytrain,Yval] = getLearningData(X,k,Indices,Y); % supervised 
+        %% Obtain Training data
+        if folds > 1
+            [Xtrain,Ytrain] = getTrainingData(Xdev{1},k,Indices,Ydev{1}); % supervised 
+        end
 
         %% Get data clusters
         Ctrain = performClustering(Xtrain,Ytrain,clustType,numClusters,numIterations);
@@ -59,7 +55,7 @@ if ~exist(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'file'),
        
         %% Test number of states 
         display(sprintf('Learning the Model ...'));        
-        [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xval);
+        [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xdev{2});
 
         %% Plot results of the model showing learning and predictive capabilities 
         plotResults(pTrain,pVal,hmmE,hmmStates,k);
@@ -72,52 +68,51 @@ if ~exist(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'file'),
         minModelProb(k) = min(pVal);
     end
     save(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'hmmE_f','pTrain_f','pVal_f','folds','hmmStates','minModelProb','Ctrain','datatype','clustType');
+    display('Done!');
 else
     display('Showing Learning results for each fold ...');
     load('data/learningResults.mat');
     for k = 1:folds,
         plotResults(pTrain_f(k,:),pVal_f(k,:),hmmE_f{k},hmmStates,k);
     end
-end
-display('Done!');
-display('Press a key to continue...');
-pause();
-
-%% Evaluate Test data
-
-[threshold,k] = min(minModelProb);
-if threshold < 0.5
-    threshold = 0.5; 
-elseif threshold > 0.8
-    threshold = 0.8; 
-end
-minModelProbs = pVal_f(k,:);
-
-display('Evaluating the final Model with the test set...');
-if ~exist('data/resProbTestSeqs.mat','file'),
-    testProbs=evaluateSequences(Ctrain,Xtest,hmmTR_f{k},hmmE_f{k});
-    plotResults(-1,testProbs,hmmE_f{k},hmmStates,k);
-    
-    hits = sum(testProbs > threshold);
-    accuracy = hits/length(testProbs);
-    
-    save('data/resProbTestSeqs.mat','testProbs','minModelProbs','threshold','accuracy','datatype','clustType');
     display('Done!');
-else
-    load('data/resProbTestSeqs.mat');
-    plotResults(-1,testProbs,hmmE_f{k},hmmStates,k);
-end
-   
-figure,
-hold on
-plot(minModelProbs);
-title('Blue: validation set of the selected fold. Red: Test set');
-plot(testProbs,'red');
-ylabel('Probability values');
-xlabel('Sequence number');
-hold off
 
-display('Done!');
+    %% Evaluate Test data
+
+    [threshold,k] = min(minModelProb);
+    if threshold < 0.5
+        threshold = 0.5; 
+    elseif threshold > 0.8
+        threshold = 0.8; 
+    end
+    minModelProbs = pVal_f(k,:);
+
+    display('Evaluating the final Model with the test set...');
+    if ~exist('data/resProbTestSeqs.mat','file'),
+        testProbs=evaluateSequences(Ctrain,Xtest,hmmTR_f{k},hmmE_f{k});
+        plotResults(-1,testProbs,hmmE_f{k},hmmStates,k);
+
+        hits = sum(testProbs > threshold);
+        accuracy = hits/length(testProbs);
+
+        save('data/resProbTestSeqs.mat','testProbs','minModelProbs','threshold','accuracy','datatype','clustType');
+        display('Done!');
+    else
+        load('data/resProbTestSeqs.mat');
+        plotResults(-1,testProbs,hmmE_f{k},hmmStates,k);
+    end
+
+    figure,
+    hold on
+    plot(minModelProbs);
+    title('Blue: validation set of the selected fold. Red: Test set');
+    plot(testProbs,'red');
+    ylabel('Probability values');
+    xlabel('Sequence number');
+    hold off
+
+    display('Done!');
+end
 
 
 

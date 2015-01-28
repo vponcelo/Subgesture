@@ -18,7 +18,7 @@ global PERCENTDATA;     % percent of learning data to consider
 global NORMTYPE;        % Normalization type 'neck' 'xyzangles'
 global MEDIANTYPE;      % Type of median models 
 global JOINTS;          % Selected joints
-global NAT;             % Natalia's descriptor
+global NAT;             % Descriptor
 
 DATATYPE = 'chalearn2014';
 NORMTYPE = 'neck';
@@ -50,9 +50,9 @@ nSampGest = 0;          % Number of samples per gesture for the test sequence
 mType = MEDIANTYPE{1};  % Type of median models to consider
 
 % classification
-folds = 5;              % k for k-fold Cross Validation
+folds = 1;              % k for k-fold Cross Validation
 clustType = 'kmlsample';% clustering method: 'kmlsample' 'kmeans' 'haca'
-numClusters = 20;       % number of clusters for discretizing
+numClusters = 100;       % number of clusters for discretizing
 numIterations = 100;    % number of iterations for discretizing
 
 % genetic temporal clustering parameters
