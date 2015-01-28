@@ -89,6 +89,7 @@ l = [];
 % profile -memory on
 params.nThreshs = 1; params.bestThs = [785 650 617 705 442 680 849 873 847 668 501 788 631 884 482 841 670 714 809 497];
 [~,S_eu,~] = g(params,Xdev{2},Ydev{2});
+params.bestThs = [];
 % profreport
 
 %% Genetic algorithm optimization
