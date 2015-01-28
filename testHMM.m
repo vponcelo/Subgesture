@@ -1,3 +1,5 @@
+function testHMM()
+
 clear all
 close all
 addPath
