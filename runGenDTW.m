@@ -57,38 +57,13 @@ display('Done!');
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
 l = [];
 [Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,nSampGest);
-% Xdev{1} = Xdev{1}(1:round(length(Xdev{1})/4),:);
-% Ydev{1}.Lfr = Ydev{1}.Lfr(1:round(length(Ydev{1}.Lfr)/4));
-% Ydev{1}.L = unique(Ydev{1}.Lfr);
-% Ydev{2}.Lfr = [Ydev{2}.Lfr(1002:1059) Ydev{2}.Lfr(280:324) ...
-%     Ydev{2}.Lfr(233:279) Ydev{2}.Lfr(756:835) Ydev{2}.Lfr(964:1001)];
-% Xdev{2} = [Xdev{2}(1002:1059,:); Xdev{2}(280:324,:); ...
-%     Xdev{2}(233:279,:); Xdev{2}(756:835,:); Xdev{2}(964:1001,:)];
-% Ydev{2}.L = unique(Ydev{2}.Lfr);
-
-% Xdev = cell(1,2); Ydev = cell(1,2); 
-% Ytrain_l = cell(1,length(Xtrain_l)-1); Yval_l = cell(1,length(Xval_l)-1);
-% for i = 1:length(Xtrain_l)-1
-%     Xtrain_l{i} = toMat(Xtrain_l{i});
-%     Ytrain_l{i}.Lfr = i*ones(1,length(Xtrain_l{i}));
-%     Xval_l{i} = toMat(Xval_l{i});
-%     Yval_l{i}.Lfr = i*ones(1,length(Xval_l{i}));
-% end
-% Xtrain_l(end) = [];
-% Xval_l(end) = [];
-% Xdev{1} = Xtrain_l; Xdev{2} = Xval_l; Ydev{1} = Ytrain_l; Ydev{2} = Yval_l;
-% Xdev{1} = toMat(Xtrain_l); Xdev{2} = toMat(Xval_l);
-% Ydev{1}.Lfr = []; Ydev{2}.Lfr = [];
-% for i = 1:20
-%     Ydev{1}.Lfr = [Ydev{1}.Lfr Ytrain_l{i}.Lfr];
-%     Ydev{2}.Lfr = [Ydev{2}.Lfr Yval_l{i}.Lfr];
-% end
 
 %% Baseline 
 % First evaluation with euclidean distance
 % profile -memory on
-params.nThreshs = 1; params.bestThs = [785 650 617 705 442 680 849 873 847 668 501 788 631 884 482 841 670 714 809 497];
+params.bestThs = [785 650 617 705 442 680 849 873 847 668 501 788 631 884 482 841 670 714 809 497];
 [~,S_eu,~] = g(params,Xdev{2},Ydev{2});
+S_eu
 params.bestThs = [];
 % profreport
 

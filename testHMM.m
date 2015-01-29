@@ -57,7 +57,7 @@ if ~exist(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'file'),
        
         %% Test number of states 
         display(sprintf('Learning the Model ...'));        
-        [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xdev{2});
+        [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xdev{2},hmmIters);
 
         %% Plot results of the model showing learning and predictive capabilities 
         plotResults(pTrain,pVal,hmmE,hmmStates,k);

@@ -51,9 +51,10 @@ mType = MEDIANTYPE{1};  % Type of median models to consider
 
 % classification
 folds = 1;              % k for k-fold Cross Validation
-clustType = 'kmlsample';% clustering method: 'kmlsample' 'kmeans' 'haca'
+clustType = 'kmeans';   % clustering method: 'kmlsample' 'kmeans' 'haca'
 numClusters = 100;       % number of clusters for discretizing
 numIterations = 100;    % number of iterations for discretizing
+hmmIters = 50000;       % number of Iterations of the HMM
 
 % genetic temporal clustering parameters
 params.versions = ...

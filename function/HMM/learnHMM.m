@@ -1,4 +1,4 @@
-function [TRANS_EST, EMIS_EST] = learnHMM(nStates,seqs)
+function [TRANS_EST, EMIS_EST] = learnHMM(nStates,seqs,hmmIters)
 %
 % Donada una sequencia 'seq' i el numero d'estats 'nStates', genera les
 % etiquetes d'estat i apren les matrius de transferencia i emissio
@@ -69,7 +69,7 @@ end
 
 % Es refina el resultat.
 %[TRANS_EST, EMIS_EST] = hmmtrain(uniformSeqs, TRANS_EST, EMIS_EST,'Maxiterations',300','Verbose',true,'Tolerance',1e-6);
-[TRANS_EST, EMIS_EST] = hmmtrain(seq, TRANS_EST, EMIS_EST,'Maxiterations',300','Verbose',false,'Tolerance',1e-6);
+[TRANS_EST, EMIS_EST] = hmmtrain(seq, TRANS_EST, EMIS_EST,'Maxiterations',hmmIters','Verbose',false,'Tolerance',1e-6);
 
 end
 

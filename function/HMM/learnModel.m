@@ -1,4 +1,4 @@
-function [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xval)
+function [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xval,hmmIters)
 
 % Output:
 %   pTrain: estimated probabilities of each training sample
@@ -17,7 +17,7 @@ function [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xv
 
 % for s=1:3,
     hmmStates = 3;
-    [hmmTR, hmmE]=learnHMM(hmmStates,Dtrain);
+    [hmmTR, hmmE]=learnHMM(hmmStates,Dtrain,hmmIters);
     pTrain = evaluateSequences(Ctrain,Xtrain,hmmTR,hmmE);
     pVal = evaluateSequences(Ctrain,Xval,hmmTR,hmmE);   
 % end
