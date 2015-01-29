@@ -12,7 +12,9 @@ if nargin == 0
 end
 params.scoreMeasure = measure;  % Score Measure: 'overlap' or 'levenshtein'
 clear CACHE S BASELINE OPTIONS STATE;
-
+NAT = 3;
+NORMTYPE = 'none';
+COORDS = 'world';
 
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
@@ -56,9 +58,10 @@ if ~exist(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'file'),
         Dtrain = discretizeData(Ctrain,Xtrain);
        
         %% Test number of states 
-        display(sprintf('Learning the Model ...'));        
+        display(sprintf('Learning the Model ...'));
         [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xdev{2},hmmIters);
-
+        display(sprintf('Model learnt'));
+        
         %% Plot results of the model showing learning and predictive capabilities 
         plotResults(pTrain,pVal,hmmE,hmmStates,k);
 
@@ -69,7 +72,8 @@ if ~exist(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'file'),
         pVal_f(k,:) = pVal;
         minModelProb(k) = min(pVal);
     end
-    save(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'hmmE_f','pTrain_f','pVal_f','folds','hmmStates','minModelProb','Ctrain','datatype','clustType');
+    display(sprintf('Saving results ...'));
+    save(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'hmmE_f','pTrain_f','pVal_f','folds','hmmStates','minModelProb','Ctrain','clustType');
     display('Done!');
 else
     display('Showing Learning results for each fold ...');
@@ -97,7 +101,7 @@ else
         hits = sum(testProbs > threshold);
         accuracy = hits/length(testProbs);
 
-        save('data/resProbTestSeqs.mat','testProbs','minModelProbs','threshold','accuracy','datatype','clustType');
+        save('data/resProbTestSeqs.mat','testProbs','minModelProbs','threshold','accuracy','clustType');
         display('Done!');
     else
         load('data/resProbTestSeqs.mat');

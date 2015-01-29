@@ -11,7 +11,7 @@ global DATATYPE;
 % Output:
 %   Ctrain: training data clusters
 
-if ~exist(strcat('results/',DATATYPE,'/clustering/clusters.mat'),'file'),
+%if ~exist(strcat('results/',DATATYPE,'/clustering/clusters.mat'),'file'),
     display('Clustering data...');
 
     if numClusters == 0,
@@ -40,9 +40,9 @@ if ~exist(strcat('results/',DATATYPE,'/clustering/clusters.mat'),'file'),
             doHaca(X,Y);
     end
     
-    save(strcat('results/',DATATYPE,'/clustering/clusters.mat'),'Ctrain');
+    %save(strcat('results/',DATATYPE,'/clustering/clusters.mat'),'Ctrain');
 
     display('Done!');
-else
-    load(strcat('results/',DATATYPE,'/clustering/clusters.mat'));
-end
+%else
+    %load(strcat('results/',DATATYPE,'/clustering/clusters.mat'));
+%end
