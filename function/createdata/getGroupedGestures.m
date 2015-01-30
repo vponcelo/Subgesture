@@ -8,8 +8,6 @@ function XLearn_l = getGroupedGestures(X,Y,datapart)
 %   datapart: partition of the data to consider: 0: all , 1: only training,
 %       2: only validation
 
-display('Obtaining gestures grouped by gesture class...');
-
 if length(Y) > 1
     switch datapart
         case 0
@@ -40,4 +38,3 @@ for i = 1:length(XLearn_l)
         XLearn_l{i}{j} = X{k}(Y{k}.seg(idxLval(j)):Y{k}.seg(idxLval(j)+1)-1,:);        
     end
 end
-display('Done!');

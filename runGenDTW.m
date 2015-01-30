@@ -26,7 +26,7 @@ end
 % pause();
 
 %% Compute initial segmentation from motion
-% [seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
+[seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
 % [~,~,Xtrain,I,~,segTrain,~] = getDataSegments(X,Y,params.N,params.k0,params.nmin,params.nmax);
 
 %% Prepare training data depending on the chosen option and parameters
@@ -41,26 +41,17 @@ NAT = 3;
 % display('Press a key to continue...');
 % pause();
 
-%% Obtain all samples grouped (labeled) by gestures
+%% Obtain all samples grouped by gestures
 Xtrain_l = getGroupedGestures(X,Y,1);
 % Xval_l = getGroupedGestures(X,Y,2);
 %Xtrain_l = getGroupedGestures(X,Y,0);
 
-%% Compute median models from training/learning data
+%% Get median models from training/learning data
+fprintf('Computing mean gesture Models from training for the m=%d distinct gestures ...\n',length(Xtrain_l)-1);
 % profile -memory on
-if strcmp(mType,'directMSM')
-    % Median Subgesture Models
-    for ng = 1:length(Xtrain_l)-1
-        [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Xtrain_l{ng},[]);
-        [~,kV] = min(mErrsV);
-        params.MSM{ng} = Z{kV}{timeV};        
-    end
-    params.M = getMedianModels(params.MSM,length(params.MSM),mType,false);
-elseif strcmp(mType,'direct')
-    % Median Models
-    params.M = getMedianModels(Xtrain_l,length(Xtrain_l)-1,mType,false);
-end
+params.M = getMedianModels(Xtrain_l,length(Xtrain_l)-1,mType,false);
 % profreport
+display('Done!');
 
 %% Generate development sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
@@ -78,10 +69,10 @@ params.bestThs = [];
 
 %% Genetic algorithm optimization
 % Evaluation function
-if strcmp(params.scoreMeasure,'overlap')    % CHECK X{1} y Xdev{1}
-    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Xtrain_l,Ydev{1},Xdev{2},Ydev{2},params);    
+if strcmp(params.scoreMeasure,'overlap')
+    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Ydev{1},Xdev{2},Ydev{2},params);    
 elseif strcmp(params.scoreMeasure,'levenshtein')
-    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Xtrain_l,Ydev{1},Xdev{2},Ydev{2},params);
+    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Ydev{1},Xdev{2},Ydev{2},params);
 end
 
 % Display functions
@@ -90,7 +81,7 @@ fPlotSI = @(options,state,flag)plotScoresPopul(options,state,flag,params);
 fPlotSG = @(options,state,flag)plotScoreSegs(options,state,flag,params);
 
 % Create function
-fCreate = @(GenomeLength,FitnessFcn,options)createIniPopul(GenomeLength,FitnessFcn,options,X{1},params);
+fCreate = @(GenomeLength,FitnessFcn,options)createIniPopul(GenomeLength,FitnessFcn,options,X{1},params,seg0,fr_fixed);
 
 % Mutation function
 fMutation = @(parents,options,nvars,FitnessFcn,state,thisScore,...

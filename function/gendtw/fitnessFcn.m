@@ -1,4 +1,4 @@
-function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
+function s = fitnessFcn(I,Xtrain,XtrainT,Ytrain,Xval,Yval,params)
     % Validate the data sequences by means of either k-means-DTW and mean DTW models.
 
     % output:
@@ -6,8 +6,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
     % input:
     %   I: Individual for the genetic algorithm
     %   Xtrain: training data
-    %   Xtrain_l: training data grouped (labeled) by classes (gestures)
-    %   XtrainT: the training data sequence for testing    
+    %   XtrainT: a training data sequence for testing
     %   Xval: validation data
     %   Ytrain: training data labels
     %   Yval: validation data labels
@@ -53,48 +52,22 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
     
     idx = exists==0 & valid==1;
     [I2,k,seg] = decode(I2(idx,:),params);
-    %cd('results/temp/');
-    %save('temp.mat','seg','Xtrain','XtrainT','Ytrain','params','k');
     if length(idx) > 1
         sc = zeros(1,length(k));
         preds = cell(1,length(k));
         model = cell(1,length(k));
 %         tic;
-        % 1) Llençar length(k) processos. 
-        %   Cada procés crida a la funció d'avaluació per aquella k i seg, 
-        %   i guarda un fitxer en un directori amb el model entrenat, sc, 
-        %   pred avaluades
-        % 2) fer un for de length(k) llegint els processos i guardant les dades en les estructures model{i}, sc(i), preds{i}
-        % 3) Buidar memòria esborrant els fitxers del directori del parfor
-%         f = zeros(1,length(k));
-%         for i = 1:length(k)
-%             cmd = sprintf('#!/bin/bash\nqsub -t %i -q short.q -l mem=2G subgesture_eval.sh',i);
-%             f(i) = system(cmd);
-%         end
-%         for i = 1:length(k)
-%             waitfor(f(i));
-%             if exist(strcat('eval',num2str(i),'.mat'),'file')
-%                 load(strcat('eval',num2str(i),'.mat'));
-%                 delete(strcat('eval',num2str(i),'.mat'));
-%             else
-%                 error('fitnessFcn:FileNotFound','File for the evaluation not found');
-%             end            
-%             model{i} = m; sc(i) = sco; preds{i} = predic; 
-%             clear m sco predic;            
-%         end
-%         if exist('temp.mat','file'), delete('temp.mat'); end;
         parfor i = 1:length(k)            
             if iscell(seg)
                 segA = seg{i};
             else
-                segA = reshape(seg(i,:,:),size(seg,2),size(seg,3));
-            end            
-            [~,model{i}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k(i),segA);
+                segA = reshape(seg(i,:,:),size(seg,2),size(seg,3));                
+            end
+            [~,model{i}] = evalFit(Xtrain,XtrainT,Ytrain,params,k(i),segA);
             display('Validating the model ...');
             [~,sc(i),preds{i}] = g(model{i},Xval,Yval);
             display('Done!');
         end
-        
 %         toc;
         s2(idx) = sc;
         predictions(idx) = preds;
@@ -104,9 +77,9 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
         model = cell(1);
 %         tic;
         if iscell(seg)
-            [~,model{1}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg));            
+            [~,model{1}] = evalFit(Xtrain,XtrainT,Ytrain,params,k,cell2mat(seg));            
         else
-            [~,model{1}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)));
+            [~,model{1}] = evalFit(Xtrain,XtrainT,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)));
         end
         [~,s2,predictions{1}] = g(model{1},Xval,Yval);
 %         toc;
@@ -326,9 +299,8 @@ function [exists,s] = getCacheVal(I,params)
     end
 end
 
-function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
+function [s,model] = evalFit(Xtrain,XtrainT,Ytrain,params,k,seg)
 % Output:
-%   s: scores
 %   model: model structure
 %      SM: Subgesture models (centroid sequences) for the k gestures
 %      C: cluster indices for each sample
@@ -344,10 +316,11 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
     if isempty(params.D)
         %% Temporal Clustering
         % Obtain subsets using the k-means DTW algorithm    
+        v = char(params.versions);
         if any(k > size(seg,2))
             error('fitnessFcn:k','k cannot be greater than the number of segments');
         end
-        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,k,'dtwCost',k,[],[],[],Ytrain,[],X_I,[]);    
+        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(v,k,'dtwCost',k,[],[],[],Ytrain,[],X_I,[]);    
 
         %% Get clustered training/learning data structures     
         [~,kV] = min(mErrsV);
@@ -383,19 +356,7 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
         end
     end
     toc;
-    
-    %% Compute Median SubGesture Models for each gesture
-    if params.msm
-        display('Computing Median Subgseture Models for each gesture...');
-        for g = 1:length(model.M)
-            [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Xtrain_l{g},[]);
-            [~,kV] = min(mErrsV);
-            model.MSM{g} = Z{kV}{timeV};
-        end
-        model.M = getMedianModels(model.MSM,length(model.MSM),'direct',false);
-        display('Done!');
-    end
-    
+
     %% Test the subsequence model
     model.bestThs = params.bestThs;
     model.nThreshs = params.nThreshs;

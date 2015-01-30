@@ -11,8 +11,6 @@ global COORDS;
 global BASELINE;
 global JOINTS;
 
-display('Computing magnitudes from first (velocity) and second derivatives (acceleration and trajectory changes)');
-
 if strcmp(COORDS,'world');
     ncoords = 3;
 elseif strcmp(COORDS,'pixel')
@@ -110,5 +108,3 @@ end
 if strcmp(COORDS,'pixel') && params.drawMovSkels
     drawAllSkels(X,segs,Xgrad(:,end),Xhess(:,end-1),Xhess(:,end))
 end
-
-display('Done!');

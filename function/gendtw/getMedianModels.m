@@ -1,5 +1,5 @@
 function m_dtw = getMedianModels(X,k,medianType,gmm)
-% Get the refrence models from K-Means DTW
+% Get the refrence models from GMM-DTW
 % 
 % Input:
 %   X: data sequences
@@ -16,8 +16,6 @@ if strcmp(medianType,'DCSR')
     W_ini = cell(1,k); 
 end
 
-display(sprintf('Computing mean gesture Models from training for the m=%d distinct gestures ...\n',k));
-
 % Compute the warping costs W for all possible combinations without repetition
 for i = 1:k  
     if strcmp(medianType,'KNN')
@@ -27,7 +25,7 @@ for i = 1:k
         else
             [m_dtw{i},~] = kmeansDTW(X{i},3,'v2_0_0','dtwCost',[]);
         end
-    elseif strcmp(medianType,'direct') || strcmp(medianType,'directMSM')
+    elseif strcmp(medianType,'direct')
         m_dtw{i} = cell(1,length(X{i}));
         if isempty(m_dtw{i})
             m_dtw{i} = [];
@@ -124,5 +122,3 @@ for i = 1:k
 %         end 
     end
 end
-
-display('Done!');
