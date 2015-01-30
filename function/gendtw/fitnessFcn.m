@@ -387,10 +387,10 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
     %% Compute Median SubGesture Models for each gesture
     if params.msm
         display('Computing Median Subgseture Models for each gesture...');
-        for g = 1:length(model.M)
-            [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Xtrain_l{g},[]);
+        for ng = 1:length(model.M)
+            [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Xtrain_l{ng},[]);
             [~,kV] = min(mErrsV);
-            model.MSM{g} = Z{kV}{timeV};
+            model.MSM{ng} = Z{kV}{timeV};
         end
         model.M = getMedianModels(model.MSM,length(model.MSM),'direct',false);
         display('Done!');
