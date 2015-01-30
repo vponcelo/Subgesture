@@ -35,7 +35,7 @@ BASELINE = {'random','deriv','fixed'};
 STATE = [];
 OPTIONS = [];
 PERCENTDATA = 100;
-MEDIANTYPE = {'direct','KNN','DCSR'};
+MEDIANTYPE = {'direct','directMSM','KNN','DCSR'};
 JOINTS = [4 6 7 8 10 11 12];%1:20;%  %[8,12] hands
 NAT = 0;
 
@@ -47,7 +47,7 @@ sampling = SAMPLING{2}; % sampling type: 'random' 'label' 'segments'
 noise = false;          % flag indicating whether or not consider noise (iddle gesture) for the test sequence
 secsBatch = 60;         % reference seconds for the test sequence
 nSampGest = 0;          % Number of samples per gesture for the test sequence   
-mType = MEDIANTYPE{1};  % Type of median models to consider
+mType = MEDIANTYPE{2};  % Type of median models to consider
 
 % classification
 folds = 1;              % k for k-fold Cross Validation
@@ -57,8 +57,8 @@ numIterations = 100;    % number of iterations for discretizing
 hmmIters = 50000;       % number of Iterations of the HMM
 
 % genetic temporal clustering parameters
-params.versions = ...
-    {KMEANSDTWv{5}};        % versions of the k-means DTW algorithm to execute';
+params.version = ...
+    char(KMEANSDTWv{5});        % versions of the k-means DTW algorithm to execute';
 params.dist = DISTANCES{1}; % distance metric
 params.k0 = 3;              % initial data clusters for subgesturing
 params.nmin = 5;            % minimum subsequence width
@@ -80,10 +80,11 @@ params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
+params.msm = false;         % use Median Subgesture Models in the evolutive process instead of Median Models
 if strcmp(mType,'KNN')
 	params.k = 3;
 else
-	params.k = 0;           % current k to evaluate for the K-Nearest Neighbour models
+	params.k = 0;           % current k to evaluate for the K-Nearest Neighbour DTW models
 end
 CACHE.ind = int32(zeros(... % Cache with the populations
     params.population*100,params.N*2+1,'int32'));
