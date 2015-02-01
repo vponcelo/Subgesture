@@ -35,7 +35,7 @@ BASELINE = {'random','deriv','fixed'};
 STATE = [];
 OPTIONS = [];
 PERCENTDATA = 100;
-MEDIANTYPE = {'direct','directMSM','KNN','DCSR'};
+MEDIANTYPE = {'direct','directMSM1','directMSM2','KNN','DCSR'};
 JOINTS = [4 6 7 8 10 11 12];%1:20;%  %[8,12] hands
 NAT = 0;
 
@@ -47,7 +47,6 @@ sampling = SAMPLING{2}; % sampling type: 'random' 'label' 'segments'
 noise = false;          % flag indicating whether or not consider noise (iddle gesture) for the test sequence
 secsBatch = 60;         % reference seconds for the test sequence
 nSampGest = 0;          % Number of samples per gesture for the test sequence   
-mType = MEDIANTYPE{2};  % Type of median models to consider
 
 % classification
 folds = 1;              % k for k-fold Cross Validation
@@ -81,7 +80,8 @@ params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
 params.msm = false;         % use Median Subgesture Models in the evolutive process instead of Median Models
-if strcmp(mType,'KNN')
+params.mType = MEDIANTYPE{3};  % Type of median models to consider
+if strcmp(params.mType,'KNN')
 	params.k = 3;
 else
 	params.k = 0;           % current k to evaluate for the K-Nearest Neighbour DTW models

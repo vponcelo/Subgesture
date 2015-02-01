@@ -27,7 +27,44 @@ for i = 1:k
         else
             [m_dtw{i},~] = kmeansDTW(X{i},3,'v2_0_0','dtwCost',[]);
         end
-    elseif strcmp(medianType,'direct') || strcmp(medianType,'directMSM')
+    elseif strcmp(medianType,'DCSR')
+        % compute the warping costs W among all disctinct combinations
+        % without repetition, then compute the warping costs to the
+        % mean warped sequence.
+        idxW = 1;
+        W_ini{i} = cell(1,factorial(length(X{i}))/(factorial(2)*factorial(length(X{i})-2)));
+        for j = 1:length(X{i})
+            for k = 1:length(X{i})
+                if j < k
+                    D = dtwc(X{i}{j},ptr,1);
+                    idxW = idxW + 1;
+                end
+            end
+        end
+        slengths = zeros(1,length(W_ini{i}));        
+        for j = 1:length(W_ini{i})
+            slengths(j) = size(W_ini{i}{j},1);
+        end        
+        if mod(length(slengths),2) == 0
+            meanLength = mean(slengths);
+            dists2mean = abs(slengths-meanLength);
+            [~,idx] = min(dists2mean);
+        else
+            medianLength = median(slengths);
+            idx = slengths == medianLength;
+        end 
+        m_dtw = W_ini;
+        % At this point a normalization and a dimensionality reduction
+        % technique is required for all W_ini having the same dimensionality
+        ptr = W_ini{i}{idx}; 
+        for j = 1:length(W{i})
+            if j ~= idx
+                [~,~,~,W]=DTWstartenddetection(W_ini{i}{j},ptr,0,'euclidean',1);                             
+            else
+                W = ptr;
+            end                    
+        end 
+    else
         m_dtw{i} = cell(1,length(X{i}));
         if isempty(m_dtw{i})
             m_dtw{i} = [];
@@ -85,43 +122,6 @@ for i = 1:k
                 m_dtw{i} = reshape(mean(GMMs),[size(GMMs,2) size(GMMs,3)]);
             end
         end
-%     elseif strcmp(medianType,'DCSR')
-%         % compute the warping costs W among all disctinct combinations
-%         % without repetition, then compute the warping costs to the
-%         % mean warped sequence.
-%         idxW = 1;
-%         W_ini{i} = cell(1,factorial(length(X{i}))/(factorial(2)*factorial(length(X{i})-2)));
-%         for j = 1:length(X{i})
-%             for k = 1:length(X{i})
-%                 if j < k
-%                     D = dtwc(X{i}{j},ptr,1);
-%                     idxW = idxW + 1;
-%                 end
-%             end
-%         end
-%         slengths = zeros(1,length(W_ini{i}));        
-%         for j = 1:length(W_ini{i})
-%             slengths(j) = size(W_ini{i}{j},1);
-%         end        
-%         if mod(length(slengths),2) == 0
-%             meanLength = mean(slengths);
-%             dists2mean = abs(slengths-meanLength);
-%             [~,idx] = min(dists2mean);
-%         else
-%             medianLength = median(slengths);
-%             idx = slengths == medianLength;
-%         end 
-%         m_dtw = W_ini;
-%         % At this point a normalization and a dimensionality reduction
-%         % technique is required for all W_ini having the same dimensionality
-%         ptr = W_ini{i}{idx}; 
-%         for j = 1:length(W{i})
-%             if j ~= idx
-%                 [~,~,~,W]=DTWstartenddetection(W_ini{i}{j},ptr,0,'euclidean',1);                             
-%             else
-%                 W = ptr;
-%             end                    
-%         end 
     end
 end
 
