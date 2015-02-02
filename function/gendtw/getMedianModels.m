@@ -16,7 +16,7 @@ if strcmp(medianType,'DCSR')
     W_ini = cell(1,k); 
 end
 
-display(sprintf('Computing mean gesture Models from training for the m=%d distinct gestures ...\n',k));
+display(sprintf('Computing mean gesture Models from training for the m=%d distinct gestures ...',k));
 
 % Compute the warping costs W for all possible combinations without repetition
 for i = 1:k  

@@ -41,8 +41,8 @@ for k = k0:1:kf
         end
     end
 
-    fprintf(sprintf('Obtaining data clusters using k=%d ...\n',k));
-    tic;
+%     fprintf(sprintf('Obtaining data clusters using k=%d ...\n',k));
+%     tic;
     if ~isempty(Xval_k)
         [Z{k-k0+1},CsTrain{k-k0+1},CsVal{k-k0+1},timeT(k-k0+1),...
             timeV(k-k0+1),mErrsT(k-k0+1),mErrsV(k-k0+1)] = ...
@@ -52,6 +52,6 @@ for k = k0:1:kf
             ~,mErrsT(k-k0+1),~] = ...
             clusterSeqs(Xtrain_k,[],k,dist,labelsT,[],version);
     end
-    toc;    
+%     toc;    
 end
 

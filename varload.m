@@ -63,7 +63,7 @@ params.k0 = 3;              % initial data clusters for subgesturing
 params.nmin = 5;            % minimum subsequence width
 params.nmax = 25;           % maximum subsequence width
 params.N = 500;             % Number of segments to split the learning sequence
-params.N0 = 10;             % Number of segments to split the model sequences
+params.N0 = 5;             % Number of segments to split the model sequences
 params.nThreshs = 100;      % Number of thresholds for testing
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
@@ -80,7 +80,7 @@ params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
-params.msm = false;         % use Median Subgesture Models in the evolutive process instead of Median Models
+params.msm = true;         % use Median Subgesture Models in the evolutive process instead of Median Models
 params.mType = MEDIANTYPE{3};  % Type of median models to consider
 if strcmp(params.mType,'KNN')
 	params.k = 3;

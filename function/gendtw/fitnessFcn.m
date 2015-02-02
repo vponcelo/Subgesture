@@ -377,40 +377,45 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
             % Median Models to Median Subgesture Models
             for ng = 1:length(params.M)
                 Msegs = cell(1,params.N0);
-                idx = 1; fseg = round(length(params.M{ng})/params.N0); % fixed segmentation
-                for nsgs = 1:length(Msegs)
-                    if nsgs < length(Msegs)
-                        Msegs{nsgs} = params.M{ng}(idx:nsgs*fseg);
+                idx = 1; fseg = round(size(params.M{ng},1)/params.N0); % fixed segmentation
+                for nsgs = 1:params.N0
+                    if nsgs < params.N0
+                        Msegs{nsgs} = params.M{ng}(idx:nsgs*fseg,:);
                     else
-                        Msegs{nsgs} = params.M{ng}(idx:end);
+                        Msegs{nsgs} = params.M{ng}(idx:end,:);
                     end
                     idx = nsgs*fseg + 1;
                 end
                 [~,~,mErrsV,~,timeV,~,MSM] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Msegs,[]);
                 [~,kV] = min(mErrsV);
-                model.M{ng} = MSM{kV}{timeV};        
+                emptyCells = cellfun(@isempty,MSM{kV}{timeV});
+                MSM{kV}{timeV}(emptyCells) = [];
+                model.M{ng} = MSM{kV}{timeV}{end};
             end    
         elseif strcmp(params.mType,'directMSM2')
             % Gesture samples to Median Subgesture Models
+            MSM = cell(1,length(params.M));
             for ng = 1:length(params.M)
-                MSM = cell(1,length(Xtrain_l{ng}));
+                MSM{ng} = cell(1,length(Xtrain_l{ng}));
                 for ns = 1:length(Xtrain_l{ng})
                     XngSegs = cell(1,params.N0);
-                    idx = 1; fseg = round(length(Xtrain_l{ng}{ns})/params.N0); % fixed segmentation
-                    for nsgs = 1:length(Xtrain_l{ng}{ns})
-                        if nsgs < length(XngSegs)
-                            XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:nsgs*fseg);
+                    idx = 1; fseg = round(size(Xtrain_l{ng}{ns},1)/params.N0); % fixed segmentation
+                    for nsgs = 1:params.N0
+                        if nsgs < params.N0
+                            XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:nsgs*fseg,:);
                         else
-                            XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:end);
+                            XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:end,:);
                         end
                         idx = nsgs*fseg + 1;
                     end
                     [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],XngSegs,[]);
                     [~,kV] = min(mErrsV);
-                    MSM{ns} = Z{kV}{timeV};        
-                end
-                model.M{ng} = getMedianModels(params.MSM,length(params.MSM),params.mType,false);
-            end            
+                    emptyCells = cellfun(@isempty,Z{kV}{timeV});
+                    Z{kV}{timeV}(emptyCells) = [];
+                    MSM{ng}{ns} = Z{kV}{timeV}{end};
+                end                
+            end
+            model.M = getMedianModels(MSM,length(MSM),params.mType,false);
         end
         display('Done!');
     else
