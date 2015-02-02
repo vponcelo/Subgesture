@@ -21,12 +21,12 @@ end
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
-% [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
+[X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % display('Press a key to continue...');
 % pause();
 
 %% Compute initial segmentation from motion
-% [seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
+[seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
 % [~,~,Xtrain,I,~,segTrain,~] = getDataSegments(X,Y,params.N,params.k0,params.nmin,params.nmax);
 
 %% Prepare training data depending on the chosen option and parameters
@@ -50,23 +50,6 @@ Xtrain_l = getGroupedGestures(X,Y,1);
 % profile -memory on
 params.M = getMedianModels(Xtrain_l,length(Xtrain_l)-1,params.mType,false);
 % profreport
- 
-% if strcmp(mType,'directMSM1')
-%     % Median Subgesture Models
-%     params.M = getMedianModels(Xtrain_l,length(Xtrain_l)-1,mType,false);
-%     for ng = 1:length(params.M)
-%         [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],params.M{ng},[]);
-%         [~,kV] = min(mErrsV);
-%         params.MSM{ng} = Z{kV}{timeV};        
-%     end    
-% elseif strcmp(mType,'directMSM2')
-%     for ng = 1:length(Xtrain_l)-1
-%         [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Xtrain_l{ng},[]);
-%         [~,kV] = min(mErrsV);
-%         params.MSM{ng} = Z{kV}{timeV};        
-%     end
-%     params.M = getMedianModels(params.MSM,length(params.MSM),mType,false);
-% end
 
 %% Generate development sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);

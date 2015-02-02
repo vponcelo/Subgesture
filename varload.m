@@ -63,6 +63,7 @@ params.k0 = 3;              % initial data clusters for subgesturing
 params.nmin = 5;            % minimum subsequence width
 params.nmax = 25;           % maximum subsequence width
 params.N = 500;             % Number of segments to split the learning sequence
+params.N0 = 10;             % Number of segments to split the model sequences
 params.nThreshs = 100;      % Number of thresholds for testing
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training

@@ -370,41 +370,65 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
         model.KM = params.KM;
     end
             
-    %% Compte costs for gesture Models M with respect to the Subgesture Models model.SM
-    model.M = params.M;
-    model.KM = cell(1,length(params.M));
-    display('Computing the costs of the gesture models in terms of SM ...');
-    tic;
-    for i = 1:length(model.KM)
-        if params.k > 0
-            model.KM{i} = getUpdatedCosts(params.M{i}{params.k},model.SM);
-        else
-            model.KM{i} = getUpdatedCosts(params.M{i},model.SM);
-        end
-    end
-    toc;
-    
-    %% Compute Median SubGesture Models for each gesture
+    %% Compute Median (SubGesture) Models for each gesture 
     if params.msm
         display('Computing Median Subgseture Models for each gesture...');
         if strcmp(params.mType,'directMSM1')
-            % Median Subgesture Models
-            params.M = getMedianModels(Xtrain_l,length(Xtrain_l)-1,mType,false);
+            % Median Models to Median Subgesture Models
             for ng = 1:length(params.M)
-                [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],params.M{ng},[]);
+                Msegs = cell(1,params.N0);
+                idx = 1; fseg = round(length(params.M{ng})/params.N0); % fixed segmentation
+                for nsgs = 1:length(Msegs)
+                    if nsgs < length(Msegs)
+                        Msegs{nsgs} = params.M{ng}(idx:nsgs*fseg);
+                    else
+                        Msegs{nsgs} = params.M{ng}(idx:end);
+                    end
+                    idx = nsgs*fseg + 1;
+                end
+                [~,~,mErrsV,~,timeV,~,MSM] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Msegs,[]);
                 [~,kV] = min(mErrsV);
-                model.M{ng} = Z{kV}{timeV};
+                model.M{ng} = MSM{kV}{timeV};        
             end    
-        else
-            for ng = 1:length(model.M)
-                [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Xtrain_l{ng},[]);
-                [~,kV] = min(mErrsV);
-                model.MSM{ng} = Z{kV}{timeV};
-            end
-            model.M = getMedianModels(model.MSM,length(model.MSM),'direct',false);
+        elseif strcmp(params.mType,'directMSM2')
+            % Gesture samples to Median Subgesture Models
+            for ng = 1:length(params.M)
+                MSM = cell(1,length(Xtrain_l{ng}));
+                for ns = 1:length(Xtrain_l{ng})
+                    XngSegs = cell(1,params.N0);
+                    idx = 1; fseg = round(length(Xtrain_l{ng}{ns})/params.N0); % fixed segmentation
+                    for nsgs = 1:length(Xtrain_l{ng}{ns})
+                        if nsgs < length(XngSegs)
+                            XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:nsgs*fseg);
+                        else
+                            XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:end);
+                        end
+                        idx = nsgs*fseg + 1;
+                    end
+                    [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],XngSegs,[]);
+                    [~,kV] = min(mErrsV);
+                    MSM{ns} = Z{kV}{timeV};        
+                end
+                model.M{ng} = getMedianModels(params.MSM,length(params.MSM),params.mType,false);
+            end            
         end
         display('Done!');
+    else
+        model.M = params.M;
     end
+    
+    %% Compte costs of representing Median (Subgesture) Models 'M' in terms of Subgesture Models 'SM'
+    model.KM = cell(1,length(model.M));
+    display('Computing the costs of the models M in terms of SM ...');
+    tic;
+    for i = 1:length(model.KM)
+        if params.k > 0
+            model.KM{i} = getUpdatedCosts(model.M{i}{params.k},model.SM);
+        else
+            model.KM{i} = getUpdatedCosts(model.M{i},model.SM);
+        end
+    end
+    toc;
     
     %% Test the subsequence model
     model.bestThs = params.bestThs;

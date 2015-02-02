@@ -12,7 +12,7 @@ function [Z,C] = kmeansDTW(X,k,version,distance,labelsT,maxIter)
 %           'v1_2': Path sum of minimum costs (1); k median sequences of sorted sequences (2)
 %           'v1_3': Path sum of minimum costs (1); k median sequences of labeled gesture sequences (3) 
 %           'v2_0_0': mean sequence alignment (2); random init (0);
-%           Centroid CM (0) - NOT WORKING AT ALL: It remains to deal with empty centroids
+%           Centroid CM (0) -
 %           'v2_0_1': mean sequence alignment (2); random init (0); Centroid closest sequence to CM (1)
 %           'v2_1_0': mean sequence alignment (2); median sequences of each sorted k groups (1); Centroid CM (0)
 %           'v2_1_1': mean sequence alignment (2); median sequences of each sorted k groups (1); Centroid closest sequence to CM (1)
