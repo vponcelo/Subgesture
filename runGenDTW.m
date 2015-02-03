@@ -48,7 +48,7 @@ Xtrain_l = getGroupedGestures(X,Y,1);
 
 %% Compute median models from training/learning data
 % profile -memory on
-params.M = getMedianModels(Xtrain_l,length(Xtrain_l)-1,params.mType,false);
+params.M = getMedianModels(Xtrain_l,length(Xtrain_l)-1,params.mType,false,params.usemax_l);
 % profreport
 
 %% Generate development sequences
