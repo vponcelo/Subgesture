@@ -1,4 +1,4 @@
-function m_dtw = getMedianModels(X,k,medianType,gmm)
+function m_dtw = getMedianModels(X,k,medianType,gmm,usemax_l)
 % Get the refrence models from K-Means DTW
 % 
 % Input:
@@ -44,7 +44,8 @@ for i = 1:k
         slengths = zeros(1,length(W_ini{i}));        
         for j = 1:length(W_ini{i})
             slengths(j) = size(W_ini{i}{j},1);
-        end        
+        end
+        if ~usemax_l,
         if mod(length(slengths),2) == 0
             meanLength = mean(slengths);
             dists2mean = abs(slengths-meanLength);
@@ -53,6 +54,9 @@ for i = 1:k
             medianLength = median(slengths);
             idx = slengths == medianLength;
         end 
+        else
+            [~,idx]=max(slengths);
+        end
         m_dtw = W_ini;
         % At this point a normalization and a dimensionality reduction
         % technique is required for all W_ini having the same dimensionality
