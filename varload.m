@@ -84,6 +84,7 @@ params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
 params.msmType = MSM{2};    % Type of Median Subgesture Models in the evolutive process 
 params.mType = MEDIANTYPE{3};  % Type of median models to consider
+params.usemax_l = true;        % use the median or the max-length gesture as reference
 if strcmp(params.mType,'KNN')
 	params.k = 3;
 else
