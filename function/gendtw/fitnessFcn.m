@@ -13,6 +13,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
     %   Yval: validation data labels
     %   params: struct with the required parameters to construct the model
     %      N: Number of segments to split the training sequence
+    %      N0: Number of segments to split the model sequence
     %      nmin: minimum subsequence width
     %      nmax: maximum sequence width
     %      versions: string with the versions of the kmeans DTW algorithm
@@ -52,7 +53,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
     clear s;
     
     idx = exists==0 & valid==1;
-    [I2,k,seg] = decode(I2(idx,:),params);
+    [I2,k,seg,mk,mnsegs] = decode(I2(idx,:),params);
     %cd('results/temp/');
     %save('temp.mat','seg','Xtrain','XtrainT','Ytrain','params','k');
     if length(idx) > 1
@@ -89,7 +90,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
             else
                 segA = reshape(seg(i,:,:),size(seg,2),size(seg,3));
             end            
-            [~,model{i}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k(i),segA);
+            [~,model{i}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k(i),segA,mnsegs(i),mk(i));
             display('Validating the model ...');
             [~,sc(i),preds{i}] = g(model{i},Xval,Yval);
             display('Done!');
@@ -104,9 +105,9 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
         model = cell(1);
 %         tic;
         if iscell(seg)
-            [~,model{1}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg));            
+            [~,model{1}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg),mnsegs,mk);            
         else
-            [~,model{1}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)));
+            [~,model{1}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
         end
         [~,s2,predictions{1}] = g(model{1},Xval,Yval);
 %         toc;
@@ -173,32 +174,42 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
     PREDICTIONS = preds{bestPos};
 end
 
-function [I2,k,seg] = decode(I,params)
+function [I2,k,seg,mk,mnsegs] = decode(I,params)
     k = round(I(:,1));
     I2 = zeros(size(I));
-    I2(:,1) = k(:);
+    I2(:,1) = k(:);     % get k
     if params.probSeg > 0
         seg = cell(1,size(I,1));
     end
     for i = 1:size(I,1)
-        Iseg = round(I(i,2:end));
-        I2(i,2:end) = Iseg;
-        Iseg = Iseg(Iseg < inf);
+        Iseg = round(I(i,2:params.N*2+1));
+        I2(i,2:params.N*2+1) = Iseg;
+        Iseg = Iseg(Iseg < inf);    % choose non-infinity segments
         if params.probSeg > 0
             seg{i} = round(reshape(Iseg,[2 size(Iseg,2)/2]));        
         end
     end
     if params.probSeg == 0
-        seg = round(reshape(I(:,2:end),[size(I,1) 2 (size(I,2)-1)/2]));
+        seg = round(reshape(I(:,2:params.N*2+1),[size(I,1) 2 (params.N*2)/2]));
+    end
+    
+    mnsegs = []; mk = [];
+    % get model segments and k
+    if strcmp(params.msmType,'fix')
+        mnsegs = I(:,end-1);
+        mk = I(:,end);
+        I2(:,end-1) = mnsegs;
+        I2(:,end) = mk;
     end
 end
 
 function [valid,err] = validateI(I,params,maxSeg,X)
     global BASELINE;
-    [I2,k,seg] = decode(I,params);
+    [I2,k,seg,mk,mnsegs] = decode(I,params);
     valid = ones(1,length(k)); 
     
-    nsegs = sum(transpose(I2 < inf));
+    %% check k for subgestures
+    nsegs = sum(transpose(I2(:,2:params.N*2+1) < inf));
     nsegs(mod(nsegs,2) > 0) = nsegs(mod(nsegs,2) > 0) - 1;
     nsegs = nsegs/2;
     kBad = k < params.k0 | k > params.N | k(:) >= nsegs(:);
@@ -208,7 +219,7 @@ function [valid,err] = validateI(I,params,maxSeg,X)
         valid(kBad) = 0;
     end
     
-    % Check segments
+    %% Check subgesture segments
     e1 = zeros(1,size(I2,1)); e2 = zeros(1,size(I2,1));
     e3 = zeros(1,size(I2,1)); e4 = zeros(1,size(I2,1));
     for i = 1:size(I2,1)
@@ -238,32 +249,8 @@ function [valid,err] = validateI(I,params,maxSeg,X)
             end
         end            
     end
-    
-%     if size(I,1) > 1        
-%         for i = 1:size(I,1)%             
-%             if strcmp(params.Baseline,BASELINE{1})
-%                 e2(i) = sum(seg(i,1,:) > maxSeg-params.nmax);
-%                 e3(i) = sum(seg(i,2,:) < params.nmin);
-%                 e4(i) = sum(seg(i,2,:) > params.nmax+1);
-%             else
-%                 e2(i) = 0;
-%                 e3(i) = sum(seg(i,2,:) < 2);
-%                 e4(i) = sum(seg(i,1,:)+seg{i}(2,:)-1 > maxSeg);
-%             end            
-%         end
-%     else
-%         e1 = sum(seg(:,1,:) < 1);
-%         if strcmp(params.Baseline,BASELINE{1})
-%             e2 = sum(seg(:,1,:) > maxSeg-params.nmax & seg(:,1,:) < inf);
-%             e3 = sum(seg(:,2,:) < params.nmin);
-%             e4 = sum(seg(:,2,:) > params.nmax+1 & seg(:,2,:) < inf);
-%         else
-%             e2 = 0;
-%             e3 = sum(seg(:,2,:) < 2);
-%             e4 = sum(seg(:,1,:)+seg(:,2,:)-1 > maxSeg  & seg(:,2,:) < inf);
-%         end        
-%     end
 
+    % check non-zero segments
     for i = 1:size(I2,1)
         if iscell(seg)
             l = length(seg{i})-1;
@@ -285,12 +272,29 @@ function [valid,err] = validateI(I,params,maxSeg,X)
             end
         end
     end
+        
+    %% check number of segments and k for the models    
+    e5 = zeros(1,size(I2,1)); 
+    e6 = zeros(1,size(I2,1));
+    if strcmp(params.msmType,'fix')
+        nsBad = mnsegs < params.k0 | mnsegs > params.N0;
+        if ~isempty(nsegs(nsBad))
+            e5(nsBad) = abs(max(mnsegs(nsBad)-params.k0,params.N0-mnsegs(nsBad)))/100;
+            valid(nsBad) = 0;
+        end
+        kBad = mk < params.k0-1 | mk > params.N0 | mk(:) >= mnsegs(:);
+        if ~isempty(mk(kBad))
+            e6(kBad) = abs(max(mk(kBad)-params.k0-1,params.N0-mk(kBad)))/100;
+            valid(kBad) = 0;
+        end
+    end
     
-    e = e1+e2+e3+e4;
+    %% calculate final error
+    e = e1+e2+e3+e4+e5;
     if any(e)
         valid(e~=0) = 0;
     end    
-    err = - (0.5*e0 + 0.5*e/length(I2(:,2:end))/2);
+    err = - (0.25*e0 + 0.5*e/length(I2(:,2:end))/2 + 0.25*e6);
 end
 
 function segs = getDataPartitions(data,partitions)
@@ -326,7 +330,7 @@ function [exists,s] = getCacheVal(I,params)
     end
 end
 
-function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
+function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 % Output:
 %   s: scores
 %   model: model structure
@@ -361,7 +365,7 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
         %% compute Similarity matrix
         model.D = getSimilarities(model.SM);
         if sum(~any(model.D))
-            error('Some elements of the dissimilarity matrix are wrong');
+            error('fitnessFcn:D','Some elements of the dissimilarity matrix are wrong');
         end
     else
         model.C = params.C;
@@ -371,53 +375,8 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg)
     end
             
     %% Compute Median (SubGesture) Models for each gesture 
-    if params.msm
-        display('Computing Median Subgseture Models for each gesture...');
-        if strcmp(params.mType,'directMSM1')
-            % Median Models to Median Subgesture Models
-            for ng = 1:length(params.M)
-                Msegs = cell(1,params.N0);
-                idx = 1; fseg = round(size(params.M{ng},1)/params.N0); % fixed segmentation
-                for nsgs = 1:params.N0
-                    if nsgs < params.N0
-                        Msegs{nsgs} = params.M{ng}(idx:nsgs*fseg,:);
-                    else
-                        Msegs{nsgs} = params.M{ng}(idx:end,:);
-                    end
-                    idx = nsgs*fseg + 1;
-                end
-                [~,~,mErrsV,~,timeV,~,MSM] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],Msegs,[]);
-                [~,kV] = min(mErrsV);
-                emptyCells = cellfun(@isempty,MSM{kV}{timeV});
-                MSM{kV}{timeV}(emptyCells) = [];
-                model.M{ng} = MSM{kV}{timeV}{end};
-            end    
-        elseif strcmp(params.mType,'directMSM2')
-            % Gesture samples to Median Subgesture Models
-            MSM = cell(1,length(params.M));
-            for ng = 1:length(params.M)
-                MSM{ng} = cell(1,length(Xtrain_l{ng}));
-                for ns = 1:length(Xtrain_l{ng})
-                    XngSegs = cell(1,params.N0);
-                    idx = 1; fseg = round(size(Xtrain_l{ng}{ns},1)/params.N0); % fixed segmentation
-                    for nsgs = 1:params.N0
-                        if nsgs < params.N0
-                            XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:nsgs*fseg,:);
-                        else
-                            XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:end,:);
-                        end
-                        idx = nsgs*fseg + 1;
-                    end
-                    [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],[],[],XngSegs,[]);
-                    [~,kV] = min(mErrsV);
-                    emptyCells = cellfun(@isempty,Z{kV}{timeV});
-                    Z{kV}{timeV}(emptyCells) = [];
-                    MSM{ng}{ns} = Z{kV}{timeV}{end};
-                end                
-            end
-            model.M = getMedianModels(MSM,length(MSM),params.mType,false);
-        end
-        display('Done!');
+    if ~strcmp(params.msmType,'none')
+        model.M = getMSM(params,Xtrain_l,mnseg,mk);
     else
         model.M = params.M;
     end

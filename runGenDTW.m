@@ -19,24 +19,24 @@ elseif strcmp(measure,'levenshtein')
 end
 
 %% Prepare training data depending on the chosen option and parameters
-% Load data:
+% Load data:5
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
 [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % display('Press a key to continue...');
 % pause();
 
 %% Compute initial segmentation from motion
-[seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
+% [seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
 % [~,~,Xtrain,I,~,segTrain,~] = getDataSegments(X,Y,params.N,params.k0,params.nmin,params.nmax);
 
 %% Prepare training data depending on the chosen option and parameters
-DATATYPE = 'chalearn2014';
-NORMTYPE = 'none';
-COORDS = 'world';
-NAT = 3;
+% DATATYPE = 'chalearn2014';
+% NORMTYPE = 'none';
+% COORDS = 'world';
+% NAT = 3;
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
-[X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
+% [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % X = setDerivatives(X);
 % display('Press a key to continue...');
 % pause();
@@ -59,10 +59,10 @@ l = [];
 %% Baseline 
 % First evaluation with euclidean distance
 % profile -memory on
-params.bestThs = [785 650 617 705 442 680 849 873 847 668 501 788 631 884 482 841 670 714 809 497];
-[~,S_eu,~] = g(params,Xdev{2},Ydev{2});
-S_eu
-params.bestThs = [];
+% params.bestThs = [785 650 617 705 442 680 849 873 847 668 501 788 631 884 482 841 670 714 809 497];
+% [~,S_eu,~] = g(params,Xdev{2},Ydev{2});
+% S_eu
+% params.bestThs = [];
 % profreport
 
 %% Genetic algorithm optimization
@@ -113,8 +113,13 @@ else
     options = gaoptimset(options,'CreationFcn',fCreate);
     options = gaoptimset(options,'MutationFcn',fMutation);
     options = gaoptimset(options,'CrossoverFcn',fCrossOver);
-    options = gaoptimset(options,'Vectorized',params.vectorized);
+    options = gaoptimset(options,'Vectorized',params.vectorized);   
     problem.nvars=1+params.N*2;
+    if strcmp(params.msmType,'fix'), problem.nvars = problem.nvars+2; end
+    
+    % Cache with the populations
+    CACHE.ind = int32(zeros(params.population*100,problem.nvars,'int32'));
+
 end
 % Problem GA
 problem.fitnessfcn=fEval;

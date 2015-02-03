@@ -124,5 +124,3 @@ for i = 1:k
         end
     end
 end
-
-display('Done!');

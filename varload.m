@@ -18,7 +18,8 @@ global PERCENTDATA;     % percent of learning data to consider
 global NORMTYPE;        % Normalization type 'neck' 'xyzangles'
 global MEDIANTYPE;      % Type of median models 
 global JOINTS;          % Selected joints
-global NAT;             % Descriptor
+global NAT;             % Type of Descriptor
+global MSM;             % Type of Median Subgesture Models to use: 'fixed' or 'evolutive'
 
 DATATYPE = 'chalearn2014';
 NORMTYPE = 'neck';
@@ -38,6 +39,7 @@ PERCENTDATA = 100;
 MEDIANTYPE = {'direct','directMSM1','directMSM2','KNN','DCSR'};
 JOINTS = [4 6 7 8 10 11 12];%1:20;%  %[8,12] hands
 NAT = 0;
+MSM = {'none','fix'};
 
 %% parameters data structures
 nrsamples = 100;        % number of random samples
@@ -63,11 +65,11 @@ params.k0 = 3;              % initial data clusters for subgesturing
 params.nmin = 5;            % minimum subsequence width
 params.nmax = 25;           % maximum subsequence width
 params.N = 500;             % Number of segments to split the learning sequence
-params.N0 = 5;             % Number of segments to split the model sequences
+params.N0 = 10;             % Number of segments to split the model sequences
 params.nThreshs = 100;      % Number of thresholds for testing
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
-params.vectorized = 'on';   % vectorize the GA
+params.vectorized = 'off';   % vectorize the GA
 params.population = 5;      % population of the GA
 params.generations = 2;  % number of generations of the GA
 params.Baseline = ...
@@ -80,15 +82,13 @@ params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
-params.msm = true;         % use Median Subgesture Models in the evolutive process instead of Median Models
+params.msmType = MSM{2};    % Type of Median Subgesture Models in the evolutive process 
 params.mType = MEDIANTYPE{3};  % Type of median models to consider
 if strcmp(params.mType,'KNN')
 	params.k = 3;
 else
 	params.k = 0;           % current k to evaluate for the K-Nearest Neighbour DTW models
 end
-CACHE.ind = int32(zeros(... % Cache with the populations
-    params.population*100,params.N*2+1,'int32'));
 CACHE.pos = int32(1);       % Index positions
 % GENRESULTS.P = cell(1,params.generations);
 % GENRESULTS.eval = cell(1,params.generations);

@@ -1,4 +1,4 @@
-function P = createIniPopul(GenomeLength,~,options,X,params,seg0,fr_fixed)
+function P = createIniPopul(GenomeLength,~,~,X,params)
 
 global BASELINE;
 global STATE;
@@ -8,27 +8,30 @@ if isempty(STATE)
 %         seg0ini = seg0(1:2:end);
 %         seg0fi = seg0(2:2:end);
 %     end
+    
+    % number of segments for each individual
     if params.probSeg > 0
-        nsegs = randi([params.k0 params.N],1,params.population);
+        nsegs = randi([params.k0 params.N],1,params.population);  % random
     else
-        nsegs = params.N*ones(1,params.population);
+        nsegs = params.N*ones(1,params.population);               % N
     end
-    P = zeros(params.population,GenomeLength);
+%     P = zeros(params.population,GenomeLength);
+    P = zeros(params.population,params.N*2+1);
     for i = 1:size(P,1)
         %% this run faster for huge N
-        idxj = [0 mod(2:size(P,2),2) == 0];
+        idxj = [0 mod(2:size(P,2),2) == 0]; % start seq indices
         if nsegs(i) < params.N
-            idxj(1+nsegs(i)*2+1:end) = 0;
-            P(i,1+nsegs(i)*2+1:end) = inf;
+            idxj(1+nsegs(i)*2+1:end) = 0;   % odds indices
+            P(i,1+nsegs(i)*2+1:end) = inf;  % odds infinity
         end
-        P(i,idxj==1) = randi([1 length(X)-params.nmax+1],1,sum(idxj));
-        idxj = P(i,1:sum(idxj)*2+1) == 0;
-        P(i,idxj) = randi([params.nmin params.nmax],1,sum(idxj));
+        P(i,idxj==1) = randi([1 length(X)-params.nmax+1],1,sum(idxj)); % start seq values
+        idxj = P(i,1:sum(idxj)*2+1) == 0;                         % length seq indices
+        P(i,idxj) = randi([params.nmin params.nmax],1,sum(idxj)); % length seq
         for j = 2:2:size(P,2)-1            
-            in = P(i,j);
-            if in < inf
+            in = P(i,j);    % choose one non-infinity start
+            if in < inf     
                 fi = in + P(i,j+1) - 1;
-                if ~any(any(X(in:fi,:)))
+                if ~any(any(X(in:fi,:)))    % check non-zero segment
                     P(i,j:j+1) = P(i,nsegs(i)*2:nsegs(i)*2+1);
                     P(i,nsegs(i)*2:nsegs(i)*2+1) = inf;
                     nsegs(i) = nsegs(i) - 1;
@@ -41,8 +44,10 @@ if isempty(STATE)
         Podd = P(i,3:2:nsegs(i)*2+1);        
         Psort = reshape(sortrows([Peven; Podd]')',1,nsegs(i)*2);
         Psort = [Psort P(i,1+nsegs(i)*2+1:end)];        
-        P(i,:) = [randi([params.k0 nsegs(i)-1]) Psort];
-        %% Old implementation
+        % assign and add k to the sorted population
+        P(i,:) = [randi([params.k0 nsegs(i)-1]) Psort]; 
+        
+        %% Old implementation for different baselines (much slower)
 %         in = 1;
 %         for j = 1:size(P,2)
 %             if mod(j,2) == 0
@@ -108,8 +113,20 @@ if isempty(STATE)
 %                     end
 %                 end
 %             end
-%         end        
+%         end
+    
+    end
+    if strcmp(params.msmType,'fix')
+        mnsegs = randi([params.k0 params.N0],1,params.population);
+        mk = zeros(1,length(mnsegs));
+        for i = 1:length(mk)
+            mk(i) = randi([params.k0-1 mnsegs(i)-1]);
+        end
+        P = [P mnsegs' mk'];
     end
 else
-    P = STATE.Population;    
+    P = STATE.Population;
+end
+if size(P,2) ~= GenomeLength
+    error('createIniPopul:badGenomes','Population genomes are incorrect');
 end
