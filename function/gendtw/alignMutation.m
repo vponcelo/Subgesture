@@ -28,7 +28,7 @@ end
 P = thisPopulation(parents,:);
 
 for i=1:length(parents)
-    parent = P(i,:);
+    parent = P(i,1:params.N*2+1);   % In the case of MSM, the last 2 genes don't mutate here
     for j = 1:length(parent)
         if j == 1
             P(i,j) = parent(j)  + scale(j) .* randn();

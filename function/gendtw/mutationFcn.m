@@ -4,7 +4,10 @@ function mutationChildren = mutationFcn(parents,options,nvars,FitnessFcn,state,t
 P = thisPopulation(parents,:);
 for i = 1:length(parents)
     if params.probSeg > 0
-        randSegs = rand(1,(size(P,2)-1)/2);
+        if strcmp(params.msmType,'fix')            
+            randSegs = rand(1,(nvars-3)/2);
+        end
+        
         %% this run faster        
 %         addDel = randSegs <= params.probSeg;
 %         idxMod = false(1,size(P,2));
@@ -17,7 +20,8 @@ for i = 1:length(parents)
 %         P(i,idxInf) = randi([params.nmin params.nmax],1,sum(idxInf));
 
         %% Old implementation        
-        for j = 2:size(P,2)
+        for j = 2:params.N*2+1
+            % mutate (add/delete) parents' segments if chosen
             if randSegs(round((j-1)/2)) <= params.probSeg
                 if mod(j,2) == 0
                     if P(i,j) == inf
@@ -39,10 +43,10 @@ for i = 1:length(parents)
         
         %% this run faster
         % Sort P
-        Peven = P(i,2:2:end);
-        Podd = P(i,3:2:end);
-        Psort = reshape(sortrows([Peven; Podd]')',1,size(P,2)-1);
-        P(i,2:end) = Psort;
+        Peven = P(i,2:2:params.N*2);
+        Podd = P(i,3:2:params.N*2+1);
+        Psort = reshape(sortrows([Peven; Podd]')',1,params.N*2);
+        P(i,2:params.N*2+1) = Psort;
         
         %% Old implementation
 %         [P(i,2:2:end),is] = sort(P(i,2:2:end),'ascend');
@@ -81,10 +85,10 @@ end
 for i = 1:length(parents)
     %% this run faster
      % Sort mutationChildren
-    Peven = mutationChildren(i,2:2:end);
-    Podd = mutationChildren(i,3:2:end);
-    Psort = reshape(sortrows([Peven; Podd]')',1,size(mutationChildren,2)-1);
-    mutationChildren(i,2:end) = Psort;
+    Peven = mutationChildren(i,2:2:params.N*2);
+    Podd = mutationChildren(i,3:2:params.N*2+1);
+    Psort = reshape(sortrows([Peven; Podd]')',1,params.N*2);
+    mutationChildren(i,2:params.N*2+1) = Psort;
     
     %% Old implementation
 %     mutationChildren = round(mutationChildren);

@@ -26,17 +26,17 @@ end
 % pause();
 
 %% Compute initial segmentation from motion
-% [seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
+[seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
 % [~,~,Xtrain,I,~,segTrain,~] = getDataSegments(X,Y,params.N,params.k0,params.nmin,params.nmax);
 
 %% Prepare training data depending on the chosen option and parameters
-% DATATYPE = 'chalearn2014';
-% NORMTYPE = 'none';
-% COORDS = 'world';
-% NAT = 3;
+DATATYPE = 'chalearn2014';
+NORMTYPE = 'none';
+COORDS = 'world';
+NAT = 3;
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
-% [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
+[X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % X = setDerivatives(X);
 % display('Press a key to continue...');
 % pause();
@@ -59,10 +59,10 @@ l = [];
 %% Baseline 
 % First evaluation with euclidean distance
 % profile -memory on
-% params.bestThs = [785 650 617 705 442 680 849 873 847 668 501 788 631 884 482 841 670 714 809 497];
-% [~,S_eu,~] = g(params,Xdev{2},Ydev{2});
-% S_eu
-% params.bestThs = [];
+params.bestThs = [785 650 617 705 442 680 849 873 847 668 501 788 631 884 482 841 670 714 809 497];
+[~,S_eu,~] = g(params,Xdev{2},Ydev{2});
+S_eu
+params.bestThs = [];
 % profreport
 
 %% Genetic algorithm optimization
@@ -131,7 +131,7 @@ if strcmp(params.vectorized,'on')
     if matlabpool('size') > 0
         matlabpool close force;
     end    
-    pool(2);         % Cache with the populations
+    pool(4);         % Cache with the populations
 end
 [x,finalOverlap,exitFlag,output,population,scores] = ga(problem);
 if strcmp(params.vectorized,'on')
