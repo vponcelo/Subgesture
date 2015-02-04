@@ -15,9 +15,7 @@ if length(state.Best) ~= state.Generation
     error('There must be as scores as generations');
 end
 
-fprintf('Generation %d\n\n',params.generations-options.Generations+state.Generation);
-
-global S;
+display(sprintf('Generation %d\n\n',params.generations-options.Generations+state.Generation));
 
 x = 1:1:params.generations-options.Generations+state.Generation;
 S_eu = S_eu*ones(1,length(x));
@@ -41,12 +39,14 @@ if s < 0
     s = 0;
 end
 
-S = [S s];
+global S;
 
 if length(S) >= options.Generations
     warning('Score length is greater or equal to the total number of generations');
     return;
 end
+
+S = [S s];
 
 if length(S) ~= length(x)
     warning('Score length is must be equal to the x axis in order to plot');
@@ -79,17 +79,17 @@ if state.Generation > 0 && mod(state.Generation,1) == 0
     global JOINTS;
     global NAT;
 %     if strcmp(params.scoreMeasure,'overlap')
-        filename = strcat('results/',DATATYPE,'/validation/Exp3/',params.Baseline,'Results',num2str(params.generations-options.Generations+state.Generation),'_',num2str(length(JOINTS)),COORDS,num2str(PERCENTDATA),'%_',num2str(NAT));
-        try
+        if ~exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations)),'dir')
+            mkdir(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations)));
+        end
+        filename = strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations),'/',...
+            params.Baseline,'Results',num2str(params.generations-options.Generations+state.Generation),'_',num2str(length(JOINTS)),COORDS,num2str(PERCENTDATA),'%_',num2str(NAT));
+        try             
             save(strcat(filename,'.mat'),'S','CACHE','state','options','MODEL','-v7.3');
-            hgsave(gcf,filename);
-            saveas(gcf,strcat(filename,'Copy'),'png');
-            hgsave(gcf,filename,'png');            
-            set(gcf, 'Position', [0 0 1920 1440]);
+            set(gcf, 'Position', [0 0 1920 1200]);
             saveas(gcf,strcat(filename,'Resized'),'png');
-            hgsave(gcf,strcat(filename,'ResizedCopy'),'png');
-        catch e
-            %display(e.Message);
+            hgsave(gcf,filename);            
+        catch
         end
 %     elseif strcmp(params.scoreMeasure,'levenshtein')
 %         filename = strcat('results/',DATATYPE,'/validation/Exp3/',params.Baseline,'Results',num2str(state.Generation),'_',num2str(PERCENTDATA),'%');
