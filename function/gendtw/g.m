@@ -115,6 +115,9 @@ for k = 1:length(model.M)
 %                         error();
 %                     end
 %                 end
+%               
+                %%%%% to compensate for the offset of deep-features
+                detSeqLog(i,:)=([detSeqLog(i,6:end),0,0,0,0,0]);
                 overlaps{k}(K,i) = sum(GTtestk & detSeqLog(i,:))/sum(GTtestk | detSeqLog(i,:));
             end
         end
@@ -175,4 +178,5 @@ elseif strcmp(model.scoreMeasure,'levenshtein')
     score = levenshtein(predLabels,Y.L);        
 else
     error('This is a not valid measure. Check scoreMeasure parameter');
+end
 end
