@@ -71,7 +71,7 @@ params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
 params.vectorized = 'on';   % vectorize the GA
 params.population = 5;      % population of the GA
-params.generations = 2;  % number of generations of the GA
+params.generations = 5;  % number of generations of the GA
 params.Baseline = ...
     BASELINE{2};            % Baseline for the GA
 params.threshMov = 3;       % maximum number of low movement frames
