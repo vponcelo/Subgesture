@@ -2,7 +2,7 @@ function xoverKids = crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPo
 
 %% Crossover
 if rand() >= params.thMutCross
-    xoverKids = crossoverPairs(parents,options,nvars,FitnessFcn,unused,thisPopulation);
+    xoverKids = crossoverPairs(parents,options,nvars,FitnessFcn,unused,thisPopulation,params);
 else
     xoverKids = crossoverscattered(parents,options,nvars,FitnessFcn,unused,thisPopulation);
 end
@@ -27,14 +27,14 @@ for i = 1:size(xoverKids,1)
 
     %% this run faster
     % Sort P
-    Peven = xoverKids(i,2:2:end);
-    Podd = xoverKids(i,3:2:end);
-    Psort = reshape(sortrows([Peven; Podd]')',1,size(xoverKids,2)-1);
-    xoverKids(i,2:end) = Psort;
+    Peven = xoverKids(i,2:2:params.N*2);
+    Podd = xoverKids(i,3:2:params.N*2+1);
+    Psort = reshape(sortrows([Peven; Podd]')',1,params.N*2);
+    xoverKids(i,2:params.N*2+1) = Psort;
     
-    cutPoint = find(xoverKids(i,:) == inf,1);
+    cutPoint = find(xoverKids(i,:) == inf,1);   % find the first infinity value
     if mod(cutPoint,2) > 0
         cutPoint = cutPoint - 1;
     end
-    xoverKids(i,cutPoint:end) = inf;    
+    xoverKids(i,cutPoint:params.N*2+1) = inf;    
 end

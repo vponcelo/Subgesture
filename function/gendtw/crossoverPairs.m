@@ -1,4 +1,4 @@
-function xoverKids = crossoverPairs(parents,options,GenomeLength,~,~,thisPopulation)
+function xoverKids = crossoverPairs(parents,options,GenomeLength,~,~,thisPopulation,params)
 
 
 
@@ -24,7 +24,12 @@ for i=1:nKids
     % Randomly select half of the genes from each parent
     % This loop may seem like brute force, but it is twice as fast as the
     % vectorized version, because it does no allocation.
-    for j = 1:GenomeLength-1
+    if strcmp(params.msmType,'none')
+        ngenes = 0;  
+    elseif strcmp(params.msmType,'fix')
+        ngenes = 2;
+    end
+    for j = 1:GenomeLength-ngenes
         if j == 1
             k = 1;
         else
@@ -32,10 +37,20 @@ for i=1:nKids
         end
         if(rand > 0.5)
             xoverKids(i,j:k) = thisPopulation(r1,j:k);
+            
+            if strcmp(params.msmType,'fix') && j == GenomeLength-ngenes
+                % offspring of parents for the last 2 genes
+                xoverKids(i,end-1:end) = thisPopulation(r1,end-1:end);
+            end
         else
             xoverKids(i,j:k) = thisPopulation(r2,j:k);
+            
+            if strcmp(params.msmType,'fix') && j == GenomeLength-ngenes
+                % offspring of parents for the last 2 genes
+                xoverKids(i,end-1:end) = thisPopulation(r2,end-1:end);
+            end
         end
-    end
+    end    
     % Make sure that offspring are feasible w.r.t. linear constraints
     if constr
         feasible  = isTrialFeasible(xoverKids(i,:)',linCon.Aineq,linCon.bineq,linCon.Aeq, ...

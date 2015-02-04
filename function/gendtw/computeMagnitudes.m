@@ -11,7 +11,7 @@ global COORDS;
 global BASELINE;
 global JOINTS;
 
-display('Computing magnitudes from first (velocity) and second derivatives (acceleration and trajectory changes)');
+display('Computing magnitudes from first and second derivatives');
 
 if strcmp(COORDS,'world');
     ncoords = 3;
