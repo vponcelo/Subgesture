@@ -53,25 +53,25 @@ nSampGest = 0;          % Number of samples per gesture for the test sequence
 % classification
 folds = 1;              % k for k-fold Cross Validation
 clustType = 'kmeans';   % clustering method: 'kmlsample' 'kmeans' 'haca'
-numClusters = 100;       % number of clusters for discretizing
+numClusters = 100;      % number of clusters for discretizing
 numIterations = 100;    % number of iterations for discretizing
 hmmIters = 50000;       % number of Iterations of the HMM
 
 % genetic temporal clustering parameters
 params.version = ...
-    char(KMEANSDTWv{5});        % versions of the k-means DTW algorithm to execute';
+    char(KMEANSDTWv{5});    % versions of the k-means DTW algorithm to execute';
 params.dist = DISTANCES{1}; % distance metric
 params.k0 = 3;              % initial data clusters for subgesturing
 params.nmin = 5;            % minimum subsequence width
 params.nmax = 25;           % maximum subsequence width
 params.N = 500;             % Number of segments to split the learning sequence
-params.N0 = 8;             % Number of segments to split the model sequences
-params.nThreshs = 100;      % Number of thresholds for testing
+params.N0 = 8;              % Number of segments to split the model sequences
+params.nThreshs = 22;       % Number of thresholds for testing (tunned to 22)
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
 params.vectorized = 'on';   % vectorize the GA
-params.population = 5;      % population of the GA
-params.generations = 5;  % number of generations of the GA
+params.population = 10;     % population of the GA
+params.generations = 500;   % number of generations of the GA
 params.Baseline = ...
     BASELINE{2};            % Baseline for the GA
 params.threshMov = 3;       % maximum number of low movement frames

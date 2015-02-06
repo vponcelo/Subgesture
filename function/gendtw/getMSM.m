@@ -18,10 +18,15 @@ if strcmp(params.mType,'directMSM1')
         end
         emptyCells = cellfun(@isempty,Msegs);
         Msegs(emptyCells) = [];
-        if mk > length(Msegs)
-            error('getMSM:ManySegs','number of clusters cannot be greater than number of segments');
+        while mk > length(Msegs) && mk >= params.k0-1
+            mk = mk - 1;
+            warning('getMSM:kIncorrect','number of clusters cannot be greater than number of segments. Decreasing k (not consistent).');
         end
-        [~,~,mErrsV,~,timeV,~,MSM] = runKMeansDTW(params.version,mk,'dtwCost',mk,[],[],[],[],[],Msegs,[]);
+        try
+            [~,~,mErrsV,~,timeV,~,MSM] = runKMeansDTW(params.version,mk,'dtwCost',mk,[],[],[],[],[],Msegs,[]);
+        catch e
+            error('getMSM:kIncorrect',e.message);
+        end
         [~,kV] = min(mErrsV);
         emptyCells = cellfun(@isempty,MSM{kV}{timeV});
         MSM{kV}{timeV}(emptyCells) = [];
@@ -34,11 +39,15 @@ elseif strcmp(params.mType,'directMSM2')
         MSM{ng} = cell(1,length(Xtrain_l{ng}));
         for ns = 1:length(Xtrain_l{ng})
             if strcmp(params.msmType,'fix')
-                XngSegs = cell(1,mnseg);
-                idx = 1; fseg = round(size(Xtrain_l{ng}{ns},1)/mnseg); % fixed segmentation
+                try
+                    XngSegs = cell(1,mnseg);
+                catch e
+                    display(e.message)
+                end
+                idx = 1; fseg = round(size(Xtrain_l{ng}{ns},1)/mnseg)-1; % fixed segmentation
                 for nsgs = 1:mnseg
                     if nsgs < mnseg
-                        XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:nsgs*fseg,:);
+                        XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:nsgs*fseg,:);                        
                     else
                         XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:end,:);
                     end
@@ -47,10 +56,15 @@ elseif strcmp(params.mType,'directMSM2')
             end
             emptyCells = cellfun(@isempty,XngSegs);
             XngSegs(emptyCells) = [];
-            if mk > length(XngSegs)
-                error('getMSM:ManySegs','number of clusters cannot be greater than number of segments');
+            while mk > length(XngSegs) && mk >= params.k0-1
+                mk = mk - 1;
+                warning('getMSM:kOutOfBound','number of clusters cannot be greater than number of segments. Decreasing k (not consistent).');
             end
-            [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,mk,'dtwCost',mk,[],[],[],[],[],XngSegs,[]);
+            try
+                [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,mk,'dtwCost',mk,[],[],[],[],[],XngSegs,[]);
+            catch e
+                error('getMSM:kIncorrect',e.message)
+            end            
             [~,kV] = min(mErrsV);
             emptyCells = cellfun(@isempty,Z{kV}{timeV});
             Z{kV}{timeV}(emptyCells) = [];

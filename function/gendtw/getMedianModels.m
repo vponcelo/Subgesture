@@ -46,14 +46,14 @@ for i = 1:k
             slengths(j) = size(W_ini{i}{j},1);
         end
         if ~usemax_l,
-        if mod(length(slengths),2) == 0
-            meanLength = mean(slengths);
-            dists2mean = abs(slengths-meanLength);
-            [~,idx] = min(dists2mean);
-        else
-            medianLength = median(slengths);
-            idx = slengths == medianLength;
-        end 
+            if mod(length(slengths),2) == 0
+                meanLength = mean(slengths);
+                dists2mean = abs(slengths-meanLength);
+                [~,idx] = min(dists2mean);
+            else
+                medianLength = median(slengths);
+                idx = slengths == medianLength;
+            end
         else
             [~,idx]=max(slengths);
         end

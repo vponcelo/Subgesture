@@ -59,10 +59,8 @@ l = [];
 %% Baseline 
 % First evaluation with euclidean distance
 % profile -memory on
-params.bestThs = [785 650 617 705 442 680 849 873 847 668 501 788 631 884 482 841 670 714 809 497];
 [~,S_eu,~] = g(params,Xdev{2},Ydev{2});
 S_eu
-params.bestThs = [];
 % profreport
 
 %% Genetic algorithm optimization
@@ -91,11 +89,15 @@ fCrossOver = @(parents,options,nvars,FitnessFcn,unused,thisPopulation)...
     crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params);
 
 % Options GA
-%lastGen = 4;
-if exist(strcat('results/',DATATYPE,'/validation/Exp3/',params.Baseline,'Results',num2str(lastGen),'_',num2str(length(JOINTS)),COORDS,num2str(PERCENTDATA),'%_',num2str(NAT),'.mat'),'file')
+lastGen = 4;
+if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
+        params.Baseline,'_',params.msmType,'_',num2str(lastGen),'gens','_',...
+        num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'),'file')
     if strcmp(params.scoreMeasure,'overlap')
-        load(strcat('results/',DATATYPE,'/validation/Exp3/',params.Baseline,'Results',num2str(lastGen),'_',num2str(length(JOINTS)),COORDS,num2str(PERCENTDATA),'%_',num2str(NAT),'.mat'));
-    end   
+        load(strcat('results/',DATATYPE,'/validation/Exp3//gen',num2str(params.generations),'popul',num2str(params.population),'/',...
+            params.Baseline,'_',params.msmType,'_',num2str(lastGen),'gens','_',...
+            num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'));
+    end
     S = [];
     STATE = state;
     problem.nvars=size(state.Population,2);
