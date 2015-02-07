@@ -61,4 +61,8 @@ for i=1:length(parents)
             end
         end
     end
+    if strcmp(params.msmType,'fix')
+        P(i,end-1) = P(i,params.N0+2)  + scale(params.N0+2) .* randn();
+        P(i,end) = P(i,params.N0+3)  + scale(params.N0+3) .* randn();
+    end
 end

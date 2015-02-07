@@ -79,16 +79,17 @@ if state.Generation > 0 && mod(state.Generation,1) == 0
     global JOINTS;
     global NAT;
 %     if strcmp(params.scoreMeasure,'overlap')
-        if ~exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations)),'dir')
-            mkdir(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations)));
+        if ~exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations),'popul',num2str(options.PopulationSize)),'dir')
+            mkdir(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations),'popul',num2str(options.PopulationSize)));
         end
-        filename = strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations),'/',...
-            params.Baseline,'Results',num2str(params.generations-options.Generations+state.Generation),'_',num2str(length(JOINTS)),COORDS,num2str(PERCENTDATA),'%_',num2str(NAT));
+        filename = strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations),'popul',num2str(options.PopulationSize),'/',...
+            params.Baseline,'_',params.msmType,'_',num2str(params.generations-options.Generations+state.Generation),'gens','_',...
+            num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT));
         try             
             save(strcat(filename,'.mat'),'S','CACHE','state','options','MODEL','-v7.3');
             set(gcf, 'Position', [0 0 1920 1200]);
             saveas(gcf,strcat(filename,'Resized'),'png');
-            hgsave(gcf,filename);            
+            hgsave(gcf,filename);
         catch
         end
 %     elseif strcmp(params.scoreMeasure,'levenshtein')

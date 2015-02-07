@@ -196,8 +196,8 @@ function [I2,k,seg,mk,mnsegs] = decode(I,params)
     mnsegs = []; mk = [];
     % get model segments and k
     if strcmp(params.msmType,'fix')
-        mnsegs = I(:,end-1);
-        mk = I(:,end);
+        mnsegs = round(I(:,end-1));
+        mk = round(I(:,end));
         I2(:,end-1) = mnsegs;
         I2(:,end) = mk;
     end
