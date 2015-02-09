@@ -6,8 +6,8 @@
 
 /opt/matlab/bin/matlab -nodesktop <<EOF
 cd('/home/cvc/vponce/Subgesture/');
-tic;
-runGenDTW;
+tic
+runGenDTW('overlap',$SGE_TASK_ID);
 toc
 exit
 EOF
