@@ -88,16 +88,21 @@ for i = 1:k
                     slengths(j) = size(X{j},1);
                 end
             end
-            if mod(length(slengths),2) == 0
-                meanLength = mean(slengths);
-                dists2mean = abs(slengths-meanLength);
-                [~,idx] = min(dists2mean);
+            if ~usemax_l,
+                
+                if mod(length(slengths),2) == 0
+                    meanLength = mean(slengths);
+                    dists2mean = abs(slengths-meanLength);
+                    [~,idx] = min(dists2mean);
+                else
+                    medianLength = median(slengths);
+                    idx = find(slengths == medianLength);
+                end         
+                if length(unique(idx)) > 1
+                    idx = round(length(slengths)/2);
+                end
             else
-                medianLength = median(slengths);
-                idx = find(slengths == medianLength);
-            end         
-            if length(unique(idx)) > 1
-                idx = round(length(slengths)/2);
+                 [~,idx]=max(slengths);
             end
             ptr = X{i}{idx}; 
             alig_seqs = zeros(length(X{i}),size(ptr,1),size(ptr,2));
