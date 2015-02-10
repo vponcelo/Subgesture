@@ -71,6 +71,6 @@ elseif strcmp(params.mType,'directMSM2')
             MSM{ng}{ns} = Z{kV}{timeV}{end};
         end                
     end
-    M = getMedianModels(MSM,length(MSM),params.mType,false);
+    M = getMedianModels(MSM,length(MSM),params.mType,false,params.usemax_l);
 end
 display('Done!');

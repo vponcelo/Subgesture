@@ -2,10 +2,6 @@ function state = plotMeanScores(options,state,~,params,S_eu)
 % plot mean scores
 % S_eu: Mean score directly obtained from DTW with euclidean distance
 
-state.Generation
-options.Generations
-params.generations
-
 if state.Generation < 1
     warning('Current generation is lesser than 1');
     return;
@@ -85,12 +81,22 @@ if state.Generation > 0 && mod(state.Generation,1) == 0
         filename = strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations),'popul',num2str(options.PopulationSize),'/',...
             params.Baseline,'_',params.msmType,'_',num2str(params.generations-options.Generations+state.Generation),'gens','_',...
             num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT));
-        try             
+        try
             save(strcat(filename,'.mat'),'S','CACHE','state','options','MODEL','-v7.3');
             set(gcf, 'Position', [0 0 1920 1200]);
-            saveas(gcf,strcat(filename,'Resized'),'png');
-            hgsave(gcf,filename);
-        catch
+            hgsave(gcf,filename,'-v7.3');
+            %saveas(gcf,strcat(filename,'Resized'),'png');            
+            filename = strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(options.Generations),'popul',num2str(options.PopulationSize),'/',...
+                params.Baseline,'_',params.msmType,'_',num2str(params.generations-options.Generations+state.Generation-1),'gens','_',...
+                num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT));
+            if exist(strcat(filename,'.mat'),'file')
+                delete(strcat(filename,'.mat'));
+            end
+            if exist(strcat(filename,'.fig'),'file')
+                delete(strcat(filename,'.fig'));
+            end
+        catch e
+            display(e.message);
         end
 %     elseif strcmp(params.scoreMeasure,'levenshtein')
 %         filename = strcat('results/',DATATYPE,'/validation/Exp3/',params.Baseline,'Results',num2str(state.Generation),'_',num2str(PERCENTDATA),'%');

@@ -89,7 +89,6 @@ for i = 1:k
                 end
             end
             if ~usemax_l,
-                
                 if mod(length(slengths),2) == 0
                     meanLength = mean(slengths);
                     dists2mean = abs(slengths-meanLength);

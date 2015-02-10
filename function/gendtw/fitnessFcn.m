@@ -293,7 +293,7 @@ function [valid,err] = validateI(I,params,maxSeg,X)
     e = e1+e2+e3+e4+e5;
     if any(e)
         valid(e~=0) = 0;
-    end    
+    end
     err = - (0.25*e0 + 0.5*e/length(I2(:,2:end))/2 + 0.25*e6);
 end
 
