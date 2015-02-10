@@ -293,6 +293,8 @@ function [valid,err] = validateI(I,params,maxSeg,X)
     e = e1+e2+e3+e4+e5;
     if any(e)
         valid(e~=0) = 0;
+        % If there is more than the half population invalid, create new
+        % random initial population.
     end
     err = - (0.25*e0 + 0.5*e/length(I2(:,2:end))/2 + 0.25*e6);
 end
@@ -375,10 +377,14 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,m
     end
             
     %% Compute Median (SubGesture) Models for each gesture 
-    if ~strcmp(params.msmType,'none')
-        model.M = getMSM(params,Xtrain_l,mnseg,mk);
-    else
+    if ~strcmp(params.msmType,'fix') && ~isempty(mnseg) && ~isempty(mk)
+        model.M = getMSM(params,Xtrain_l,model,mnseg,mk);
+    elseif strcmp(params.msmType,'evoSegs')
+        model.M = getMSM(params,Xtrain_l,model);
+    elseif strcmp(params.msmType,'none')
         model.M = params.M;
+    else
+        error('fitnessFcn:optError','Option chosen for the Subgesture Models is not correct. Check params.msmType variable');
     end
     
     %% Compte costs of representing Median (Subgesture) Models 'M' in terms of Subgesture Models 'SM'

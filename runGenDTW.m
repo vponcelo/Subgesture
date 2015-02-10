@@ -19,7 +19,7 @@ elseif strcmp(measure,'levenshtein')
 end
 
 %% Prepare training data depending on the chosen option and parameters
-% Load data:5
+% Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
 [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % display('Press a key to continue...');
@@ -133,7 +133,7 @@ if strcmp(params.vectorized,'on')
     if matlabpool('size') > 0
         matlabpool close force;
     end    
-    pool(4);         % Cache with the populations
+    pool(3);         % Cache with the populations
 end
 [x,finalOverlap,exitFlag,output,population,scores] = ga(problem);
 if strcmp(params.vectorized,'on')

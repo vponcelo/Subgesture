@@ -28,16 +28,22 @@ end
 
 XLearn_l = cell(1,length(unique(labelsLearn)));
 for i = 1:length(XLearn_l)
-    XLearn_l{i} = cell(1,sum(labelsLearn==i)); 
-    idxLval = find(labelsLearn == i);
     k = datapart;
     if datapart == 0, k = 1; end
-    for j = 1:length(XLearn_l{i})
-        if idxLval(j) > length(Y{k}.L)
-            idxLval(j:end) = idxLval(j:end) - length(Y{k}.L);
-            k = k + 1;
+    if length(fieldnames(Y{k})) == 3
+        XLearn_l{i} = cell(1,sum(labelsLearn==i)); 
+    end
+    idxLval = find(labelsLearn == i);
+    if iscell(XLearn_l{i})
+        for j = 1:length(idxLval)
+            if idxLval(j) > length(Y{k}.L)
+                idxLval(j:end) = idxLval(j:end) - length(Y{k}.L);
+                k = k + 1;
+            end
+            XLearn_l{i}{j} = X{k}(Y{k}.seg(idxLval(j)):Y{k}.seg(idxLval(j)+1)-1,:);                
         end
-        XLearn_l{i}{j} = X{k}(Y{k}.seg(idxLval(j)):Y{k}.seg(idxLval(j)+1)-1,:);        
+    else
+        XLearn_l{i} = X{k}(Y{k}.Lfr==i,:);
     end
 end
 display('Done!');

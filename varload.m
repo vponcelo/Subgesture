@@ -36,10 +36,10 @@ BASELINE = {'random','deriv','fixed'};
 STATE = [];
 OPTIONS = [];
 PERCENTDATA = 100;
-MEDIANTYPE = {'direct','directMSM1','directMSM2','KNN','DCSR'};
+MEDIANTYPE = {'direct','modelMSM1','modelMSM2','allMSM1','allMSM2','KNN','DCSR'};
 JOINTS = [4 6 7 8 10 11 12];%1:20;%  %[8,12] hands
 NAT = 0;
-MSM = {'none','fix'};
+MSM = {'none','fix','evoSegs'};
 
 %% parameters data structures
 nrsamples = 100;        % number of random samples
@@ -50,14 +50,17 @@ noise = false;          % flag indicating whether or not consider noise (iddle g
 secsBatch = 60;         % reference seconds for the test sequence
 nSampGest = 0;          % Number of samples per gesture for the test sequence   
 
-% classification
-folds = 1;              % k for k-fold Cross Validation
-clustType = 'kmeans';   % clustering method: 'kmlsample' 'kmeans' 'haca'
-numClusters = 100;      % number of clusters for discretizing
-numIterations = 100;    % number of iterations for discretizing
-hmmIters = 50000;       % number of Iterations of the HMM
+%% parameters hmm
+phmm.folds = 1;                 % k for k-fold Cross Validation
+phmm.states = 3;                % number of hidden states for the HMM
+phmm.it = 500;                  % number of Iterations of the HMM
+phmm.clustType = 'kmeans';      % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
+phmm.kD = 100;                   % number of clusters for discretizing
+phmm.cIters = 100;         % number of iterations for discretizing
+phmm.wholeSeq = false;          % flag to consider the whole sequence
+phmm.varType = 'mixgausstied';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 
-% genetic temporal clustering parameters
+%% parameters genetic temporal clustering
 params.version = ...
     char(KMEANSDTWv{5});    % versions of the k-means DTW algorithm to execute';
 params.dist = DISTANCES{1}; % distance metric
@@ -66,11 +69,11 @@ params.nmin = 5;            % minimum subsequence width
 params.nmax = 25;           % maximum subsequence width
 params.N = 500;             % Number of segments to split the learning sequence
 params.N0 = 8;              % Number of segments to split the model sequences
-params.nThreshs = 20;       % Number of thresholds for testing (tunned to 20)
+params.nThreshs = 20;       % Number of thresholds for testing (tunned to 20 and 22 for max models and median models, respectively)
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
-params.vectorized = 'on';   % vectorize the GA
-params.population = 10;     % population of the GA
+params.vectorized = 'off';   % vectorize the GA
+params.population = 5;     % population of the GA
 params.generations = 500;   % number of generations of the GA
 params.Baseline = ...
     BASELINE{2};            % Baseline for the GA
@@ -82,7 +85,7 @@ params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
-params.msmType = MSM{2};    % Type of Median Subgesture Models in the evolutive process 
+params.msmType = MSM{3};    % Type of Median Subgesture Models in the evolutive process 
 params.mType = MEDIANTYPE{3};  % Type of median models to consider
 params.usemax_l = true;        % use the median or the max-length gesture as reference
 if strcmp(params.mType,'KNN')
