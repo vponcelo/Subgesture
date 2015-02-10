@@ -1,4 +1,4 @@
-function m_dtw = getMedianModels(X,k,medianType,gmm,usemax_l,ptr)
+function m_dtw = getMedianModels(X,k,medianType,gmm,usemax_l)
 % Get the refrence models from K-Means DTW
 % 
 % Input:

@@ -1,5 +1,5 @@
 function M = getMSM(params,Xtrain_l,model,mnseg,mk)
-% function that obtain the Median Subgesture Model
+% function that obtain the Max/Median Subgesture Models
 
 display('Computing Median Subgesture Models for each gesture...');
 if strcmp(params.msmType,'fix') && strcmp(params.mType,'modelMSM1')
@@ -74,7 +74,7 @@ elseif strcmp(params.msmType,'fix') && strcmp(params.mType,'allMSM1')
     M = getMedianModels(MSM,length(MSM),params.mType,false,params.usemax_l);
 elseif strcmp(params.msmType,'evoSegs') && strcmp(params.mType,'modelMSM2')
     % Median Models to the corresponding Median Subgestures Models
-    M = cell(1,params.M);
+    M = cell(1,length(params.M));
     for i = 1:length(params.M)
         alig_seqs = zeros(length(model.SM),size(params.M{i},1),size(params.M{i},2));
         for j = 1:length(model.SM)
@@ -85,19 +85,19 @@ elseif strcmp(params.msmType,'evoSegs') && strcmp(params.mType,'modelMSM2')
     end
 elseif strcmp(params.msmType,'evoSegs') && strcmp(params.mType,'allMSM2')
     % Gesture samples to the corresponding Median Subgesture Models
-    M = cell(1,params.M);
+    M = cell(1,length(params.M));
     for i = 1:length(params.M)
-        M_g = cell(1,Xtrain_l);
-        for sg = 1:length(Xtrain_l)
+        M{i} = cell(1,length(Xtrain_l{i}));
+        for sg = 1:length(Xtrain_l{i})
             alig_seqs = zeros(length(model.SM),size(Xtrain_l{i}{sg},1),size(Xtrain_l{i}{sg},2));
             for j = 1:length(model.SM)
                 W = dtwc(model.SM{j},Xtrain_l{i}{sg},1);
-                [~,~,alig_seqs(j,:,:)]=aligngesture(model.SM{j},W);                
+                [~,~,alig_seqs(j,:,:)]=aligngesture(model.SM{j},W);
             end
-            M_g{i}{sg} = reshape(mean(alig_seqs),[size(alig_seqs,2) size(alig_seqs,3)]);        
+            M{i}{sg} = reshape(mean(alig_seqs),[size(alig_seqs,2) size(alig_seqs,3)]);
             % tengo celda de celdas de ptrs
         end
-        M{i} = getMedianModels(M_g{i},length(M_g{i}),params.mType,false,usemax_l);    
+        M = getMedianModels(M,length(M),params.mType,false,params.usemax_l);
     end        
     
 else
