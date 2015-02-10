@@ -24,10 +24,11 @@ for i=1:nKids
     % Randomly select half of the genes from each parent
     % This loop may seem like brute force, but it is twice as fast as the
     % vectorized version, because it does no allocation.
-    if strcmp(params.msmType,'none')
-        ngenes = 0;  
-    elseif strcmp(params.msmType,'fix')
+    
+    if strcmp(params.msmType,'fix')
         ngenes = 2;
+    else
+        ngenes = 0;
     end
     for j = 1:GenomeLength-ngenes
         if j == 1

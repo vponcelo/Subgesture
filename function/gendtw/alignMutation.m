@@ -28,7 +28,7 @@ end
 P = thisPopulation(parents,:);
 
 for i=1:length(parents)
-    parent = P(i,1:params.N*2+1);   % In the case of MSM, the last 2 genes don't mutate here
+    parent = P(i,1:params.N*2+1);   % In the case of fixed MSM, the last 2 genes don't mutate here
     for j = 1:length(parent)
         if j == 1
             P(i,j) = parent(j)  + scale(j) .* randn();
@@ -61,7 +61,7 @@ for i=1:length(parents)
             end
         end
     end
-    if strcmp(params.msmType,'fix')
+    if strcmp(params.msmType,'fix') % mutation of k and N for MSM
         P(i,end-1) = P(i,end-1)  + scale(end-1) .* randn();
         P(i,end) = P(i,end)  + scale(end) .* randn();
     end
