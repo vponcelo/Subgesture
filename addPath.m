@@ -1,4 +1,4 @@
 addpath(genpath('function'));
 addpath(genpath('data'));
-addpath(genpath('lib'));
-addpath(genpath('results'));
+% addpath(genpath('lib'));
+% addpath(genpath('results'));
