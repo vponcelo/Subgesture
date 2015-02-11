@@ -89,7 +89,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
                 segA = seg{i};
             else
                 segA = reshape(seg(i,:,:),size(seg,2),size(seg,3));
-            end            
+            end
             [~,model{i}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k(i),segA,mnsegs(i),mk(i));
             display('Validating the model ...');
             [~,sc(i),preds{i}] = g(model{i},Xval,Yval);
@@ -193,7 +193,7 @@ function [I2,k,seg,mk,mnsegs] = decode(I,params)
         seg = round(reshape(I(:,2:params.N*2+1),[size(I,1) 2 (params.N*2)/2]));
     end
     
-    mnsegs = []; mk = [];
+    mnsegs = zeros(1,size(I,1)); mk = zeros(1,size(I,1));
     % get model segments and k
     if strcmp(params.msmType,'fix')
         mnsegs = round(I(:,end-1));
@@ -377,7 +377,7 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,m
     end
             
     %% Compute Median (SubGesture) Models for each gesture 
-    if ~strcmp(params.msmType,'fix') && ~isempty(mnseg) && ~isempty(mk)
+    if ~strcmp(params.msmType,'fix') && mnseg > 0 && mk > 0
         model.M = getMSM(params,Xtrain_l,model,mnseg,mk);
     elseif strcmp(params.msmType,'evoSegs')
         model.M = getMSM(params,Xtrain_l,model);
