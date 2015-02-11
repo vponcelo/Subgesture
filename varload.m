@@ -55,7 +55,7 @@ phmm.folds = 1;                 % k for k-fold Cross Validation
 phmm.states = 3;                % number of hidden states for the HMM
 phmm.it = 500;                  % number of Iterations of the HMM
 phmm.clustType = 'kmlsample';   % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
-phmm.kD = 50;                   % number of clusters for discretizing
+phmm.kD = 100;                   % number of clusters for discretizing
 phmm.cIters = 100;              % number of iterations for discretizing
 phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 

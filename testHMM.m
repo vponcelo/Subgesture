@@ -12,9 +12,9 @@ if nargin == 0
 end
 params.scoreMeasure = measure;  % Score Measure: 'overlap' or 'levenshtein'
 clear CACHE S BASELINE OPTIONS STATE;
-% NAT = 3;
-% NORMTYPE = 'none';
-% COORDS = 'world';
+NAT = 3;
+NORMTYPE = 'none';
+COORDS = 'world';
 
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
@@ -66,11 +66,10 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
 
                 %% Discretize Training and Test data        
                 Dtrain = discretizeData(Ctrain,Xtrain);
-                Dval = discretizeData(Ctrain,Xval_l{l});
+                Dval = discretizeData(Ctrain,Xdev{2});
             end
             if ~strcmp(phmm.clustType,'none') && strcmp(phmm.varType,'discrete')
                 %% Test number of states 
-                display(sprintf('Learning the Model ...'));
                 [phmm.hmmTR_f{k}{l},phmm.hmmE_f{k}{l},phmm.hmmStates,...
                     phmm.pTrain_f{k}{l},phmm.pVal_f{k}{l}] = ...
                     learnEvalModel(Dtrain,Ctrain,Xtrain,Xval_l{l},phmm.it,phmm.states);
@@ -113,7 +112,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         end
     end
     display(sprintf('Saving results ...'));
-    save(strcat('results/',DATATYPE,'/hmm/,learningResults.mat'),'phmm','pTrain_f','pVal_f','minModelProb');
+    save(strcat('results/',DATATYPE,'/hmm/learningResults.mat'),'phmm');
     display('Done!');
 else
     display('Showing Learning results for each fold ...');

@@ -9,11 +9,10 @@ function Xdiscrete = discretizeData(c,X)
 % if ~exist('discreteData.mat','file'),
     display('Discretizing data...');
         
-%     X = toMat(X);
     Xdiscrete = discretizeSequence(c,X);
     
 %     save('discreteData.mat','Xdiscrete');
-    display('Done!');
+%     display('Done!');
 % else
 %     load('discreteData.mat');
 % end
