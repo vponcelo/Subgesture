@@ -26,9 +26,9 @@ for i=1:nKids
     % vectorized version, because it does no allocation.
     
     if strcmp(params.msmType,'fix')
-        ngenes = 2;
+        ngenes = 3;
     else
-        ngenes = 0;
+        ngenes = 1;
     end
     for j = 1:GenomeLength-ngenes
         if j == 1
