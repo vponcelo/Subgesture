@@ -118,7 +118,9 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Ytrain,Xval,Yval,params)
     if bestScore > max(CACHE.eval)
         MODEL = model{best};
     end
-    
+    %%%% if want to plot the performance of the best solution so far
+%     plotmistakes(predictions{best}, Yval,0)
+
      % Add to cache (FILO stack mode avoiding to overwrite the highest value)
     pos = CACHE.pos;
     posEnd = pos+sum(idx)-1;
