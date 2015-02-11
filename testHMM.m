@@ -24,11 +24,8 @@ clear CACHE S BASELINE OPTIONS STATE;
 % pause();
 
 %% Obtain all training samples grouped (labeled) by gestures
-if ~phmm.wholeSeq
-    Xtrain_l = getGroupedGestures(X,Y,1);
-else
-    Xtrain_l = 1;
-end
+Xtrain_l = getGroupedGestures(X,Y,1);
+Xval_l = getGroupedGestures(X,Y,2);
 
 %% Generate learning sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
@@ -36,81 +33,78 @@ l = [];
 [Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,nSampGest);
 
 %% Obtain Cross Validation subsets over training data
-if phmm.wholeSeq
-    Indices = crossvalind('Kfold',length(Xdev{1}),phmm.folds);    
-    phmm.hmmTR_f = cell(1,phmm.folds);
-    phmm.hmmE_f = cell(1,phmm.folds);
-    phmm.hmmStates = cell(1,phmm.folds);
-    pVal_f = zeros(phmm.folds,round(length(X)/phmm.folds));
-    pTrain_f = zeros(phmm.folds,round(size(pVal_f,2)*(phmm.folds-1)));
-    minModelProb = ones(1,phmm.folds);
-else
-    Indices = cell(1,length(Xtrain_l));
-    for l = 1:length(Xtrain_l)
-        Indices{l} = cell(1,phmm.folds);
-        Indices{l} = crossvalind('Kfold',length(Xtrain_l{l}),phmm.folds);        
-    end    
+Indices = cell(1,length(Xtrain_l)-1);
+for l = 1:length(Xtrain_l)-1
+    Indices{l} = cell(1,phmm.folds);
+    Indices{l} = crossvalind('Kfold',length(Xtrain_l{l}),phmm.folds);        
 end
+phmm.hmmTR_f = cell(1,phmm.folds); phmm.hmmE_f = cell(1,phmm.folds);
+pTrain_f = cell(1,phmm.folds); pVal_f = cell(1,phmm.folds);
 
 %% Train and save learning results
 if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'file'),
-    for k = 1:phmm.folds,        
-        for l = 1:length(Xtrain_l)
-            display(sprintf('\n Fold %d',k));
+    for k = 1:phmm.folds,
+        display(sprintf('\n Fold %d',k));
+        
+        phmm.hmmTR_f{k} = cell(1,length(Xtrain_l)-1);
+        phmm.hmmE_f{k} = cell(1,length(Xtrain_l)-1);
+        pTrain_f{k} = cell(1,length(Xtrain_l)-1);
+        pVal_f{k} = cell(1,length(Xtrain_l)-1);
+        for l = 1:length(Xtrain_l)-1
 
             %% Obtain Training data
             if phmm.folds > 1
-                if ~iscell(Xtrain_l)
-                    [Xtrain,Ytrain] = getTrainingData(Xdev{1},k,Indices,Ydev{1});
-                else
-                    % grouped by gesture class
-                    [Xtrain,Ytrain] = getTrainingData(Xtrain_l,k,Indices,Ydev{1},l);             
-                end
+                % grouped by gesture class
+                [Xtrain,Ytrain] = getTrainingData(Xtrain_l,k,Indices,Ydev{1},l);                             
             else
-                if ~iscell(Xtrain_l)
-                    Xtrain = Xdev{1}; Ytrain = Ydev{1};                     
-                else
-                    Xtrain = Xtrain_l{l}; Ytrain = Ydev{1}.Lfr(Ydev{1}.Lfr==l);
-                end
+                Xtrain = Xtrain_l{l}; Ytrain = Ydev{1}.Lfr(Ydev{1}.Lfr==l);                
             end            
 
-            if strcmp(phmm.varType,'discrete') && ~strcmp(phmm.clustType,'none')
+            if strcmp(phmm.varType,'discrete')
                 %% Get data clusters
                 Ctrain = performClustering(Xtrain,Ytrain,phmm.clustType,phmm.kD,phmm.cIters);
 
                 %% Discretize Training and Test data        
                 Dtrain = discretizeData(Ctrain,Xtrain);
-            
+                Dval = discretizeData(Ctrain,Xval_l{l});
+            end
+            if ~strcmp(phmm.clustType,'none') && strcmp(phmm.varType,'discrete')
                 %% Test number of states 
                 display(sprintf('Learning the Model ...'));
-                [hmmTR,hmmE,phmm.hmmStates,pTrain,pVal] = learnEvalModel(Dtrain,Ctrain,Xtrain,Xdev{2},phmm.it,phmm.states);
+                [phmm.hmmTR_f{k}{l},phmm.hmmE_f{k}{l},phmm.hmmStates,...
+                    phmm.pTrain_f{k}{l},phmm.pVal_f{k}{l}] = ...
+                    learnEvalModel(Dtrain,Ctrain,Xtrain,Xval_l{l},phmm.it,phmm.states);
                 
                 %% Plot results of the model showing learning and predictive capabilities 
-                plotResults(pTrain,pVal,hmmE,hmmStates,k);
+                plotResults(phmm.pTrain_f{k}{l},phmm.pVal_f{k}{l},...
+                    phmm.hmmE_f{k}{l},phmm.hmmStates,k);
 
-                %% save HMM transition and emissions, probability values for traning and validation data, and minimum probability to define the threshold
-                phmm.hmmTR_f{k} = hmmTR;
-                phmm.hmmE_f{k} = hmmE;
-                phmm.hmmStates_f(k,:) = hmmStates;
-                phmm.pTrain_f(k,:) = pTrain;
-                phmm.pVal_f(k,:) = pVal;        
-                minModelProb(k) = min(pVal);
-            elseif strcmp(phmm.varType,'gauss') || strcmp(phmm.varType,'mixgausstied') || ...
-                    strcmp(phmm.varType,'discrete') && strcmp(clustType,'none')
-                
-                if strcmp(phmm.varType,'mixgausstied')
+                %% minimum probability to define the threshold                
+                %minModelProb{k}{l} = min(pVal);
+            elseif strcmp(phmm.clustType,'none')
+                if strcmp(phmm.varType,'discrete') 
                     tic;
-                    [~,kMeansClusters] = kmeans(Xtrain,phmm.states);
-                    [model, loglikHist] = hmmFit(Xtrain, phmm.states, phmm.varType, 'nmix', kMeansClusters);
+                    [phmm.model, phmm.phmmloglikHist] = hmmFit(Xtrain, phmm.states, phmm.varType);
                     toc;
-                else
                     tic;
-                    [model, loglikHist] = hmmFit(Xtrain, phmm.states, phmm.varType);
+                    path = hmmMap(model, Dval);
+                    toc;
+                elseif strcmp(phmm.varType,'gauss')
+                    tic;
+                    [phmm.model, phmm.phmmloglikHist] = hmmFit(Xtrain, phmm.states, phmm.varType);
+                    toc;
+                    tic;
+                    path = hmmMap(model, Xval_l{l});
+                    toc;
+                elseif strcmp(phmm.varType,'mixgausstied')
+                    tic;
+                    [~,kc] = kmeans(Xtrain,phmm.states);
+                    [phmm.model, phmm.loglikHist] = hmmFit(Xtrain, phmm.states, phmm.varType, 'nmix', kc);                    
+                    toc;
+                    tic;
+                    path = hmmMap(model, Xval_l{l});
                     toc;
                 end
-                tic;
-                path = hmmMap(model, Xdev{2});                
-                toc;
                 %[~,S_eu,~] = g(params,Xdev{2},Ydev{2});
                 %S_eu
             else
@@ -119,7 +113,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         end
     end
     display(sprintf('Saving results ...'));
-    save(strcat('results/',DATATYPE,'/HMM/,learningResults.mat'),'phmm','pTrain_f','pVal_f','minModelProb');
+    save(strcat('results/',DATATYPE,'/hmm/,learningResults.mat'),'phmm','pTrain_f','pVal_f','minModelProb');
     display('Done!');
 else
     display('Showing Learning results for each fold ...');

@@ -54,10 +54,9 @@ nSampGest = 0;          % Number of samples per gesture for the test sequence
 phmm.folds = 1;                 % k for k-fold Cross Validation
 phmm.states = 3;                % number of hidden states for the HMM
 phmm.it = 500;                  % number of Iterations of the HMM
-phmm.clustType = 'kmlsample';      % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
-phmm.kD = 200;                   % number of clusters for discretizing
-phmm.cIters = 100;         % number of iterations for discretizing
-phmm.wholeSeq = false;          % flag to consider the whole sequence
+phmm.clustType = 'kmlsample';   % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
+phmm.kD = 50;                   % number of clusters for discretizing
+phmm.cIters = 100;              % number of iterations for discretizing
 phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 
 %% parameters genetic temporal clustering
@@ -73,7 +72,7 @@ params.nThreshs = 20;       % Number of thresholds for testing (tunned to 20 and
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
 params.vectorized = 'on';   % vectorize the GA
-params.population = 5;     % population of the GA
+params.population = 10;     % population of the GA
 params.generations = 500;   % number of generations of the GA
 params.Baseline = ...
     BASELINE{2};            % Baseline for the GA
@@ -85,8 +84,8 @@ params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
-params.msmType = MSM{3};    % Type of Median Subgesture Models in the evolutive process 
-params.mType = MEDIANTYPE{3};  % Type of median models to consider
+params.msmType = MSM{1};    % Type of Median Subgesture Models in the evolutive process 
+params.mType = MEDIANTYPE{1};  % Type of median models to consider
 params.usemax_l = true;        % use the median or the max-length gesture as reference
 if strcmp(params.mType,'KNN')
 	params.k = 3;
