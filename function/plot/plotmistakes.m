@@ -48,8 +48,8 @@ for hi=1:20,
 end
 legend({'GT','Pred','Errors'});
 set(gcf,'Color','w');
-
+set(gcf,'Name',['Avg. Overlap: ' num2str(mean(ovlpc))])
 if saveflg,
-saveas(gcf,strrep(strrep(datestr(now),':','-'),' ',''),'jpg');
+    saveas(gcf,['Ovlp_' num2str(mean(ovlpc)) '_' strrep(strrep(datestr(now),':','-'),' ','') '.jpg'],'jpg');
 end
 end
