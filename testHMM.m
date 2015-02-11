@@ -23,17 +23,17 @@ clear CACHE S BASELINE OPTIONS STATE;
 % display('Press a key to continue...');
 % pause();
 
+%% Obtain all training samples grouped (labeled) by gestures
+if ~phmm.wholeSeq
+    Xtrain_l = getGroupedGestures(X,Y,1);
+else
+    Xtrain_l = 1;
+end
+
 %% Generate learning sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
 l = [];
 [Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,nSampGest);
-
-%% Obtain all training samples grouped (labeled) by gestures
-if ~phmm.wholeSeq
-    Xtrain_l = getGroupedGestures(Xdev,Ydev,1);
-else
-    Xtrain_l = 1;
-end
 
 %% Obtain Cross Validation subsets over training data
 if phmm.wholeSeq
@@ -74,7 +74,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                 end
             end            
 
-            if strcmp(phmm.varType,'discrete') && ~strcmp(clustType,'none')
+            if strcmp(phmm.varType,'discrete') && ~strcmp(phmm.clustType,'none')
                 %% Get data clusters
                 Ctrain = performClustering(Xtrain,Ytrain,phmm.clustType,phmm.kD,phmm.cIters);
 
@@ -83,9 +83,8 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             
                 %% Test number of states 
                 display(sprintf('Learning the Model ...'));
-                [hmmTR,hmmE,phmm.hmmStates,pTrain,pVal] = learnModel(Dtrain,Ctrain,Xtrain,Xdev{2},phmm.it,phmm.states);
-                display(sprintf('Model learnt'));
-
+                [hmmTR,hmmE,phmm.hmmStates,pTrain,pVal] = learnEvalModel(Dtrain,Ctrain,Xtrain,Xdev{2},phmm.it,phmm.states);
+                
                 %% Plot results of the model showing learning and predictive capabilities 
                 plotResults(pTrain,pVal,hmmE,hmmStates,k);
 

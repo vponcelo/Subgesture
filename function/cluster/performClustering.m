@@ -6,7 +6,7 @@ function Ctrain = performClustering(X,Y,type,numClusters,numIterations)
 %   numClusters: number of centroids to clusterize the data
 %   numIterations: number of iterations for the clustering process
 
-global DATATYPE;
+% global DATATYPE;
 
 % Output:
 %   Ctrain: training data clusters
