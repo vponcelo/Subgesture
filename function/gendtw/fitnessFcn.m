@@ -392,7 +392,7 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,m
     %% Compte costs of representing Median (Subgesture) Models 'M' in terms of Subgesture Models 'SM'
     model.KM = cell(1,length(model.M));
     display('Computing the costs of the models M in terms of SM ...');
-    tic;
+%     tic;
     for i = 1:length(model.KM)
         if params.k > 0
             model.KM{i} = getUpdatedCosts(model.M{i}{params.k},model.SM);
@@ -400,7 +400,7 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,m
             model.KM{i} = getUpdatedCosts(model.M{i},model.SM);
         end
     end
-    toc;
+%     toc;
     
     %% Test the subsequence model
     model.bestThs = params.bestThs;
@@ -408,6 +408,7 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,m
     model.scoreMeasure = params.scoreMeasure;
     model.maxWlen = params.maxWlen;
     model.k = params.k;
+    model.sw = params.sw;
     display('Training the model parameters ...');
     [model,s,~] = g(model,XtrainT,Ytrain);
 end
