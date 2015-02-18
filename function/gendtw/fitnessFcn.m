@@ -217,7 +217,7 @@ function [valid,err] = validateI(I,params,maxSeg,X)
     kBad = k < params.k0 | k > params.N | k(:) >= nsegs(:);
     e0 = zeros(1,length(k));
     if ~isempty(k(kBad))
-        e0(kBad) = abs(max(k(kBad)-params.k0,params.N-k(kBad)))/1000;
+        e0(kBad) = abs(max(k(kBad)-params.k0,params.N-k(kBad)))/10000;
         valid(kBad) = 0;
     end
     
