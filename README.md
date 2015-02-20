@@ -11,6 +11,6 @@
 
   Run the evolutive optimization and temporal segmentation of the training data using K-Means DTW.
   
-# testSystem:
+# testHMM:
 
-  Test the system using a HMM model to learn the training samples (in progress).
+  Test the system learning a HMM model to discretize and learn the training samples
