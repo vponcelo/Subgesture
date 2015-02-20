@@ -42,6 +42,7 @@ NAT = 3;
 
 %% Obtain all samples grouped (labeled) by gestures
 Xtrain_l = getGroupedGestures(X,Y,1);
+Xval_l = [];
 if params.phmm.hmm, Xval_l = getGroupedGestures(X,Y,2); end
 %Xtrain_l = getGroupedGestures(X,Y,0);
 
@@ -58,17 +59,17 @@ l = [];
 %% Baseline 
 % First evaluation with euclidean distance
 % profile -memory on
-params.sw = 0;          % in the baseline, we evaluate the whole sequence 
+% params.sw = 0;          % in the baseline, we evaluate the whole sequence 
 [~,S_eu,~] = g(params,Xdev{2},Ydev{2});
-params.sw = 5000;       % In training, we evaluate sequence portions
+% params.sw = 5000;       % In training, we evaluate sequence portions
 % profreport
 
 %% Genetic algorithm optimization
 % Evaluation function
 if strcmp(params.scoreMeasure,'overlap')    % CHECK X{1} y Xdev{1}
-    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Xval_l(1:length(Xval_l)-1),Ydev{1},Xdev{2},Ydev{2},params,phmm);    
+    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Xval_l(1:length(Xval_l)-1),Ydev{1},Xdev{2},Ydev{2},params);    
 elseif strcmp(params.scoreMeasure,'levenshtein')
-    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Xval_l(1:length(Xval_l)-1),Ydev{1},Xdev{2},Ydev{2},params,phmm);
+    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Xval_l(1:length(Xval_l)-1),Ydev{1},Xdev{2},Ydev{2},params);
 end
 
 % Display functions
