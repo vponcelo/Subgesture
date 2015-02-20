@@ -21,7 +21,7 @@ else
 end
 
 r = inf;
-while any(r>length(Yc.Lfr))
+while any(r > length(Yc.Lfr)-sw)
     r=randperm(round(length(Yc.Lfr)),ns);
 end
 
@@ -67,7 +67,7 @@ for isw = 1:ns  % sliding window
         %         display(sprintf('Testing threshold cost parameters for gesture %d ...',k));
         GTtestk = Y.Lfr == k;
         if ~any(GTtestk)
-            error('g:missedLabel','Label %d is missing in the test sequence',k);
+            warning('g:missedLabel','Label %d is missing in the test sequence',k);
         end
         W = [];
         if ~isempty(model.D)        
@@ -189,13 +189,13 @@ for j = 1:ns
 end
 [score,p] = max(score);
 
-try
-    seg=r(p):min(r(p)+sw,length(Yc.Lfr));
-    Y.Lfr=Yc.Lfr(seg);
-    plotmistakes(predictions{p},Y,1);
-catch e
-    display(e.message);
-end
+% try
+%     seg=r(p):min(r(p)+sw,length(Yc.Lfr));
+%     Y.Lfr=Yc.Lfr(seg);
+%     plotmistakes(predictions{p},Y,1);
+% catch e
+%     display(e.message);
+% end
 close gcf;
     
 if strcmp(model.scoreMeasure,'overlap')

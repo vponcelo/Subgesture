@@ -16,7 +16,7 @@ GT = cell(1,2);
 
 for v = 1:length(seq)
     if isempty(l)
-        seq{v} = zeros(Y{v}.seg(end),size(X{v},2));        
+        seq{v} = zeros(Y{v}.seg(end),size(X{v},2));
         GT{v}.Lfr = zeros(1,Y{v}.seg(end));
         for j = 1:length(Y{v}.L)
             startSeq = Y{v}.seg(j);
@@ -26,10 +26,10 @@ for v = 1:length(seq)
                 endSeq = Y{v}.seg(j+1);
             end
             seq{v}(startSeq:endSeq,:) = X{v}(startSeq:endSeq,:);
-            GT{v}.Lfr(startSeq:endSeq) = Y{v}.L(j);            
+            GT{v}.Lfr(startSeq:endSeq) = Y{v}.L(j);
         end
         if nSampGest > 0
-            GTf = zeros(size(GT{v}.Lfr)); seqf = zeros(size(seq{v}));        
+            GTf = zeros(size(GT{v}.Lfr)); seqf = zeros(size(seq{v}));
             for k = 1:length(unique(GT{v}.Lfr))
                 idx = find(GT{v}.Lfr == k);
                 if isempty(idx)
@@ -100,11 +100,10 @@ for v = 1:length(seq)
     end
 end
     
-for i = 1:length(seq)
-    if ~noise
-        idxDel = GT{i}.Lfr >= length(unique(Y{i}.L));
-        GT{i}.Lfr(idxDel) = []; seq{i}(idxDel,:) = [];
-        idxDel = GT{i}.L >= length(unique(Y{i}.L));
-        GT{i}.L(idxDel) = [];
-    end
+%% Remove noise from training. We do not remove noise from validation
+if ~noise
+    idxDel = GT{1}.Lfr >= length(unique(Y{1}.L));
+    GT{1}.Lfr(idxDel) = []; seq{1}(idxDel,:) = [];
+    idxDel = GT{1}.L >= length(unique(Y{1}.L));
+    GT{1}.L(idxDel) = [];
 end

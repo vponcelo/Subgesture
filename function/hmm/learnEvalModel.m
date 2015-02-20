@@ -17,11 +17,11 @@ function [hmmTR,hmmE,hmmStates,pTrain,pVal] = learnEvalModel(Dtrain,Ctrain,Xtrai
 %   hmmStates: number of hidden states
 
 % for s=1:3,
-    display(sprintf('Learning the Model ...'));
+    display('Learning the Model ...');
     [hmmTR, hmmE]=learnHMM(hmmStates,Dtrain,hmmIters);
-    display(sprintf('Evaluating training sequence ...'));
+    display('Evaluating training sequence ...');
     pTrain = evaluateSequences(Ctrain,Xtrain,hmmTR,hmmE);
-    display(sprintf('Evaluating test sequence ...'));
+    display('Evaluating test sequence ...');
     pVal = evaluateSequences(Ctrain,Xval,hmmTR,hmmE);   
 % end
 

@@ -41,7 +41,7 @@ for k = k0:1:kf
         end
     end
 
-%     fprintf(sprintf('Obtaining data clusters using k=%d ...\n',k));
+	display(sprintf(sprintf('Obtaining data clusters using k=%d ...',k)));
 %     tic;
     if ~isempty(Xval_k)
         [Z{k-k0+1},CsTrain{k-k0+1},CsVal{k-k0+1},timeT(k-k0+1),...
