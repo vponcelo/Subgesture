@@ -415,7 +415,7 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dseq,k,seg,mn
         emptyCells = cellfun(@isempty,model.SM);
         model.SM(emptyCells) = [];
         
-        if ~isempty(Dseq)
+        if isempty(Dseq)
             %% compute Similarity matrix
             model.D = getSimilarities(model.SM);
             if sum(~any(model.D))
