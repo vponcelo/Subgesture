@@ -17,7 +17,7 @@ if sw == 0
     ns = 1;
 else
     sw = model.sw;
-    ns = 3;     % changing this value to 1 evaluates the sequence once    
+    ns = 1;     % changing this value to 1 evaluates the sequence once    
 end
 
 r = inf;
@@ -196,7 +196,7 @@ end
 % catch e
 %     display(e.message);
 % end
-close gcf;
+% close gcf;
     
 if strcmp(model.scoreMeasure,'overlap')
     model.bestThs = zeros(1,length(thresholds{p}));

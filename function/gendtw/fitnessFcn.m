@@ -104,7 +104,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
             [~,model{i}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dtrain,k(i),segA,mnsegs(i),mk(i));
             if ~params.phmm.hmm
                 display('Validating the model ...');
-                model{i}.sw = 0;           % In validation, we evaluate the whole sequence 
+%                 model{i}.sw = 0;           % Evaluate the whole validation sequence 
                 [~,sc(i),preds{i}] = g(model{i},Xval,Yval);
             else
                 %% Discretize training gesture sequences
@@ -144,7 +144,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
         end
         if ~params.phmm.hmm
             display('Validating the model ...');
-            model{1}.sw = 0;           % In validation, we evaluate the whole sequence 
+%             model{1}.sw = 0;           % Evaluate the whole validation sequence 
             [~,s2,predictions{1}] = g(model{1},Xval,Yval);
         else
             %% Discretize training gesture sequences
