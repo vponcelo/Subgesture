@@ -17,7 +17,7 @@ x = 1:1:params.generations-options.Generations+state.Generation;
 S_eu = S_eu*ones(1,length(x));
 
 if strcmp(params.scoreMeasure,'overlap');
-    s = -state.Best(end);
+    s = -state.Best(end);    
     if state.Generation > 1
         if s < -state.Best(end-1)
             s = -state.Best(end-1); 
@@ -27,19 +27,27 @@ elseif strcmp(params.scoreMeasure,'levenshtein');
     s = state.Best(end);
     if state.Generation > 1
         if s > state.Best(end-1)
-            s = state.Best(end-1); 
+            s = state.Best(end-1);
         end
     end
 end
-if s < 0
-    s = 0;
-end
+% if s < 0
+%     s = 0;
+% end
 
 global S;
 
 if length(S) >= options.Generations
     warning('Score length is greater or equal to the total number of generations');
     return;
+end
+
+try 
+    s_end = S(end);
+    if s < s_end
+        s = s_end;
+    end
+catch
 end
 
 S = [S s];

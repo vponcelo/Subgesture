@@ -39,6 +39,9 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
         end
     end   
     [valid,err] = validateI(I2,params,size(Xtrain,1),Xtrain);
+    % create here new random individuals for the non-valid ones & assign
+    % them err = 0
+    
     [exists,s2] = getCacheVal(int32(round(I2)),params);
     predictions = cell(1,size(I2,1));
     
@@ -116,7 +119,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
                     Dval = [Dval Dvalg{kV}{timeV(kV)}];
                 end                
                 display(sprintf('Evaluating the validation sequence ...'));                
-                sc(i) = evaluateHMM(Dval, model{i}.hmmTR, model{i}.hmmE);
+                sc(i) = evaluateHMM(Dval', model{i}.hmmTR, model{i}.hmmE);
                 preds{i} = 0;
             end
         end
@@ -156,7 +159,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
                 Dval = [Dval Dvalg{kV}{timeV(kV)}];
             end                
             display(sprintf('Evaluating the validation sequence ...'));                
-            s2 = evaluateHMM(Dval, model{1}.hmmTR, model{1}.hmmE);
+            s2 = evaluateHMM(Dval', model{1}.hmmTR, model{1}.hmmE);
             predictions{1} = 0;
         end
 %         toc;
@@ -436,7 +439,7 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dseq,k,seg,mn
         
         %% Evaluate discretized training sequence
         display(sprintf('Evaluating training sequence ...'));
-        s = evaluateHMM(Dseq, model.hmmTR, model.hmmE);
+        s = evaluateHMM(Dseq', model.hmmTR, model.hmmE);
     else
         %% Compute Median (SubGesture) Models for each gesture 
         if ~strcmp(params.msmType,'fix') && mnseg > 0 && mk > 0
