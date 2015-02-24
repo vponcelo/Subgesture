@@ -39,8 +39,10 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
         end
     end   
     [valid,err] = validateI(I2,params,size(Xtrain,1),Xtrain);
-    % create here new random individuals for the non-valid ones & assign
-    % them err = 0
+    % create here new random individuals for the non-valid ones & restore
+    % them err = 0. Use the idea of function createInitPopul, and
+    % generalize to the case of vectorized on|off (full population in I | 
+    % just one individual in I)
     
     [exists,s2] = getCacheVal(int32(round(I2)),params);
     predictions = cell(1,size(I2,1));
