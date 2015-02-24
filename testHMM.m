@@ -32,70 +32,72 @@ l = [];
 %% Obtain Cross Validation subsets over training data
 Indices = cell(1,length(Xtrain_l)-1);
 for l = 1:length(Xtrain_l)-1
-    Indices{l} = cell(1,phmm.folds);
-    Indices{l} = crossvalind('Kfold',length(Xtrain_l{l}),phmm.folds);        
+    Indices{l} = cell(1,params.phmm.folds);
+    Indices{l} = crossvalind('Kfold',length(Xtrain_l{l}),params.phmm.folds);        
 end
-phmm.hmmTR_f = cell(1,phmm.folds); phmm.hmmE_f = cell(1,phmm.folds);
-pTrain_f = cell(1,phmm.folds); pVal_f = cell(1,phmm.folds);
+params.phmm.C = cell(1,params.phmm.folds);
+params.phmm.hmmTR_f = cell(1,params.phmm.folds); params.phmm.hmmE_f = cell(1,params.phmm.folds);
+params.phmm.pTrain_f = cell(1,params.phmm.folds); params.phmm.pVal_f = cell(1,params.phmm.folds);
 
 %% Train and save learning results
 if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'file'),
-    for k = 1:phmm.folds,
+    for k = 1:params.phmm.folds,
         display(sprintf('\n Fold %d',k));
         
-        phmm.hmmTR_f{k} = cell(1,length(Xtrain_l)-1);
-        phmm.hmmE_f{k} = cell(1,length(Xtrain_l)-1);
-        pTrain_f{k} = cell(1,length(Xtrain_l)-1);
-        pVal_f{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.hmmTR_f{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.hmmE_f{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.pTrain_f{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.pVal_f{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.C{k} = cell(1,length(Xtrain_l)-1);
         for l = 1:length(Xtrain_l)-1
 
             %% Obtain Training data
-            if phmm.folds > 1
+            if params.phmm.folds > 1
                 % grouped by gesture class
                 [Xtrain,Ytrain] = getTrainingData(Xtrain_l,k,Indices,Ydev{1},l);                             
             else
                 Xtrain = Xtrain_l{l}; Ytrain = Ydev{1}.Lfr(Ydev{1}.Lfr==l);                
             end            
 
-            if strcmp(phmm.varType,'discrete')
+            if strcmp(params.phmm.varType,'discrete')
                 %% Get data clusters
-                Ctrain = performClustering(Xtrain,Ytrain,phmm.clustType,phmm.kD,phmm.cIters);
+                params.phmm.C{k}{l} = performClustering(Xtrain,Ytrain,params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
 
                 %% Discretize Training and Test data        
-                Dtrain = discretizeData(Ctrain,Xtrain);
-                Dval = discretizeData(Ctrain,Xdev{2});
+                Dtrain = discretizeData(params.phmm.C{k}{l},Xtrain);
+                Dval = discretizeData(params.phmm.C{k}{l},Xdev{2});
             end
-            if ~strcmp(phmm.clustType,'none') && strcmp(phmm.varType,'discrete')
+            if ~strcmp(params.phmm.clustType,'none') && strcmp(params.phmm.varType,'discrete')
                 %% Test number of states 
-                [phmm.hmmTR_f{k}{l},phmm.hmmE_f{k}{l},phmm.hmmStates,...
-                    phmm.pTrain_f{k}{l},phmm.pVal_f{k}{l}] = ...
-                    learnEvalModel(Dtrain,Ctrain,Xtrain,Xval_l{l},phmm.it,phmm.states);
+                [params.phmm.hmmTR_f{k}{l},params.phmm.hmmE_f{k}{l},params.phmm.states,...
+                    params.phmm.pTrain_f{k}{l},params.phmm.pVal_f{k}{l}] = ...
+                    learnEvalModel(Dtrain,params.phmm.C{k}{l},Xtrain,Xval_l{l},params.phmm.it,params.phmm.states);
                 
                 %% Plot results of the model showing learning and predictive capabilities 
-                plotResults(phmm.pTrain_f{k}{l},phmm.pVal_f{k}{l},...
-                    phmm.hmmE_f{k}{l},phmm.hmmStates,k);
+                plotResults(params.phmm.pTrain_f{k}{l},params.phmm.pVal_f{k}{l},...
+                    params.phmm.hmmE_f{k}{l},params.phmm.states,k);
 
                 %% minimum probability to define the threshold                
                 %minModelProb{k}{l} = min(pVal);
-            elseif strcmp(phmm.clustType,'none')
-                if strcmp(phmm.varType,'discrete') 
+            elseif strcmp(params.phmm.clustType,'none')
+                if strcmp(params.phmm.varType,'discrete') 
                     tic;
-                    [phmm.model, phmm.phmmloglikHist] = hmmFit(Xtrain, phmm.states, phmm.varType);
+                    [params.phmm.model, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
                     toc;
                     tic;
                     path = hmmMap(model, Dval);
                     toc;
-                elseif strcmp(phmm.varType,'gauss')
+                elseif strcmp(params.phmm.varType,'gauss')
                     tic;
-                    [phmm.model, phmm.phmmloglikHist] = hmmFit(Xtrain, phmm.states, phmm.varType);
+                    [params.phmm.model, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
                     toc;
                     tic;
                     path = hmmMap(model, Xval_l{l});
                     toc;
-                elseif strcmp(phmm.varType,'mixgausstied')
+                elseif strcmp(params.phmm.varType,'mixgausstied')
                     tic;
-                    [~,kc] = kmeans(Xtrain,phmm.states);
-                    [phmm.model, phmm.loglikHist] = hmmFit(Xtrain, phmm.states, phmm.varType, 'nmix', kc);                    
+                    [~,kc] = kmeans(Xtrain,params.phmm.states);
+                    [params.phmm.model, params.phmm.loglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType, 'nmix', kc);                    
                     toc;
                     tic;
                     path = hmmMap(model, Xval_l{l});
@@ -109,39 +111,48 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         end
     end
     display(sprintf('Saving model and results ...'));
-    save(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'phmm');
+    save(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'params');
     display('Done!');
 else
     display('Showing Learning results for each fold ...');
     load(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'));
-    for k = 1:params.folds,
-        plotResults(pTrain_f(k,:),pVal_f(k,:),phmm.hmmE_f{k},phmm.hmmStates,k);
+    minModelProb = cell(1,params.phmm.folds);
+    minP = ones*inf(1,params.phmm.folds); posG = ones*inf(1,params.phmm.folds); 
+    for k = 1:params.phmm.folds,
+        minModelProb{k} = zeros(1,length(Xtrain_l)-1);
+        for l = 1:length(Xtrain_l)-1
+            minModelProb = cell(1,params.phmm.folds);
+            plotResults(params.phmm.pTrain_f{k}{l},params.phmm.pVal_f{k}{l},...
+                params.phmm.hmmE_f{k}{l},params.phmm.states,k);
+            minModelProb{k}(l) = min(params.phmm.pVal_f{k}{l});
+        end
+        [minP(k),posG(k)] = min(minModelProb{k});
     end
     display('Done!');
 
     %% Evaluate Test data
-
-    [threshold,k] = min(minModelProb);
+    [threshold,k] = min(minP);
     if threshold < 0.5
         threshold = 0.5; 
     elseif threshold > 0.8
-        threshold = 0.8; 
+        threshold = 0.8;
     end
-    minModelProbs = pVal_f(k,:);
+    minModelProbs = params.phmm.pVal_f{k}{posG(k)};
 
     display('Evaluating the final Model with the test set...');
-    if ~exist('data/resProbTestSeqs.mat','file'),
-        testProbs=evaluateSequences(Ctrain,Xtest,hmmTR_f{k},hmmE_f{k});
-        plotResults(-1,testProbs,hmmE_f{k},hmmStates,k);
+    if ~exist(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'),'file'),
+        testProbs=evaluateSequences(params.phmm.C{k}{posG(k)},Xtest,...
+            params.phmm.hmmTR_f{k}{posG(k)},params.phmm.hmmE_f{k}{posG(k)});
+        plotResults(-1,testProbs,params.phmm.hmmE_f{k}{posG(k)},params.phmm.states,k);
 
         hits = sum(testProbs > threshold);
         accuracy = hits/length(testProbs);
 
-        save('data/resProbTestSeqs.mat','testProbs','minModelProbs','threshold','accuracy','clustType');
+        save(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'),'testProbs','minModelProbs','threshold','accuracy');
         display('Done!');
     else
-        load('data/resProbTestSeqs.mat');
-        plotResults(-1,testProbs,hmmE_f{k},hmmStates,k);
+        load(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'));
+        plotResults(-1,testProbs,params.phmm.hmmE_f{k},params.phmm.states,k);
     end
 
     figure,
