@@ -74,9 +74,13 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             end
 
             if strcmp(params.phmm.varType,'discrete')
-                %% Get data clusters (baseline 3)
-                % s'ha de representar X en bokps fent clustering
-%                 Xtrain = performClustering(Xdev{1},Ydev{1},params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
+                if ~strcmp(params.phmm.clustType,'none')
+                    %% Get data clusters (baseline 3)
+                    % s'ha de representar X en bokps fent clustering
+                    Ctrain = performClustering(Xtrain,Ytrain,params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
+                    Xtrain = discretizeSequence(Ctrain,Xtrain);
+                    Xval = discretizeSequence(Ctrain,Xval);
+                end
                 %% Get subgestures from training and validation
                 if params.phmm.hmm
                     %% Obtain Subgesture Model for training/learning data
@@ -84,7 +88,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     [~,kV] = min(mErrsV);
                     SM = Z{kV}{timeV};
                     emptyCells = cellfun(@isempty,SM);
-                    SM(emptyCells) = [];                 
+                    SM(emptyCells) = [];
 %                     display('Computing the costs of the training sequences in terms of SM and discretizing to the minimum ... ');
                     if iscell(Xtrain)
                         Dtrain = cell(1,length(Xtrain));
@@ -92,7 +96,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                             KM = getUpdatedCosts(Xtrain{sample},SM);
                             [~,Dtrain{sample}] = min(KM);
                         end
-%                         Dtrain = cell2mat(Dtrain);
+                        Dtrain = cell2mat(Dtrain);
                     else
                         KM = getUpdatedCosts(Xtrain,SM);
                         [~,Dtrain] = min(KM);
@@ -110,7 +114,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     end
                 end
             end
-            if ~strcmp(params.phmm.clustType,'none') && strcmp(params.phmm.varType,'discrete')
+            if strcmp(params.phmm.varType,'discrete')
                 display(sprintf('Learning the and evaluating the HMM Model for gesture %d ...',l));                
                 [params.phmm.hmmTR_f{k}{l}, params.phmm.hmmE_f{k}{l}] = ...
                     learnHMM(params.phmm.states,Dtrain,params.phmm.it);
