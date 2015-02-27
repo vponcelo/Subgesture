@@ -76,7 +76,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             if strcmp(params.phmm.varType,'discrete')
                 if ~strcmp(params.phmm.clustType,'none')
                     %% Get data clusters (baseline 3)
-                    % s'ha de representar X en bokps fent clustering
+                    display('Discretizing sequences in Key Poses ...');
                     Ctrain = performClustering(Xtrain,Ytrain,params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
                     Xtrain = discretizeSequence(Ctrain,Xtrain);
                     Xval = discretizeSequence(Ctrain,Xval);
@@ -86,9 +86,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     %% Obtain Subgesture Model for training/learning data
                     [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],Ytrain,[],Xtrain,[]);
                     [~,kV] = min(mErrsV);
-                    SM = Z{kV}{timeV};
-                    emptyCells = cellfun(@isempty,SM);
-                    SM(emptyCells) = [];
+                    SM = Z{kV}{timeV}; emptyCells = cellfun(@isempty,SM); SM(emptyCells) = [];
 %                     display('Computing the costs of the training sequences in terms of SM and discretizing to the minimum ... ');
                     if iscell(Xtrain)
                         Dtrain = cell(1,length(Xtrain));

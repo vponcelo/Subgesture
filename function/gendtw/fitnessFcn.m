@@ -1,15 +1,16 @@
-function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params)
+function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     % Validate the data sequences by means of either k-means-DTW and mean DTW models.
 
     % output:
     %   s: score
     % input:
     %   I: Individual for the genetic algorithm
-    %   Xtrain: training data
+    %   X: whole training data    
+    %   XtrainT: the training data sequence for testing (without noise)
     %   Xtrain_l: training data grouped (labeled) by classes (gestures)
-    %   XtrainT: the training data sequence for testing    
-    %   Xval: validation data
-    %   Ytrain: training data labels
+    %   Ytrain: training data labels    
+    %   Xval: the validation data sequence for testing (including noise)    
+    %   Xval_l: validation data grouped by classes (gestures)
     %   Yval: validation data labels
     %   params: struct with the required parameters to construct the model
     %      N: Number of segments to split the training sequence
@@ -38,7 +39,7 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
             error('fitnessFcn:uniqueFailed','All repeated individuals must be members of the list of unique individuals.\nCheck the use of unique');
         end
     end   
-    [valid,err] = validateI(I2,params,size(Xtrain,1),Xtrain);
+    [valid,err] = validateI(I2,params,size(X,1),X);
     % create here new random individuals for the non-valid ones & restore
     % them err = 0. Use the idea of function createInitPopul, and
     % generalize to the case of vectorized on|off (full population in I | 
@@ -60,19 +61,18 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
     
     idx = exists==0 & valid==1;
     [I2,k,seg,mk,mnsegs] = decode(I2(idx,:),params);
-    %cd('results/temp/');
-    %save('temp.mat','seg','Xtrain','XtrainT','Ytrain','params','k');    
+%     cd('results/temp/');
+%     save('temp.mat','seg','X','XtrainT','Ytrain','params','k');    
     if length(idx) > 1
         sc = zeros(1,length(k));
         preds = cell(1,length(k));
         model = cell(1,length(k));
-%         tic;
-        % 1) Llençar length(k) processos. 
-        %   Cada procés crida a la funció d'avaluació per aquella k i seg, 
-        %   i guarda un fitxer en un directori amb el model entrenat, sc, 
-        %   pred avaluades
-        % 2) fer un for de length(k) llegint els processos i guardant les dades en les estructures model{i}, sc(i), preds{i}
-        % 3) Buidar memòria esborrant els fitxers del directori del parfor
+        % 1) Launch length(k) processes.
+        %   Each process calls to the evaluation function for that k,seg,
+        %   and it saves a file in a directory with the trained model, 
+        %   scores, and predictions
+        % 2) Save the results of each process in the structures model{i}, sc(i), preds{i}
+        % 3) Release memory, removing the files of the evaluation
 %         f = zeros(1,length(k));
 %         for i = 1:length(k)
 %             cmd = sprintf('#!/bin/bash\nqsub -t %i -q short.q -l mem=2G subgesture_eval.sh',i);
@@ -96,72 +96,66 @@ function s = fitnessFcn(I,Xtrain,XtrainT,Xtrain_l,Xval_l,Ytrain,Xval,Yval,params
             else
                 segA = reshape(seg(i,:,:),size(seg,2),size(seg,3));
             end
-            Dtrain = [];
-            if params.phmm.hmm
-                %% Discretize training gesture sequences
-                display('Discretizing training gesture sequences through K-Means DTW ...');
-                for l = 1:length(Xtrain_l)
-                    [Dtraing,~,mErrsV,~,timeV,~,~] = runKMeansDTW(params.version,k(i),'dtwCost',k(i),[],[],[],Ytrain,[],Xtrain_l{l},[]);
-                    [~,kV] = min(mErrsV);
-                    Dtrain = [Dtrain Dtraing{kV}{timeV(kV)}];
-                end
-            end
-            [~,model{i}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dtrain,k(i),segA,mnsegs(i),mk(i));
+            [~,model{i}] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k(i),segA,mnsegs(i),mk(i));
+            Xv = Xval;          % Parfor doesn't accept modifying the value of Xval directly
             if ~params.phmm.hmm
                 display('Validating the model ...');
 %                 model{i}.sw = 0;           % Evaluate the whole validation sequence 
-                [~,sc(i),preds{i}] = g(model{i},Xval,Yval);
+                [~,sc(i),preds{i}] = g(model{i},Xv,Yval);
             else
-                %% Discretize training gesture sequences
-                display('Discretizing training gesture sequences through K-Means DTW ...');
-                Dval = [];
-                for l = 1:length(Xval_l)
-                    [Dvalg,~,mErrsV,~,timeV,~,~] = runKMeansDTW(params.version,k(i),'dtwCost',k(i),[],[],[],Ytrain,[],Xval_l{l},[]);
-                    [~,kV] = min(mErrsV);
-                    Dval = [Dval Dvalg{kV}{timeV(kV)}];
-                end                
-                display(sprintf('Evaluating the validation sequence ...'));                
-                sc(i) = evaluateHMM(Dval', model{i}.hmmTR, model{i}.hmmE);
+                if ~strcmp(params.phmm.clustType,'none')
+                    display('Discretizing validation sequence in Key Poses ...');
+                    Xv = discretizeSequence(model{i}.Ctrain,Xv);      
+                end
+                %% Discretize validation sequence
+                Dval = cell(1,length(Xv));
+                if iscell(Xv)
+                    for sample = 1:length(Xv)
+                        KT = getUpdatedCosts(Xv{sample},model{i}.SM);
+                        [~,Dval{sample}] = min(KT);
+                    end
+                else
+                    KT = getUpdatedCosts(Xv,model{i}.SM);
+                    [~,Dval] = min(KT);
+                end
+                display(sprintf('Evaluating the validation sequence ...'));
+                sc(i) = evaluateHMM(Dval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE);
                 preds{i} = 0;
             end
         end
-%         toc;
         s2(idx) = sc;
         predictions(idx) = preds;
         clear preds;
     else
         predictions = cell(1);
-        model = cell(1);
-        Dtrain = [];
-        if params.phmm.hmm
-            %% Discretize training gesture sequences
-            display('Discretizing training gesture sequences through K-Means DTW ...');            
-            for l = 1:length(Xtrain_l)
-                [Dtraing,~,mErrsV,~,timeV,~,~] = runKMeansDTW(params.version,k,'dtwCost',k,[],[],[],Ytrain,[],Xtrain_l{l},[]);
-                [~,kV] = min(mErrsV);
-                Dtrain = [Dtrain Dtraing{kV}{timeV(kV)}];
-            end
-        end
+        model = cell(1);        
         if iscell(seg)            
-            [~,model{1}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dtrain,k,cell2mat(seg),mnsegs,mk);            
+            [~,model{1}] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg),mnsegs,mk);            
         else
-            [~,model{1}] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dtrain,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
+            [~,model{1}] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
         end
         if ~params.phmm.hmm
             display('Validating the model ...');
 %             model{1}.sw = 0;           % Evaluate the whole validation sequence 
             [~,s2,predictions{1}] = g(model{1},Xval,Yval);
-        else
-            %% Discretize training gesture sequences
-            display('Discretizing training gesture sequences through K-Means DTW ...');
-            Dval = [];
-            for l = 1:length(Xval_l)
-                [Dvalg,~,mErrsV,~,timeV,~,~] = runKMeansDTW(params.version,k,'dtwCost',k,[],[],[],Yval,[],Xval_l{l},[]);
-                [~,kV] = min(mErrsV);
-                Dval = [Dval Dvalg{kV}{timeV(kV)}];
-            end                
-            display(sprintf('Evaluating the validation sequence ...'));                
-            s2 = evaluateHMM(Dval', model{1}.hmmTR, model{1}.hmmE);
+        else            
+            if ~strcmp(params.phmm.clustType,'none')
+                display('Discretizing validation sequence in Key Poses ...');
+                Xval = discretizeSequence(model{1}.Ctrain,Xval);
+            end
+            %% Discretize validation sequence
+            Dval = cell(1,length(Xval));
+            if iscell(Xval)
+                for sample = 1:length(Xval)
+                    KT = getUpdatedCosts(Xval{sample},model{1}.SM);
+                    [~,Dval{sample}] = min(KT);
+                end
+            else
+                KT = getUpdatedCosts(Xval,model{1}.SM);
+                [~,Dval] = min(KT);
+            end
+            display(sprintf('Evaluating the validation sequence ...'));
+            s2 = evaluateHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
             predictions{1} = 0;
         end
 %         toc;
@@ -388,7 +382,7 @@ function [exists,s] = getCacheVal(I,params)
     end
 end
 
-function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dseq,k,seg,mnseg,mk)
+function [s,model] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 % Output:
 %   s: scores
 %   model: model structure
@@ -401,9 +395,9 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dseq,k,seg,mn
 %      bestThs: best thresholds for the k detected gestures    
 %      nThreshs: Number of thresholds for testing
 
-    X_I = getDataPartitions(Xtrain,seg');
+    X_I = getDataPartitions(X,seg');
     
-    if isempty(params.D)
+%     if isempty(params.D)
         %% Temporal Clustering
         % Obtain subsets using the k-means DTW algorithm    
         if any(k > size(seg,2))
@@ -416,33 +410,24 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dseq,k,seg,mn
         model.C = CsTrain{kV}{timeV(kV)};
 
         %% Obtain Subgesture Model for training/learning data
-        model.SM = Z{kV}{timeV};
-        emptyCells = cellfun(@isempty,model.SM);
-        model.SM(emptyCells) = [];
-        
-        if isempty(Dseq)
-            %% compute Similarity matrix
-            model.D = getSimilarities(model.SM);
-            if sum(~any(model.D))
-                error('fitnessFcn:D','Some elements of the dissimilarity matrix are wrong');
-            end
-        end
-    else
-        model.C = params.C;
-        model.SM = params.SM;
-        model.D = params.D;
-        model.KM = params.KM;
-    end
+        model.SM = Z{kV}{timeV}; emptyCells = cellfun(@isempty,model.SM); model.SM(emptyCells) = [];
+                
+%     else
+%         model.C = params.C;
+%         model.SM = params.SM;
+%         model.D = params.D;
+%         model.KM = params.KM;
+%     end
     
-    if ~isempty(Dseq)
-        %% train HMM for this data partitions and clusters
-        display('Learning the HMM Model ...');
-        [model.hmmTR, model.hmmE]=learnHMM(params.phmm.states,model.C,params.phmm.it);
+    model.sw = params.sw;
+
+    if ~params.phmm.hmm
+        %% compute Similarity matrix
+        model.D = getSimilarities(model.SM);
+        if sum(~any(model.D))
+            error('fitnessFcn:D','Some elements of the dissimilarity matrix are wrong');
+        end
         
-        %% Evaluate discretized training sequence
-        display(sprintf('Evaluating training sequence ...'));
-        s = evaluateHMM(Dseq', model.hmmTR, model.hmmE);
-    else
         %% Compute Median (SubGesture) Models for each gesture 
         if ~strcmp(params.msmType,'fix') && mnseg > 0 && mk > 0
             model.M = getMSM(params,Xtrain_l,model,mnseg,mk);
@@ -466,15 +451,53 @@ function [s,model] = evalFit(Xtrain,XtrainT,Xtrain_l,Ytrain,params,Dseq,k,seg,mn
             end
         end
     %     toc;
-
+    
         %% Test the subsequence model
         model.bestThs = params.bestThs;
         model.nThreshs = params.nThreshs;
         model.scoreMeasure = params.scoreMeasure;
         model.maxWlen = params.maxWlen;
         model.k = params.k;
-        model.sw = params.sw;
+        
         display('Training the model parameters ...');
         [model,s,~] = g(model,XtrainT,Ytrain);
+    else
+        if ~strcmp(params.phmm.clustType,'none')
+            %% Discretize X
+            model.Ctrain = performClustering(X_I,Ytrain,params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
+            X_I = discretizeSequence(model.Ctrain,X_I);            
+        end
+        if iscell(X_I)
+            Dtrain = cell(1,length(X_I));
+            for sample = 1:length(X_I)
+                KM = getUpdatedCosts(X_I{sample},model.SM);
+                [~,Dtrain{sample}] = min(KM);
+            end
+            Dtrain = cell2mat(Dtrain);
+        else
+            KM = getUpdatedCosts(X_I,SM);
+            [~,Dtrain] = min(KM);
+        end
+        
+        %% train HMM for this data partitions and clusters
+        display('Learning the HMM Model ...');
+        [model.phmm.hmmTR, model.phmm.hmmE]=learnHMM(params.phmm.states,Dtrain,params.phmm.it);
+        s = 0;
+%         %% Discretize and evaluate training sequence
+%         if ~strcmp(params.phmm.clustType,'none')
+%             XtrainT = discretizeSequence(model.Ctrain,XtrainT);
+%         end
+%         Dseq = cell(1,length(XtrainT));
+%         if iscell(XtrainT)
+%             for sample = 1:length(XtrainT)
+%                 KT = getUpdatedCosts(XtrainT{sample},model.SM);
+%                 [~,Dseq{sample}] = min(KT);
+%             end
+%         else
+%             KT = getUpdatedCosts(XtrainT,model.SM);
+%             [~,Dseq] = min(KT);
+%         end
+%         display(sprintf('Evaluating training sequence ...'));
+%         s = evaluateHMM(Dseq, model.phmm.hmmTR, model.phmm.hmmE);
     end
 end

@@ -42,8 +42,7 @@ NAT = 3;
 
 %% Obtain all samples grouped (labeled) by gestures
 Xtrain_l = getGroupedGestures(X,Y,1);
-Xval_l = [];
-if params.phmm.hmm, Xval_l = getGroupedGestures(X,Y,2); end
+Xval_l = getGroupedGestures(X,Y,2);
 %Xtrain_l = getGroupedGestures(X,Y,0);
 
 %% Compute median models from training/learning data
@@ -66,10 +65,10 @@ l = [];
 
 %% Genetic algorithm optimization
 % Evaluation function
-if strcmp(params.scoreMeasure,'overlap')    % CHECK X{1} y Xdev{1}
-    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Xval_l(1:length(Xval_l)-1),Ydev{1},Xdev{2},Ydev{2},params);    
-elseif strcmp(params.scoreMeasure,'levenshtein')
-    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Xval_l(1:length(Xval_l)-1),Ydev{1},Xdev{2},Ydev{2},params);
+if strcmp(params.scoreMeasure,'overlap')
+    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Ydev{1},Xval_l(1:length(Xval_l)-1),Xdev{2},Ydev{2},params);    
+elseif strcmp(params.scoreMeasure,'levenshtein') || params.phmm.hmm
+    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Ydev{1},Xval_l(1:length(Xval_l)-1),Xdev{2},Ydev{2},params);
 end
 
 % Display functions
@@ -90,7 +89,7 @@ fCrossOver = @(parents,options,nvars,FitnessFcn,unused,thisPopulation)...
     crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params);
 
 % Options GA
-lastGen = 4;
+lastGen = 1;
 if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
         params.Baseline,'_',params.msmType,'_',num2str(lastGen),'gens','_',...
         num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'),'file')
