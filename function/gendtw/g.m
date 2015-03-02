@@ -97,7 +97,7 @@ for isw = 1:ns  % sliding window
                 while interv < TOL_THRESH && model.nThreshs > 1
                     model.nThreshs = round(model.nThreshs/2);
                     interv = (max(W(end,2:end))-min(W(end,2:end)))/model.nThreshs;
-                    display(sprintf('Incresing number of test thresholds to %d',model.nThreshs));
+                    display(sprintf('Decreasing number of test thresholds to %d',model.nThreshs));
                 end
             end
         end

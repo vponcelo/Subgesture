@@ -89,7 +89,7 @@ fCrossOver = @(parents,options,nvars,FitnessFcn,unused,thisPopulation)...
     crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params);
 
 % Options GA
-lastGen = 1;
+lastGen = 2;
 if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
         params.Baseline,'_',params.msmType,'_',num2str(lastGen),'gens','_',...
         num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'),'file')
@@ -98,9 +98,9 @@ if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.genera
             params.Baseline,'_',params.msmType,'_',num2str(lastGen),'gens','_',...
             num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'));
     end
-    S = [];
-    STATE = state;
+    state = STATE;
     problem.nvars=size(state.Population,2);
+    options = gaoptimset(options,'Vectorized',params.vectorized);
     options = gaoptimset(options,'Generations',params.generations-lastGen);
     options = gaoptimset(options,'StallGenLimit',options.StallGenLimit+1);
 else
@@ -115,7 +115,7 @@ else
     options = gaoptimset(options,'CreationFcn',fCreate);
     options = gaoptimset(options,'MutationFcn',fMutation);
     options = gaoptimset(options,'CrossoverFcn',fCrossOver);
-    options = gaoptimset(options,'Vectorized',params.vectorized);   
+    options = gaoptimset(options,'Vectorized',params.vectorized);
     problem.nvars=1+params.N*2;
     if strcmp(params.msmType,'fix'), problem.nvars = problem.nvars+2; end
     
