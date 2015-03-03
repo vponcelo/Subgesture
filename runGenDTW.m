@@ -98,8 +98,10 @@ if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.genera
             params.Baseline,'_',params.msmType,'_',num2str(lastGen),'gens','_',...
             num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'));
     end
-    state = STATE;
-    problem.nvars=size(state.Population,2);
+    if ~isempty(STATE)
+        state = STATE;
+    end
+    problem.nvars=size(state.Population,2);    
     options = gaoptimset(options,'Vectorized',params.vectorized);
     options = gaoptimset(options,'Generations',params.generations-lastGen);
     options = gaoptimset(options,'StallGenLimit',options.StallGenLimit+1);

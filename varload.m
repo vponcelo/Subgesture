@@ -53,12 +53,12 @@ nSampGest = 0;          % Number of samples per gesture for the test sequence
 %% parameters hmm
 params.phmm.folds = 1;                 % k for k-fold Cross Validation
 params.phmm.states = 3;                % number of hidden states for the HMM
-params.phmm.it = 500;                  % number of Iterations of the HMM
-params.phmm.clustType = 'none';   % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
+params.phmm.it = 1000;                  % number of Iterations of the HMM
+params.phmm.clustType = 'none';        % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
 params.phmm.kD = 50;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
-params.phmm.hmm = true;            % flag that indicates to train with hmm training 
+params.phmm.hmm = false;            % flag that indicates to train with hmm training 
 
 %% parameters genetic temporal clustering
 params.version = ...

@@ -18,11 +18,13 @@ elseif strcmp(params.scoreMeasure,'levenshtein');
 end
 s(s < 0) = 0;
 
+currentGeneration = params.generations-options.Generations+state.Generation;
+
 bar(x,s);
 if strcmp(params.scoreMeasure,'overlap')
-    title(sprintf('Mean population overlaps throughout %d generations',params.generations-options.Generations+state.Generation));
+    title(sprintf('Mean population overlaps throughout %d generations',currentGeneration));
 elseif strcmp(params.scoreMeasure,'levenshtein')
-    title(sprintf('Mean levenshtein distances throughout %d generations',params.generations-options.Generations+state.Generation));
+    title(sprintf('Mean levenshtein distances throughout %d generations',currentGeneration));
 end
 % legend('Euclidean','Model');
 xlabel('Population');

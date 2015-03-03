@@ -6,9 +6,11 @@ if state.Generation < 1
     return;
 end
 
-display(sprintf('Generation %d\n\n',params.generations-options.Generations+state.Generation));
+currentGeneration = params.generations-options.Generations+state.Generation;
 
-x = 1:1:params.generations-options.Generations+state.Generation;
+display(sprintf('Generation %d\n\n',currentGeneration));
+
+x = 1:1:currentGeneration;
 S_eu = S_eu*ones(1,length(x));
 
 if strcmp(params.scoreMeasure,'overlap');
@@ -29,10 +31,6 @@ end
 
 global S;
 
-if length(S) >= options.Generations
-    warning('Score length is greater or equal to the total number of generations');
-end
-
 try 
     s_end = S(end);
     if s < s_end
@@ -45,6 +43,7 @@ S = [S s];
 
 if length(S) ~= length(x)
     warning('Score length is must be equal to the x axis in order to plot');
+    S(length(x)) = S(end);
 	S(length(x)+1:end) = [];
 end
 
@@ -53,9 +52,9 @@ hold on
 plot(x,S,'b');
 hold off
 if strcmp(params.scoreMeasure,'overlap')
-    title(sprintf('Mean overlaps throughout %d generations',params.generations-options.Generations+state.Generation));
+    title(sprintf('Mean overlaps throughout %d generations',currentGeneration));
 elseif strcmp(params.scoreMeasure,'levenshtein')
-    title(sprintf('Mean levenshtein distances throughout %d generations',params.generations-options.Generations+state.Generation));
+    title(sprintf('Mean levenshtein distances throughout %d generations',currentGeneration));
 end
 % legend('Euclidean','Model');
 xlabel('Generation');
