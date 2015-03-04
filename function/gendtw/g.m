@@ -15,15 +15,17 @@ sw = model.sw;
 if sw == 0
     sw = length(Xc)-1;
     ns = 1;
+    r=1;
 else
     sw = model.sw;
     ns = 1;     % changing this value to 1 evaluates the sequence once    
+    r = inf;
+    while any(r > length(Yc.Lfr)-sw)
+        r=randperm(round(length(Yc.Lfr)),ns);
+    end
+
 end
 
-r = inf;
-while any(r > length(Yc.Lfr)-sw)
-    r=randperm(round(length(Yc.Lfr)),ns);
-end
 
 % X=X(seg(isw),:);
 % Y.Lfr=Y.Lfr(seg(isw));
