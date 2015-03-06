@@ -55,7 +55,11 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     s(idxRepsI) = err(posRepsI2);
     
     if ~any(valid) || all(exists)
-        return;   
+        if all(exists)
+            s(idxUniques)=s2;
+            s(idxRepsI) = s2(posRepsI2);
+        end
+        return;
     end
     clear s;
     
@@ -376,7 +380,7 @@ function [exists,s] = getCacheVal(I,params)
                     ~ismember(max(CACHE.eval),s) && length(s) > 1 || ...
                     strcmp(params.scoreMeasure,'levenshtein') && ...
                     ~ismember(min(CACHE.eval),s) && length(s) > 1
-                error('fitnessFcn:CacheError','Cache error. Probably caused because elitist members were not in cache\nCurrent position: %d\nBest in cache: %.4f\nBest in s (elitist): %.4f',CACHE.pos,max(CACHE.eval),max(s));
+                error('fitnessFcn:CacheError','Elitist members not found within the population.\nCurrent position: %d\nBest in cache: %.4f\nBest in s (elitist): %.4f',CACHE.pos,max(CACHE.eval),max(s));
             end
         end
     end
