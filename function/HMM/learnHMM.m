@@ -30,11 +30,11 @@ if iscell(seqs),
         if(s2==1)
             batch=batch';
         end
-        %seq=[seq batch];
-        seq=[seq batch(1) batch(1) batch];
+        seq=[seq batch];
+%         seq=[seq batch(1) batch(1) batch];
 
-        %states=[states stateLabels(nStates,length(batch))];
-        states=[states 1 1 stateLabels(nStates,length(batch))];
+        states=[states stateLabels(nStates,length(batch))];
+%         states=[states 1 1 stateLabels(nStates,length(batch))];
 
         uniformSeqs=[uniformSeqs;imresize(batch,[1 len],'nearest')];
         stateCell=[stateCell stateLabels(nStates,length(batch))];
@@ -45,11 +45,11 @@ else
     if(s2==1)
         batch=batch';
     end
-    %seq=[seq batch];
-    seq=[seq batch(1) batch(1) batch];
+    seq=[seq batch];
+%     seq=[seq batch(1) batch(1) batch];
 
-    %states=[states stateLabels(nStates,length(batch))];
-    states=[states 1 1 stateLabels(nStates,length(batch))];
+    states=[states stateLabels(nStates,length(batch))];
+%     states=[states 1 1 stateLabels(nStates,length(batch))];
 
     uniformSeqs=[uniformSeqs;imresize(batch,[1 len],'nearest')];
     stateCell=[stateCell stateLabels(nStates,length(batch))];

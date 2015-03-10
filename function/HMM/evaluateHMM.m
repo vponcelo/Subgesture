@@ -19,8 +19,10 @@ try
     end
 catch error
     % No path in the sequence
-    if strcmp(error.identifier,'stats:hmmviterbi:ZeroTransitionProbability'),
-        prob=0;
-    end
+    warning(error.identifier,error.message);
+%     if strcmp(error.identifier,'stats:hmmviterbi:ZeroTransitionProbability'),
+%         prob=0;
+%     end
+    prob=0;
 end
 

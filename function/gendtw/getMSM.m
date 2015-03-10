@@ -47,7 +47,7 @@ elseif strcmp(params.msmType,'fix') && strcmp(params.mType,'allMSM1')
                 idx = 1; fseg = round(size(Xtrain_l{ng}{ns},1)/mnseg)-1; % fixed segmentation
                 for nsgs = 1:mnseg
                     if nsgs < mnseg
-                        XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:nsgs*fseg,:);                        
+                        XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:nsgs*fseg,:);            
                     else
                         XngSegs{nsgs} = Xtrain_l{ng}{ns}(idx:end,:);
                     end
@@ -95,11 +95,9 @@ elseif strcmp(params.msmType,'evoSegs') && strcmp(params.mType,'allMSM2')
                 [~,~,alig_seqs(j,:,:)]=aligngesture(model.SM{j},W);
             end
             M{i}{sg} = reshape(mean(alig_seqs),[size(alig_seqs,2) size(alig_seqs,3)]);
-            % tengo celda de celdas de ptrs
         end
-        M = getMedianModels(M,length(M),params.mType,false,params.usemax_l);
-    end        
-    
+    end
+    M = getMedianModels(M,length(M),params.mType,false,params.usemax_l);
 else
     error('getMSM:OptionError','Otion selected to create the Subgesture Models is incorrect. Check params.mType and params.msmType variables');
 end

@@ -16,6 +16,7 @@ clear CACHE S BASELINE OPTIONS STATE;
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
+COORDS = 'world'; NAT = 3;
 [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % display('Press a key to continue...');
 % pause();
@@ -35,25 +36,85 @@ for l = 1:length(Xtrain_l)-1
     Indices{l} = cell(1,params.phmm.folds);
     Indices{l} = crossvalind('Kfold',length(Xtrain_l{l}),params.phmm.folds);        
 end
-params.phmm.C = cell(1,params.phmm.folds); 
 params.phmm.hmmTR_f = cell(1,params.phmm.folds); params.phmm.hmmE_f = cell(1,params.phmm.folds);
+params.phmm.model = cell(1,params.phmm.folds);
 params.phmm.pTrain_f = cell(1,params.phmm.folds); params.phmm.pVal_f = cell(1,params.phmm.folds);
+params.phmm.C = cell(1,params.phmm.folds); params.phmm.SM = cell(1,params.phmm.folds);
 params.phmm.map = cell(1,params.phmm.folds); params.phmm.minProb = cell(1,params.phmm.folds);
+params.phmm.path = cell(1,params.phmm.folds);
 
 %% Train and save learning results
 if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'file'),
+    
     for k = 1:params.phmm.folds,
         display(sprintf('\n Fold %d',k));        
         params.phmm.hmmTR_f{k} = cell(1,length(Xtrain_l)-1);
         params.phmm.hmmE_f{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.model{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.C{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.SM{k} = cell(1,length(Xtrain_l)-1);
         params.phmm.pTrain_f{k} = cell(1,length(Xtrain_l)-1);
         params.phmm.pVal_f{k} = cell(1,length(Xtrain_l)-1);
-        params.phmm.C{k} = cell(1,length(Xtrain_l)-1);
-        params.phmm.map{k} = zeros(1,length(Xtrain_l)-1);
+        params.phmm.mapHMMtrain{k} = zeros(1,length(Xtrain_l)-1);
+        params.phmm.mapHMMval{k} = zeros(1,length(Xtrain_l)-1);
+        params.phmm.minProb{k} = zeros(1,length(Xtrain_l)-1);
+        
+        %% Training HMM models
         for l = 1:length(Xtrain_l)-1
-            %% Obtain Learning data
-            Ytrain = Ydev{1}.Lfr(Ydev{1}.Lfr==l); Xtrain = Xtrain_l{l};                 % gesture cells
-%             Xtrain = Xdev{1}(Ydev{1}.Lfr==l,:);  Xval = Xdev{2}(Ydev{2}.Lfr==l,:);    % gesture vector
+            % Obtain Learning data
+            Ytrain = Ydev{1}.Lfr(Ydev{1}.Lfr==l); Xtrain = Xtrain_l{l};     % gesture cells
+%             Xtrain = Xdev{1}(Ydev{1}.Lfr==l,:);  
+            if ~strcmp(params.phmm.clustType,'none')
+                % Get data clusters (baseline 3)
+                display('Discretizing training sequences in Key Poses ...');
+                params.phmm.C{k}{l} = performClustering(Xtrain,Ytrain,params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
+                Xtrain = discretizeSequence(params.phmm.C{k}{l},Xtrain);
+            end
+            
+            if strcmp(params.phmm.varType,'discrete')                
+                % Get subgestures from training and validation
+                if params.phmm.hmm
+                    % Obtain Subgesture Model for training/learning data
+%                     [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],Ytrain,[],Xtrain,[]);
+%                     [~,kV] = min(mErrsV);
+%                     params.phmm.SM{k}{l} = Z{kV}{timeV}; emptyCells = cellfun(@isempty,params.phmm.SM{k}{l}); params.phmm.SM{k}{l}(emptyCells) = [];
+%                     display('Computing the costs of the training sequences in terms of SM and discretizing to the minimum cost ... ');
+                    if iscell(Xtrain)
+                        Dtrain = cell(1,length(Xtrain));
+                        for sample = 1:length(Xtrain)
+%                             KM = getUpdatedCosts(Xtrain{sample},params.phmm.SM{k}{l});
+%                             [~,Dtrain{sample}] = min(KM);
+                            Dtrain{sample} = Xtrain{sample};
+                        end
+%                         Dtrain = cell2mat(Dtrain);
+                    else
+%                         KM = getUpdatedCosts(Xtrain,params.phmm.SM{k}{l});
+%                         [~,Dtrain] = min(KM);
+                        Dtrain = Xtrain;
+                    end
+                end
+            end
+            if strcmp(params.phmm.varType,'discrete')
+                display(sprintf('Learning the HMM Model for gesture %d ...\n',l));                
+                [params.phmm.hmmTR_f{k}{l}, params.phmm.hmmE_f{k}{l}] = ...
+                    learnHMM(params.phmm.states,Dtrain,params.phmm.it);
+            elseif strcmp(params.phmm.clustType,'none')
+                if strcmp(params.phmm.varType,'discrete')
+                    [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(Dtrain, params.phmm.states, params.phmm.varType);
+                elseif strcmp(params.phmm.varType,'gauss')
+                    [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
+                elseif strcmp(params.phmm.varType,'mixgausstied')
+                    [~,kc] = kmeans(Xtrain,params.phmm.states);
+                    [params.phmm.model{k}{l}, params.phmm.loglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType, 'nmix', kc);
+                end
+            else
+                error('testHMM:hmmTrainError','Error on the HMM training settings. Check varType and clustType parameters');
+            end
+        end
+        
+        %% Evaluating sequences for each model learnt
+        for l = 1:length(Xtrain_l)-1            
+            % Xval = Xdev{2}(Ydev{2}.Lfr==l,:);    % gesture vector
             if params.sw > 0
                 Xval = [];
                 while isempty(Xval)     % baseline 2 | 1+2
@@ -72,95 +133,92 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             else
                 Yval = Ydev{2}.Lfr(Ydev{2}.Lfr==l); Xval = Xval_l{l};                   % gesture cells
             end
-
+            if ~strcmp(params.phmm.clustType,'none')
+                %% Get data clusters (baseline 3)
+                display('Discretizing training sequences in Key Poses ...');
+                Xval = discretizeSequence(params.phmm.C{k}{l},Xval);
+            end
+            
+            % 1)    Testear todas las seqs de validación de un gesto con
+            %       cada HMM aprendida. Tomar, por cada seq testeada, el
+            %       likelihood y ver si pertenece a la HMM del gesto
+            %       correspondiente.
+            % 1Bis) Ver si son similares los resultados haciendo lo mismo testeando las secuencias de training            
+            % 2)    Ver si la discretización por temporal clustering mejora
+            % 3)    Ver cómo se tratan los estados de las secuencias y si 
+            %       hay que añadir inicio-fin.
+            % 4)    Comparar con la otra implementación.
+            
+            params.phmm.pTrain_f{k}{l} = zeros(length(Xtrain_l)-1,length(Xtrain));
+            if iscell(Xval), 
+                params.phmm.pVal_f{k}{l} = zeros(length(Xtrain_l)-1,length(Xval));
+            else
+                params.phmm.pVal_f{k}{l} = zeros(length(Xtrain_l)-1,1);
+            end
+            
             if strcmp(params.phmm.varType,'discrete')
-                if ~strcmp(params.phmm.clustType,'none')
-                    %% Get data clusters (baseline 3)
-                    display('Discretizing sequences in Key Poses ...');
-                    Ctrain = performClustering(Xtrain,Ytrain,params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
-                    Xtrain = discretizeSequence(Ctrain,Xtrain);
-                    Xval = discretizeSequence(Ctrain,Xval);
-                end
                 %% Get subgestures from training and validation
                 if params.phmm.hmm
-                    %% Obtain Subgesture Model for training/learning data
-                    [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],Ytrain,[],Xtrain,[]);
-                    [~,kV] = min(mErrsV);
-                    SM = Z{kV}{timeV}; emptyCells = cellfun(@isempty,SM); SM(emptyCells) = [];
-%                     display('Computing the costs of the training sequences in terms of SM and discretizing to the minimum ... ');
+                    display('Computing the costs of the validation sequences in terms of SM and discretizing to the minimum cost ... ');
                     if iscell(Xtrain)
-                        Dtrain = cell(1,length(Xtrain));
+%                         Dtrain = cell(1,length(Xtrain));
                         for sample = 1:length(Xtrain)
-                            KM = getUpdatedCosts(Xtrain{sample},SM);
-                            [~,Dtrain{sample}] = min(KM);
+%                             KM = getUpdatedCosts(Xtrain{sample},params.phmm.SM{k}{l});
+%                             [~,Dtrain{sample}] = min(KM);
+                            Dtrain{sample} = Xtrain{sample};
                         end
-                        Dtrain = cell2mat(Dtrain);
+%                         Dtrain = cell2mat(Dtrain);
                     else
-                        KM = getUpdatedCosts(Xtrain,SM);
-                        [~,Dtrain] = min(KM);
+%                         KM = getUpdatedCosts(Xtrain,params.phmm.SM{k}{l});
+%                         [~,Dtrain] = min(KM);
+                        Dtrain = Xtrain;
                     end
-%                     display('Computing the costs of the validation sequences in terms of SM and discretizing to the minimum ... ');
+                    display('Computing the costs of the validation sequences in terms of SM and discretizing to the minimum cost ... ');
                     Dval = cell(1,length(Xval));
                     if iscell(Xval)
                         for sample = 1:length(Xval)
-                            KT = getUpdatedCosts(Xval{sample},SM);                            
-                            [~,Dval{sample}] = min(KT);
+%                             KT = getUpdatedCosts(Xval{sample},params.phmm.SM{k}{l});                            
+%                             [~,Dval{sample}] = min(KT);
+                            Dval{sample} = Xval{sample};
                         end
                     else
-                        KT = getUpdatedCosts(Xval,SM);
-                        [~,Dval] = min(KT);
+%                         KT = getUpdatedCosts(Xval,params.phmm.SM{k}{l});
+%                         [~,Dval] = min(KT);
+                        Dval = Xval;
                     end
                 end
             end
-            if strcmp(params.phmm.varType,'discrete')
-                display(sprintf('Learning the and evaluating the HMM Model for gesture %d ...',l));                
-                [params.phmm.hmmTR_f{k}{l}, params.phmm.hmmE_f{k}{l}] = ...
-                    learnHMM(params.phmm.states,Dtrain,params.phmm.it);
-                if iscell(Dtrain)
-%                     display('Evaluation of training ...');
-                    params.phmm.pTrain_f{k}{l} = evaluateSequences([],Dtrain,params.phmm.hmmTR_f{k}{l},params.phmm.hmmE_f{k}{l});
-%                     max(params.phmm.pTrain_f{k}{l})
+            for m = 1:length(Xtrain_l)-1
+                if strcmp(params.phmm.varType,'discrete')                
+                    if iscell(Dtrain)
+                        display(sprintf('Evaluation of training sequences of gesture %d with the HMM model of gesture %d ...',l,m));
+                        params.phmm.pTrain_f{k}{l}(m,:) = evaluateSequences([],Dtrain,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});
+                    end
+                    display(sprintf('Evaluation of validation sequences of gesture %d with the HMM model of gesture %d ...',l,m));
+                    params.phmm.pVal_f{k}{l}(m,:) = evaluateSequences([],Dval,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});                    
+                elseif strcmp(params.phmm.clustType,'none')
+                    if strcmp(params.phmm.varType,'discrete')
+                        params.phmm.path{k}{l} = hmmMap(params.phmm.model{k}{l}, Dval);
+                    elseif strcmp(params.phmm.varType,'gauss')
+                        params.phmm.path{k}{l} = hmmMap(params.phmm.model{k}{l}, Xval_l{l});
+                    elseif strcmp(params.phmm.varType,'mixgausstied')
+                        params.phmm.path{k}{l} = hmmMap(params.phmm.model{k}{l}, Xval_l{l});
+                    end
+                else
+                    error('testHMM:hmmTrainError','Error on the HMM training settings. Check varType and clustType parameters');
                 end
-%                 display('Evaluation of validation ...');
-                params.phmm.pVal_f{k}{l} = evaluateSequences([],Dval,params.phmm.hmmTR_f{k}{l},params.phmm.hmmE_f{k}{l});
-                params.phmm.map{k}(l) = max(params.phmm.pVal_f{k}{l});
-%                 params.phmm.map{k}(l)
-                
-                %% Plot results of the model showing learning and predictive capabilities 
-%                 plotResults(params.phmm.pTrain_f{k}{l},params.phmm.pVal_f{k}{l},...
-%                     params.phmm.hmmE_f{k}{l},params.phmm.states,k);
-
-                %% minimum probability to define the threshold
-                params.phmm.minProb{k} = min(params.phmm.map{k}(l));
-            elseif strcmp(params.phmm.clustType,'none')
-                if strcmp(params.phmm.varType,'discrete')
-                    tic;
-                    [params.phmm.model, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
-                    toc;
-                    tic;
-                    path = hmmMap(model, Dval);
-                    toc;
-                elseif strcmp(params.phmm.varType,'gauss')
-                    tic;
-                    [params.phmm.model, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
-                    toc;
-                    tic;
-                    path = hmmMap(model, Xval_l{l});
-                    toc;
-                elseif strcmp(params.phmm.varType,'mixgausstied')
-                    tic;
-                    [~,kc] = kmeans(Xtrain,params.phmm.states);
-                    [params.phmm.model, params.phmm.loglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType, 'nmix', kc);
-                    toc;
-                    tic;
-                    path = hmmMap(model, Xval_l{l});
-                    toc;
-                end
-            else
-                error('testHMM:hmmTrainError','Error on the HMM training settings. Check varType and clustType parameters');
             end
+            [~,params.phmm.mapHMMtrain{k}(l)] = max(mean(params.phmm.pTrain_f{k}{l}'));
+            [~,params.phmm.mapHMMval{k}(l)] = max(mean(params.phmm.pVal_f{k}{l}'));
+            mapHMM = params.phmm.mapHMMval{k}(l);
+            
+            %% Plot results of the model showing learning and predictive capabilities 
+%                 plotResults(params.phmm.pTrain_f{k}{mapHMM},params.phmm.pVal_f{k}{mapHMM},...
+%                     params.phmm.hmmE_f{k}{mapHMM},params.phmm.states,k);
+
+            %% minimum probability to define the threshold
+            params.phmm.minProb{k}(l) = min(params.phmm.pVal_f{k}{l}(mapHMM,:));
         end
-        mean(params.phmm.map{k})
     end
     display(sprintf('Saving model and results ...'));
     save(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'params');

@@ -443,18 +443,29 @@ function [s,model] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
             error('fitnessFcn:optError','Option chosen for the Subgesture Models is not correct. Check params.msmType variable');
         end
 
-        %% Compte costs of representing Median (Subgesture) Models 'M' in terms of Subgesture Models 'SM'
-        model.KM = cell(1,length(model.M));
-        display('Computing the costs of the models M in terms of SM ...');
-    %     tic;
-        for i = 1:length(model.KM)
-            if params.k > 0
-                model.KM{i} = getUpdatedCosts(model.M{i}{params.k},model.SM);
-            else
-                model.KM{i} = getUpdatedCosts(model.M{i},model.SM);
+        %% Compute costs of representing the gesture samples in terms of Subgesture Models 'SM'
+        if strcmp(params.mType,'allMSM1') || strcmp(params.mType,'allMSM2')
+            model.KM = cell(0);
+            for gesture = 1:length(Xtrain_l)-1
+                model.KM = [model.KM cell(1,length(Xtrain_l{gesture}))];
+                for sample = 1:length(Xtrain_l{gesture})
+                    model.KM{sample} = getUpdatedCosts(Xtrain_l{gesture}{sample},model.SM);
+                end
             end
+        else
+            %% Compute costs of representing Median (Subgesture) Models 'M' in terms of Subgesture Models 'SM'
+            model.KM = cell(1,length(model.M));
+            display('Computing the costs of the models M in terms of SM ...');
+%             tic;
+            for i = 1:length(model.KM)
+                if params.k > 0
+                    model.KM{i} = getUpdatedCosts(model.M{i}{params.k},model.SM);
+                else
+                    model.KM{i} = getUpdatedCosts(model.M{i},model.SM);
+                end
+            end
+%             toc;
         end
-    %     toc;
     
         %% Test the subsequence model
         model.bestThs = params.bestThs;
