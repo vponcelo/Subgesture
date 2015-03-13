@@ -88,6 +88,7 @@ params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start
 params.msmType = MSM{1};    % Type of Median Subgesture Models in the evolutive process 
 params.mType = MEDIANTYPE{1};  % Type of median models to consider
 params.usemax_l = true;        % use the median or the max-length gesture as reference
+params.resize=1;               % Use resizing instead of DTW to obtain  
 params.sw = 5000;              % sliding window (frame seq length): '0' means the whole sequence
 if strcmp(params.mType,'KNN')
 	params.k = 3;
