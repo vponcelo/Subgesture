@@ -36,6 +36,7 @@ for l = 1:length(Xtrain_l)-1
     Indices{l} = cell(1,params.phmm.folds);
     Indices{l} = crossvalind('Kfold',length(Xtrain_l{l}),params.phmm.folds);        
 end
+params.phmm.Dtrain = cell(1,params.phmm.folds);
 params.phmm.hmmTR_f = cell(1,params.phmm.folds); params.phmm.hmmE_f = cell(1,params.phmm.folds);
 params.phmm.model = cell(1,params.phmm.folds);
 params.phmm.pTrain_f = cell(1,params.phmm.folds); params.phmm.pVal_f = cell(1,params.phmm.folds);
@@ -48,6 +49,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
     
     for k = 1:params.phmm.folds,
         display(sprintf('\n Fold %d',k));        
+        params.phmm.Dtrain{k} = cell(1,length(Xtrain_l)-1);
         params.phmm.hmmTR_f{k} = cell(1,length(Xtrain_l)-1);
         params.phmm.hmmE_f{k} = cell(1,length(Xtrain_l)-1);
         params.phmm.model{k} = cell(1,length(Xtrain_l)-1);
@@ -75,32 +77,32 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                 % Get subgestures from training and validation
                 if params.phmm.hmm
                     % Obtain Subgesture Model for training/learning data
-%                     [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],Ytrain,[],Xtrain,[]);
-%                     [~,kV] = min(mErrsV);
-%                     params.phmm.SM{k}{l} = Z{kV}{timeV}; emptyCells = cellfun(@isempty,params.phmm.SM{k}{l}); params.phmm.SM{k}{l}(emptyCells) = [];
-%                     display('Computing the costs of the training sequences in terms of SM and discretizing to the minimum cost ... ');
+                    [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],Ytrain,[],Xtrain,[]);
+                    [~,kV] = min(mErrsV);
+                    params.phmm.SM{k}{l} = Z{kV}{timeV}; emptyCells = cellfun(@isempty,params.phmm.SM{k}{l}); params.phmm.SM{k}{l}(emptyCells) = [];
+                    display('Computing the costs of the training sequences in terms of SM and discretizing to the minimum cost ... ');
                     if iscell(Xtrain)
-                        Dtrain = cell(1,length(Xtrain));
+                        params.phmm.Dtrain{k}{l} = cell(1,length(Xtrain));
                         for sample = 1:length(Xtrain)
-%                             KM = getUpdatedCosts(Xtrain{sample},params.phmm.SM{k}{l});
-%                             [~,Dtrain{sample}] = min(KM);
-                            Dtrain{sample} = Xtrain{sample};
+                            KM = getUpdatedCosts(Xtrain{sample},params.phmm.SM{k}{l});
+                            [~,params.phmm.Dtrain{k}{l}{sample}] = min(KM);
+%                             params.phmm.Dtrain{k}{l}{sample} = Xtrain{sample};
                         end
-%                         Dtrain = cell2mat(Dtrain);
+%                         params.phmm.Dtrain{k}{l} = cell2mat(params.phmm.Dtrain{k}{l});
                     else
-%                         KM = getUpdatedCosts(Xtrain,params.phmm.SM{k}{l});
-%                         [~,Dtrain] = min(KM);
-                        Dtrain = Xtrain;
+                        KM = getUpdatedCosts(Xtrain,params.phmm.SM{k}{l});
+                        [~,params.phmm.Dtrain{k}{l}] = min(KM);
+%                         params.phmm.Dtrain{k}{l} = Xtrain;
                     end
                 end
             end
             if strcmp(params.phmm.varType,'discrete')
                 display(sprintf('Learning the HMM Model for gesture %d ...\n',l));                
                 [params.phmm.hmmTR_f{k}{l}, params.phmm.hmmE_f{k}{l}] = ...
-                    learnHMM(params.phmm.states,Dtrain,params.phmm.it);
+                    learnHMM(params.phmm.states,params.phmm.Dtrain{k}{l},params.phmm.it);
             elseif strcmp(params.phmm.clustType,'none')
                 if strcmp(params.phmm.varType,'discrete')
-                    [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(Dtrain, params.phmm.states, params.phmm.varType);
+                    [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(params.phmm.Dtrain{k}{l}, params.phmm.states, params.phmm.varType);
                 elseif strcmp(params.phmm.varType,'gauss')
                     [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
                 elseif strcmp(params.phmm.varType,'mixgausstied')
@@ -128,7 +130,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     end
                     seg=r(1):min(r(1)+params.sw,length(Ydev{2}.Lfr));
                     Xval=Xdev{2}(seg,:); Yval=Ydev{2}.Lfr(seg);                         % gesture vector
-%                     Xval = Xval(Yval == l,:);  % baseline 1+2: get current gesture label
+                    Xval = Xval(Yval == l,:);  % baseline 1+2: get current gesture label
                 end
             else
                 Yval = Ydev{2}.Lfr(Ydev{2}.Lfr==l); Xval = Xval_l{l};                   % gesture cells
@@ -149,52 +151,40 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             %       hay que añadir inicio-fin.
             % 4)    Comparar con la otra implementación.
             
-            params.phmm.pTrain_f{k}{l} = zeros(length(Xtrain_l)-1,length(Xtrain));
-            if iscell(Xval), 
-                params.phmm.pVal_f{k}{l} = zeros(length(Xtrain_l)-1,length(Xval));
-            else
-                params.phmm.pVal_f{k}{l} = zeros(length(Xtrain_l)-1,1);
-            end
-            
             if strcmp(params.phmm.varType,'discrete')
                 %% Get subgestures from training and validation
                 if params.phmm.hmm
                     display('Computing the costs of the validation sequences in terms of SM and discretizing to the minimum cost ... ');
-                    if iscell(Xtrain)
-%                         Dtrain = cell(1,length(Xtrain));
-                        for sample = 1:length(Xtrain)
-%                             KM = getUpdatedCosts(Xtrain{sample},params.phmm.SM{k}{l});
-%                             [~,Dtrain{sample}] = min(KM);
-                            Dtrain{sample} = Xtrain{sample};
-                        end
-%                         Dtrain = cell2mat(Dtrain);
-                    else
-%                         KM = getUpdatedCosts(Xtrain,params.phmm.SM{k}{l});
-%                         [~,Dtrain] = min(KM);
-                        Dtrain = Xtrain;
-                    end
-                    display('Computing the costs of the validation sequences in terms of SM and discretizing to the minimum cost ... ');
                     Dval = cell(1,length(Xval));
                     if iscell(Xval)
                         for sample = 1:length(Xval)
-%                             KT = getUpdatedCosts(Xval{sample},params.phmm.SM{k}{l});                            
-%                             [~,Dval{sample}] = min(KT);
-                            Dval{sample} = Xval{sample};
+                            KT = getUpdatedCosts(Xval{sample},params.phmm.SM{k}{l});     
+                            [~,Dval{sample}] = min(KT);
+%                             Dval{sample} = Xval{sample};
                         end
                     else
-%                         KT = getUpdatedCosts(Xval,params.phmm.SM{k}{l});
-%                         [~,Dval] = min(KT);
-                        Dval = Xval;
+                        KT = getUpdatedCosts(Xval,params.phmm.SM{k}{l});
+                        [~,Dval] = min(KT);
+%                         Dval = Xval;
                     end
                 end
             end
+            
+            params.phmm.pTrain_f{k}{l} = zeros(length(params.phmm.Dtrain{k}),length(params.phmm.Dtrain{k}{l}));
+            if iscell(Xval), 
+                params.phmm.pVal_f{k}{l} = zeros(length(Xtrain_l)-1,length(Dval));
+            else
+                params.phmm.pVal_f{k}{l} = zeros(length(Xtrain_l)-1,1);
+            end
+            
+            display(sprintf('Evaluation of training sequences of gesture %d with each HMM model ...',l));
             for m = 1:length(Xtrain_l)-1
-                if strcmp(params.phmm.varType,'discrete')                
-                    if iscell(Dtrain)
-                        display(sprintf('Evaluation of training sequences of gesture %d with the HMM model of gesture %d ...',l,m));
-                        params.phmm.pTrain_f{k}{l}(m,:) = evaluateSequences([],Dtrain,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});
+                if strcmp(params.phmm.varType,'discrete')
+                    if iscell(params.phmm.Dtrain{k}{l})
+%                         display(sprintf('Evaluation of training sequences of gesture %d with the HMM model of gesture %d ...',l,m));
+                        params.phmm.pTrain_f{k}{l}(m,:) = evaluateSequences([],params.phmm.Dtrain{k}{l},params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});
                     end
-                    display(sprintf('Evaluation of validation sequences of gesture %d with the HMM model of gesture %d ...',l,m));
+%                     display(sprintf('Evaluation of validation sequences of gesture %d with the HMM model of gesture %d ...',l,m));
                     params.phmm.pVal_f{k}{l}(m,:) = evaluateSequences([],Dval,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});                    
                 elseif strcmp(params.phmm.clustType,'none')
                     if strcmp(params.phmm.varType,'discrete')
@@ -209,10 +199,14 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                 end
             end
             [~,params.phmm.mapHMMtrain{k}(l)] = max(mean(params.phmm.pTrain_f{k}{l}'));
-            [~,params.phmm.mapHMMval{k}(l)] = max(mean(params.phmm.pVal_f{k}{l}'));
+            if size(params.phmm.pVal_f{k}{l},2) > 1
+                [~,params.phmm.mapHMMval{k}(l)] = max(mean(params.phmm.pVal_f{k}{l}'));
+            else
+                [~,params.phmm.mapHMMval{k}(l)] = max(params.phmm.pVal_f{k}{l});
+            end
             mapHMM = params.phmm.mapHMMval{k}(l);
             
-            %% Plot results of the model showing learning and predictive capabilities 
+            % Plot results of the model showing learning and predictive capabilities 
 %                 plotResults(params.phmm.pTrain_f{k}{mapHMM},params.phmm.pVal_f{k}{mapHMM},...
 %                     params.phmm.hmmE_f{k}{mapHMM},params.phmm.states,k);
 

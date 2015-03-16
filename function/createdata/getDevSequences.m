@@ -106,4 +106,8 @@ if ~noise
     GT{1}.Lfr(idxDel) = []; seq{1}(idxDel,:) = [];
     idxDel = GT{1}.L >= length(unique(Y{1}.L));
     GT{1}.L(idxDel) = [];
+%     idxDel = GT{2}.Lfr >= length(unique(Y{2}.L));
+%     GT{2}.Lfr(idxDel) = []; seq{2}(idxDel,:) = [];
+%     idxDel = GT{2}.L >= length(unique(Y{2}.L));
+%     GT{2}.L(idxDel) = [];
 end

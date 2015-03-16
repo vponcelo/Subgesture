@@ -1,9 +1,9 @@
 function [CsTrain,CsVal,mErrsT,mErrsV,timeT,timeV,Z] = ...
-    runKMeansDTW(version,k0,dist,kf,Xtrain,Xval,Y,labelsT,labelsV,Xtrain_k,Xval_k)
+    runKMeansDTW(params,k0,dist,kf,Xtrain,Xval,Y,labelsT,labelsV,Xtrain_k,Xval_k)
 % Prepare the data and parameters to run the specified version of the  
 % k-means-DTW algorithm
 % Input:
-%   version: string with the version of the kmeans DTW algorithm
+%   params: set of parameters
 %   k0: initial number of clusters
 %   dist: distance metric for the k-means DTW
 %   kf: final number of clusters
@@ -46,11 +46,11 @@ for k = k0:1:kf
     if ~isempty(Xval_k)
         [Z{k-k0+1},CsTrain{k-k0+1},CsVal{k-k0+1},timeT(k-k0+1),...
             timeV(k-k0+1),mErrsT(k-k0+1),mErrsV(k-k0+1)] = ...
-            clusterSeqs(Xtrain_k,Xval_k,k,dist,labelsT,labelsV,version);
+            clusterSeqs(Xtrain_k,Xval_k,k,dist,labelsT,labelsV,params.version,params.resize);
     else
         [Z{k-k0+1},CsTrain{k-k0+1},~,timeT(k-k0+1),...
             ~,mErrsT(k-k0+1),~] = ...
-            clusterSeqs(Xtrain_k,[],k,dist,labelsT,[],version);
+            clusterSeqs(Xtrain_k,[],k,dist,labelsT,[],params.version,params.resize);
     end
 %     toc;    
 end

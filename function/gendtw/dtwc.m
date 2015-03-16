@@ -20,7 +20,11 @@ if nargin == 3
 elseif nargin == 4
     W=dtw_c(double(x),double(t),logical(align),w);
 elseif nargin == 7
-    W=dtw_c(double(x),double(t),logical(align),w,double(D),double(KM),double(KT));
+    if size(KM,1) == size(D,1)
+        W=dtw_c(double(x),double(t),logical(align),w,double(D),double(KM),double(KT));
+    else
+        W=dtw2(double(x),double(t),logical(align),w,double(D),double(KM),double(KT));
+    end
 else
     error('Number of arguments is incorrect;');
 end

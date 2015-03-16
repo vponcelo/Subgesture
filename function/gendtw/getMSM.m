@@ -1,7 +1,7 @@
 function M = getMSM(params,Xtrain_l,model,mnseg,mk)
 % function that obtain the Max/Median Subgesture Models
 
-display('Computing Median Subgesture Models for each gesture...');
+display('Computing Subgesture Models for each gesture...');
 if strcmp(params.msmType,'fix') && strcmp(params.mType,'modelMSM1')
     % Median Models to new Median Subgestures Models
     M = cell(1,length(params.M));
@@ -71,15 +71,19 @@ elseif strcmp(params.msmType,'fix') && strcmp(params.mType,'allMSM1')
             MSM{ng}{ns} = Z{kV}{timeV}{end};
         end                
     end
-    M = getMedianModels(MSM,length(MSM),params.mType,false,params.usemax_l);
+    M = getModels(MSM,length(MSM),params.mType,false,params.usemax_l);
 elseif strcmp(params.msmType,'evoSegs') && strcmp(params.mType,'modelMSM2')
     % Median Models to the corresponding Median Subgestures Models
     M = cell(1,length(params.M));
     for i = 1:length(params.M)
         alig_seqs = zeros(length(model.SM),size(params.M{i},1),size(params.M{i},2));
         for j = 1:length(model.SM)
-            W = dtwc(model.SM{j},params.M{i},1);
-            [~,~,alig_seqs(j,:,:)]=aligngesture(model.SM{j},W);                
+            if params.resize,
+                alig_seqs(j,:,:)=imresize(model.SM{j},[size(params.M{i},1),size(model.SM{j},2)]);
+            else
+                W = dtwc(model.SM{j},params.M{i},1);
+                [~,~,alig_seqs(j,:,:)]=aligngesture(model.SM{j},W);
+            end
         end
         M{i} = reshape(mean(alig_seqs),[size(alig_seqs,2) size(alig_seqs,3)]); 
     end
@@ -88,11 +92,16 @@ elseif strcmp(params.msmType,'evoSegs') && strcmp(params.mType,'allMSM2')
     M = cell(1,length(params.M));
     for i = 1:length(params.M)
         M{i} = cell(1,length(Xtrain_l{i}));
+        display(sprintf('Aligning samples of gesture %d to Subgestures',i));
         for sg = 1:length(Xtrain_l{i})
             alig_seqs = zeros(length(model.SM),size(Xtrain_l{i}{sg},1),size(Xtrain_l{i}{sg},2));
             for j = 1:length(model.SM)
-                W = dtwc(model.SM{j},Xtrain_l{i}{sg},1);
-                [~,~,alig_seqs(j,:,:)]=aligngesture(model.SM{j},W);
+                if params.resize,
+                    alig_seqs(j,:,:)=imresize(model.SM{j},[size(Xtrain_l{i}{sg},1),size(model.SM{j},2)]);
+                else
+                    W = dtwc(model.SM{j},Xtrain_l{i}{sg},1);
+                    [~,~,alig_seqs(j,:,:)]=aligngesture(model.SM{j},W);
+                end
             end
             M{i}{sg} = reshape(mean(alig_seqs),[size(alig_seqs,2) size(alig_seqs,3)]);
         end
@@ -101,4 +110,3 @@ elseif strcmp(params.msmType,'evoSegs') && strcmp(params.mType,'allMSM2')
 else
     error('getMSM:OptionError','Otion selected to create the Subgesture Models is incorrect. Check params.mType and params.msmType variables');
 end
-display('Done!');

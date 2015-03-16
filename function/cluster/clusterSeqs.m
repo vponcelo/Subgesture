@@ -1,4 +1,4 @@
-function [Z,CsX,CsVal,timeT,timeV,mErrT,mErrV] = clusterSeqs(X,Xval,k,dist,labelsT,labelsV,version)
+function [Z,CsX,CsVal,timeT,timeV,mErrT,mErrV] = clusterSeqs(X,Xval,k,dist,labelsT,labelsV,version,resize)
 % Obtain k sequence clusters from X
 
 % output:
@@ -17,6 +17,7 @@ function [Z,CsX,CsVal,timeT,timeV,mErrT,mErrV] = clusterSeqs(X,Xval,k,dist,label
 %   labelsT: labels of training data
 %   labelsV: labels of validation data
 %   version: string with the version of the kmeans DTW algorithm
+%   resize: Use resizing instead of mean DTW alignment
    
 if strcmp(version(4),'0')
     nTimes = 1;
@@ -37,7 +38,7 @@ for i = 1:nTimes
     CsX{i} = zeros(1,length(X));
     CsVal{i} = zeros(1,length(Xval));
 %     fprintf(sprintf('Execution %d of the k-means DTW algorithm ...\n',i));
-    [Z{i},CsX{i}] = kmeansDTW(X,k,version,dist,labelsT);
+    [Z{i},CsX{i}] = kmeansDTW(X,k,version,dist,labelsT,resize);
     if ~isempty(Xval)
         if k == length(labelsT.L)
             [errorsT(i),errorsV(i),CsVal{i},accursT(i,:),accursV(i,:)] = ...

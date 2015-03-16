@@ -46,7 +46,7 @@ nrsamples = 100;        % number of random samples
 nseqs = 0;              % number of batches for training and validation, respectively. '0': All ; [nTrain nVal]
 nframesSeg = 0;         % Fixed number of frames for subgesturing. '0' means no fixed subgesturing
 sampling = SAMPLING{2}; % sampling type: 'random' 'label' 'segments'
-noise = false;          % flag indicating whether or not consider noise (iddle gesture) for the test sequence
+noise = true;          % flag indicating whether or not consider noise (iddle gesture) for the test sequence
 secsBatch = 60;         % reference seconds for the test sequence
 nSampGest = 0;          % Number of samples per gesture for the test sequence   
 
@@ -74,7 +74,7 @@ params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
 params.vectorized = 'off';   % vectorize the GA
 params.population = 10;     % population of the GA
-params.generations = 500;   % number of generations of the GA
+params.generations = 1000;  % number of generations of the GA
 params.Baseline = ...
     BASELINE{2};            % Baseline for the GA
 params.threshMov = 3;       % maximum number of low movement frames
@@ -86,9 +86,10 @@ params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
 params.msmType = MSM{1};    % Type of Median Subgesture Models in the evolutive process 
-params.mType = MEDIANTYPE{1};  % Type of median models to consider
+params.mType = MEDIANTYPE{3};  % Type of median models to consider
 params.usemax_l = true;        % use the median or the max-length gesture as reference
-params.resize=1;               % Use resizing instead of DTW to obtain  
+params.resize = true;          % Use resizing instead of mean DTW alignment
+params.gmm = false;            % Use gmm instead of other non-probabilistic representations
 params.sw = 5000;              % sliding window (frame seq length): '0' means the whole sequence
 if strcmp(params.mType,'KNN')
 	params.k = 3;

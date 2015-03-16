@@ -47,7 +47,7 @@ Xval_l = getGroupedGestures(X,Y,2);
 
 %% Compute median models from training/learning data
 % profile -memory on
-params.M = getMedianModels(Xtrain_l,length(Xtrain_l)-1,params.mType,false,params.usemax_l);
+params.M = getModels(Xtrain_l,length(Xtrain_l)-1,params);
 % profreport
 
 %% Generate development sequences
@@ -89,19 +89,20 @@ fCrossOver = @(parents,options,nvars,FitnessFcn,unused,thisPopulation)...
     crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params);
 
 % Options GA
-lastGen = 2;
+lastGen = 1;
 if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
         params.Baseline,'_',params.msmType,'_',num2str(lastGen),'gens','_',...
         num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'),'file')
     if strcmp(params.scoreMeasure,'overlap')
-        load(strcat('results/',DATATYPE,'/validation/Exp3//gen',num2str(params.generations),'popul',num2str(params.population),'/',...
+        load(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
             params.Baseline,'_',params.msmType,'_',num2str(lastGen),'gens','_',...
             num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'));
     end
     if ~isempty(STATE)
         state = STATE;
     end
-    problem.nvars=size(state.Population,2);    
+    problem.nvars=size(state.Population,2);
+    options = gaoptimset(options,'PopulationSize',params.population);
     options = gaoptimset(options,'Vectorized',params.vectorized);
     options = gaoptimset(options,'Generations',params.generations-lastGen);
     options = gaoptimset(options,'StallGenLimit',options.StallGenLimit+1);
@@ -135,7 +136,7 @@ if strcmp(params.vectorized,'on')
     if matlabpool('size') > 0
         matlabpool close force;
     end    
-    pool(3);         % Cache with the populations
+    pool(2);         % Cache with the populations
 end
 [x,finalOverlap,exitFlag,output,population,scores] = ga(problem);
 if strcmp(params.vectorized,'on')
