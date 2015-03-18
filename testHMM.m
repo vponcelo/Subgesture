@@ -42,7 +42,7 @@ params.phmm.model = cell(1,params.phmm.folds);
 params.phmm.pTrain_f = cell(1,params.phmm.folds); params.phmm.pVal_f = cell(1,params.phmm.folds);
 params.phmm.C = cell(1,params.phmm.folds); params.phmm.SM = cell(1,params.phmm.folds);
 params.phmm.map = cell(1,params.phmm.folds); params.phmm.minProb = cell(1,params.phmm.folds);
-params.phmm.path = cell(1,params.phmm.folds);
+params.phmm.path = cell(1,params.phmm.folds); params.phmm.accLearn = cell(1,params.phmm.folds);
 
 %% Train and save learning results
 if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'file'),
@@ -60,6 +60,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         params.phmm.mapHMMtrain{k} = zeros(1,length(Xtrain_l)-1);
         params.phmm.mapHMMval{k} = zeros(1,length(Xtrain_l)-1);
         params.phmm.minProb{k} = zeros(1,length(Xtrain_l)-1);
+        params.phmm.accLearn = zeros(1,length(Xtrain_l)-1);
         
         %% Training HMM models
         for l = 1:length(Xtrain_l)-1
@@ -77,7 +78,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                 % Get subgestures from training and validation
                 if params.phmm.hmm
                     % Obtain Subgesture Model for training/learning data
-                    [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,params.k0,'dtwCost',params.k0,[],[],[],Ytrain,[],Xtrain,[]);
+                    [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,[],[],[],Ytrain,[],Xtrain,[]);
                     [~,kV] = min(mErrsV);
                     params.phmm.SM{k}{l} = Z{kV}{timeV}; emptyCells = cellfun(@isempty,params.phmm.SM{k}{l}); params.phmm.SM{k}{l}(emptyCells) = [];
                     display('Computing the costs of the training sequences in terms of SM and discretizing to the minimum cost ... ');
@@ -185,7 +186,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                         params.phmm.pTrain_f{k}{l}(m,:) = evaluateSequences([],params.phmm.Dtrain{k}{l},params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});
                     end
 %                     display(sprintf('Evaluation of validation sequences of gesture %d with the HMM model of gesture %d ...',l,m));
-                    params.phmm.pVal_f{k}{l}(m,:) = evaluateSequences([],Dval,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});                    
+                    params.phmm.pVal_f{k}{l}(m,:) = evaluateSequences([],Dval,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});
                 elseif strcmp(params.phmm.clustType,'none')
                     if strcmp(params.phmm.varType,'discrete')
                         params.phmm.path{k}{l} = hmmMap(params.phmm.model{k}{l}, Dval);
@@ -204,64 +205,70 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             else
                 [~,params.phmm.mapHMMval{k}(l)] = max(params.phmm.pVal_f{k}{l});
             end
-            mapHMM = params.phmm.mapHMMval{k}(l);
             
             % Plot results of the model showing learning and predictive capabilities 
 %                 plotResults(params.phmm.pTrain_f{k}{mapHMM},params.phmm.pVal_f{k}{mapHMM},...
 %                     params.phmm.hmmE_f{k}{mapHMM},params.phmm.states,k);
 
             %% minimum probability to define the threshold
-            params.phmm.minProb{k}(l) = min(params.phmm.pVal_f{k}{l}(mapHMM,:));
+            params.phmm.minProb{k}(l) = min(params.phmm.pVal_f{k}{l}(l,:));
+            hits = sum(params.phmm.pVal_f{k}{l}(l,:) > params.phmm.minProb{k}(l));
+            params.phmm.accLearn{k}(l) = mean(hits/length(params.phmm.pVal_f{k}{l}));            
         end
     end
     display(sprintf('Saving model and results ...'));
     save(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'params');
     display('Done!');
-else
-    display('Showing Learning results for each fold ...');
+else    
     load(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'));
-    for k = 1:params.phmm.folds,
-        for l = 1:length(Xtrain_l)-1
-            plotResults(params.phmm.pTrain_f{k}{l},params.phmm.pVal_f{k}{l},...
-                params.phmm.hmmE_f{k}{l},params.phmm.states,k);            
+    
+    %% Choose best fold
+    display('Showing Learning results for each fold and gesture ...');
+    maxAcc = -inf;
+    for k = 1:params.phmm.folds        
+        if maxAcc < mean(params.phmm.accLearn{k});
+            maxAcc = mean(params.phmm.accLearn{k});
+            kBest = k;
         end
-        [minP(k),posG(k)] = min(params.phmm.minProb{k});
     end
-    display('Done!');
+    %% Test results
+    params.phmm.pTest_f = zeros(1,length(Xtrain_l)-1); params.phmm.accTest = zeros(1,length(Xtrain_l)-1);
+    for l = 1:length(Xtrain_l)-1        
+%         plotResults(params.phmm.pTrain_f{kBest}{l},params.phmm.pVal_f{kBest}{l},...
+%             params.phmm.hmmE_f{kBest}{l},params.phmm.states,kBest);
+        if ~exist(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'),'file'),   
+            %% Test                     
+            display('Computing the costs of the test sequences in terms of SM and discretizing to the minimum cost ... ');
+            Dtest = cell(1,length(Xtest));
+            if iscell(Xtest)
+                for sample = 1:length(Xtest)
+                    KT = getUpdatedCosts(Xtest{sample},params.phmm.SM{kBest}{l});     
+                    [~,Dtest{sample}] = min(KT);
+    %                         Dval{sample} = Xtest{sample};
+                end
+            else
+                KT = getUpdatedCosts(Xtest,params.phmm.SM{kBest}{l});
+                [~,Dtest] = min(KT);
+    %                     Dtest = Xtest;
+            end
+            display('Evaluating the final Models with the test set...');
+            params.phmm.pTest_f(l) = evaluateSequences([],Dtest,params.phmm.hmmTR_f{kBest}{l},params.phmm.hmmE_f{kBest}{l});
+            hits = sum(params.phmm.pTest_f(l) > params.phmm.minProb{kBest}(l));
+            params.phmm.accTest(l) = mean(hits/length(params.phmm.pTest_f(l)));
 
-    %% Evaluate Test data
-    [threshold,k] = min(minP);
-    if threshold < 0.5
-        threshold = 0.5; 
-    elseif threshold > 0.8
-        threshold = 0.8;
+            plotResults(-1,params.phmm.pTest_f(l),params.phmm.hmmE_f{kBest}{l},params.phmm.states,kBest);
+        end
     end
-    minModelProbs = params.phmm.pVal_f{k}{posG(k)};
-
-    display('Evaluating the final Model with the test set...');
-    if ~exist(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'),'file'),
-        testProbs=evaluateSequences(params.phmm.C{k}{posG(k)},Xtest,...
-            params.phmm.hmmTR_f{k}{posG(k)},params.phmm.hmmE_f{k}{posG(k)});
-        plotResults(-1,testProbs,params.phmm.hmmE_f{k}{posG(k)},params.phmm.states,k);
-
-        hits = sum(testProbs > threshold);
-        accuracy = hits/length(testProbs);
-
-        save(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'),'testProbs','minModelProbs','threshold','accuracy');
-        display('Done!');
-    else
-        load(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'));
-        plotResults(-1,testProbs,params.phmm.hmmE_f{k},params.phmm.states,k);
-    end
-
+    if ~exist(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'),'file'),   
+        save(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'),'Xtest','params');
+    else        
     figure,
     hold on
-    plot(minModelProbs);
+    plot(params.phmm.minProb{kBest},'black');
     title('Blue: validation set of the selected fold. Red: Test set');
-    plot(testProbs,'red');
+    plot(params.phmm.pTest_f,'blue');
     ylabel('Probability values');
     xlabel('Sequence number');
     hold off
-
-    display('Done!');
+    end
 end

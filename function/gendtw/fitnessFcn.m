@@ -409,7 +409,7 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         if any(k > size(seg,2))
             error('fitnessFcn:k','k cannot be greater than the number of segments');
         end
-        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,params.dist,k,[],[],[],Ytrain,[],X_I,[]);
+        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,[],[],[],Ytrain,[],X_I,[]);
 
         %% Get clustered training/learning data structures
         [~,kV] = min(mErrsV);
