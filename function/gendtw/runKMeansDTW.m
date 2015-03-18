@@ -26,7 +26,7 @@ mErrsV = zeros(1,kf-k0+1);
 timeT = zeros(1,kf-k0+1);
 timeV = zeros(1,kf-k0+1);
 Z = cell(1,kf-k0+1);        
-k0=params.k0;kf=params.kf;v=params.version;r=params.resize;d=params.dist;
+k0=params.k0;kf=k0;v=params.version;r=params.resize;d=params.dist;
 
 for k = k0:1:kf
     if sampleData
