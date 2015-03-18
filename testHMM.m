@@ -41,8 +41,8 @@ params.phmm.hmmTR_f = cell(1,params.phmm.folds); params.phmm.hmmE_f = cell(1,par
 params.phmm.model = cell(1,params.phmm.folds);
 params.phmm.pTrain_f = cell(1,params.phmm.folds); params.phmm.pVal_f = cell(1,params.phmm.folds);
 params.phmm.C = cell(1,params.phmm.folds); params.phmm.SM = cell(1,params.phmm.folds);
-params.phmm.map = cell(1,params.phmm.folds); params.phmm.minProb = cell(1,params.phmm.folds);
-params.phmm.path = cell(1,params.phmm.folds); params.phmm.accLearn = cell(1,params.phmm.folds);
+params.phmm.path = cell(1,params.phmm.folds);  params.phmm.minProb = cell(1,params.phmm.folds);
+params.phmm.accTrain = cell(1,params.phmm.folds); params.phmm.accLearn = cell(1,params.phmm.folds);
 
 %% Train and save learning results
 if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'file'),
@@ -60,7 +60,8 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         params.phmm.mapHMMtrain{k} = zeros(1,length(Xtrain_l)-1);
         params.phmm.mapHMMval{k} = zeros(1,length(Xtrain_l)-1);
         params.phmm.minProb{k} = zeros(1,length(Xtrain_l)-1);
-        params.phmm.accLearn = zeros(1,length(Xtrain_l)-1);
+        params.phmm.accTrain{k} = zeros(1,length(Xtrain_l)-1);
+        params.phmm.accLearn{k} = zeros(1,length(Xtrain_l)-1);
         
         %% Training HMM models
         for l = 1:length(Xtrain_l)-1
@@ -107,8 +108,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                 elseif strcmp(params.phmm.varType,'gauss')
                     [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
                 elseif strcmp(params.phmm.varType,'mixgausstied')
-                    [~,kc] = kmeans(Xtrain,params.phmm.states);
-                    [params.phmm.model{k}{l}, params.phmm.loglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType, 'nmix', kc);
+                    [params.phmm.model{k}{l}, params.phmm.loglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType, 'nmix', params.phmm.states);
                 end
             else
                 error('testHMM:hmmTrainError','Error on the HMM training settings. Check varType and clustType parameters');
@@ -212,8 +212,10 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
 
             %% minimum probability to define the threshold
             params.phmm.minProb{k}(l) = min(params.phmm.pVal_f{k}{l}(l,:));
+            hits = sum(params.phmm.pTrain_f{k}{l}(l,:) > params.phmm.minProb{k}(l));
+            params.phmm.accTrain{k}(l) = mean(hits/length(params.phmm.pTrain_f{k}{l}));
             hits = sum(params.phmm.pVal_f{k}{l}(l,:) > params.phmm.minProb{k}(l));
-            params.phmm.accLearn{k}(l) = mean(hits/length(params.phmm.pVal_f{k}{l}));            
+            params.phmm.accLearn{k}(l) = mean(hits/length(params.phmm.pVal_f{k}{l}));
         end
     end
     display(sprintf('Saving model and results ...'));

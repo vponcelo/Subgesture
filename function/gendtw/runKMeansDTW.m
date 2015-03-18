@@ -19,14 +19,14 @@ else
     sampleData = false;
 end
 
+k0=params.k0;kf=k0;v=params.version;r=params.resize;d=params.dist;
 CsTrain = cell(1,kf-k0+1);
 CsVal = cell(1,kf-k0+1);
 mErrsT = zeros(1,kf-k0+1);
 mErrsV = zeros(1,kf-k0+1);
 timeT = zeros(1,kf-k0+1);
 timeV = zeros(1,kf-k0+1);
-Z = cell(1,kf-k0+1);        
-k0=params.k0;kf=k0;v=params.version;r=params.resize;d=params.dist;
+Z = cell(1,kf-k0+1);
 
 for k = k0:1:kf
     if sampleData
