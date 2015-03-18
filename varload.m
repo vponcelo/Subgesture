@@ -36,7 +36,7 @@ BASELINE = {'random','deriv','fixed'};
 STATE = [];
 OPTIONS = [];
 PERCENTDATA = 100;
-MEDIANTYPE = {'direct','modelMSM1','modelMSM2','allMSM1','allMSM2','KNN','DCSR'};
+MEDIANTYPE = {'direct','modelMSM1','modelMSM2','allMSM1','allMSM2','DCSR'};
 JOINTS = [4 6 7 8 10 11 12];%1:20;%  %[8,12] hands
 NAT = 0;
 MSM = {'none','fix','evoSegs'};
@@ -85,17 +85,13 @@ params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
-params.msmType = MSM{1};    % Type of Median Subgesture Models in the evolutive process 
+params.msmType = MSM{3};    % Type of Median Subgesture Models in the evolutive process 
 params.mType = MEDIANTYPE{3};  % Type of median models to consider
 params.usemax_l = true;        % use the median or the max-length gesture as reference
 params.resize = true;          % Use resizing instead of mean DTW alignment
 params.gmm = false;            % Use gmm instead of other non-probabilistic representations
 params.sw = 5000;              % sliding window (frame seq length): '0' means the whole sequence
-if strcmp(params.mType,'KNN')
-	params.k = 3;
-else
-	params.k = 0;           % current k to evaluate for the K-Nearest Neighbour DTW models
-end
+params.k = 0;               % current k to evaluate for the K-Nearest Neighbour DTW models
 CACHE.pos = int32(1);       % Index positions
 % GENRESULTS.P = cell(1,params.generations);
 % GENRESULTS.eval = cell(1,params.generations);

@@ -380,7 +380,7 @@ function [exists,s] = getCacheVal(I,params)
                     ~ismember(max(CACHE.eval),s) && length(s) > 1 || ...
                     strcmp(params.scoreMeasure,'levenshtein') && ...
                     ~ismember(min(CACHE.eval),s) && length(s) > 1
-                error('fitnessFcn:CacheError','Elitist members not found within the population.\nCurrent position: %d\nBest in cache: %.4f\nBest in s (elitist): %.4f',CACHE.pos,max(CACHE.eval),max(s));
+                warning('fitnessFcn:ElitismError','Elitist members not found within the population.\nCurrent position: %d\nBest in cache: %.4f\nBest in s (elitist): %.4f',CACHE.pos,max(CACHE.eval),max(s));
             end
         end
     end
@@ -401,13 +401,15 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 
     X_I = getDataPartitions(X,seg');
     
+    model = params;
+    
 %     if isempty(params.D)
         %% Temporal Clustering
         % Obtain subsets using the k-means DTW algorithm    
         if any(k > size(seg,2))
             error('fitnessFcn:k','k cannot be greater than the number of segments');
         end
-        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,'dtwCost',k,[],[],[],Ytrain,[],X_I,[]);
+        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,params.dist,k,[],[],[],Ytrain,[],X_I,[]);
 
         %% Get clustered training/learning data structures
         [~,kV] = min(mErrsV);
@@ -423,8 +425,6 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 %         model.KM = params.KM;
 %     end
     
-    model.sw = params.sw;
-
     if ~params.phmm.hmm
         %% compute Similarity matrix
         model.D = getSimilarities(model.SM);
@@ -437,8 +437,6 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
             model.M = getMSM(params,Xtrain_l,model,mnseg,mk);
         elseif strcmp(params.msmType,'evoSegs')
             model.M = getMSM(params,Xtrain_l,model);
-        elseif strcmp(params.msmType,'none')
-            model.M = params.M;
         else
             error('fitnessFcn:optError','Option chosen for the Subgesture Models is not correct. Check params.msmType variable');
         end
@@ -473,11 +471,11 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 %         end
     
         %% Test the subsequence model
-        model.bestThs = params.bestThs;
-        model.nThreshs = params.nThreshs;
-        model.scoreMeasure = params.scoreMeasure;
-        model.maxWlen = params.maxWlen;
-        model.k = params.k;
+%         model.bestThs = params.bestThs;
+%         model.nThreshs = params.nThreshs;
+%         model.scoreMeasure = params.scoreMeasure;
+%         model.maxWlen = params.maxWlen;
+%         model.k = params.k;
         
 %         display('Training the model parameters ...');
 %         [model,s,~] = g(model,XtrainT,Ytrain);

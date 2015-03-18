@@ -19,12 +19,12 @@ display(sprintf('Computing gesture Models from training for the m=%d distinct ge
 
 % Compute the warping costs W for all possible combinations without repetition
 for i = 1:k
-    if strcmp(params.mType,'KNN')
-        m_dtw{i} = cell(1,3);
+    if params.k > 0
+        m_dtw{i} = cell(1,params.k);
         if isempty(m_dtw{i})
             m_dtw{i} = [];
         else
-            [m_dtw{i},~] = kmeansDTW(X{i},3,'v2_0_0','dtwCost',[]);
+            [m_dtw{i},~] = kmeansDTW(X{i},params.k,params.version,params.dist,[]);
         end
     elseif strcmp(params.mType,'DCSR')
         % compute the warping costs W among all disctinct combinations
