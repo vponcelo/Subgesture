@@ -1,4 +1,4 @@
-function [Z,C] = kmeansDTW(X,k,version,distance,labelsT,maxIter,resize)
+function [Z,C] = kmeansDTW(X,k,version,distance,labelsT,resize,maxIter)
 % K-means DTW algorithm that obtains k subsequences from X
 %
 % Input:
