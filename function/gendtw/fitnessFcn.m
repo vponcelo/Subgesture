@@ -437,6 +437,8 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
             model.M = getMSM(params,Xtrain_l,model,mnseg,mk);
         elseif strcmp(params.msmType,'evoSegs')
             model.M = getMSM(params,Xtrain_l,model);
+        elseif strcmp(params.msmType,'none')
+            model.M = params.M;
         else
             error('fitnessFcn:optError','Option chosen for the Subgesture Models is not correct. Check params.msmType variable');
         end
