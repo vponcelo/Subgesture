@@ -27,7 +27,7 @@ if isempty(STATE)
         P(i,idxj==1) = randi([1 length(X)-params.nmax+1],1,sum(idxj)); % start seq values
         idxj = P(i,1:sum(idxj)*2+1) == 0;                         % length seq indices
         P(i,idxj) = randi([params.nmin params.nmax],1,sum(idxj)); % length seq
-        for j = 2:2:size(P,2)-1            
+        for j = 2:2:size(P,2)-1
             in = P(i,j);    % choose one non-infinity start
             if in < inf     
                 fi = in + P(i,j+1) - 1;
@@ -116,7 +116,7 @@ if isempty(STATE)
 %         end
     
     end
-    if strcmp(params.msmType,'fix')
+    if strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')
         mnsegs = randi([params.k0 params.N0],1,params.population);
         mk = zeros(1,length(mnsegs));
         for i = 1:length(mk)

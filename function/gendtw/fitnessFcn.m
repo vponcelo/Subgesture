@@ -139,7 +139,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             model{1} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
         end
         if ~params.phmm.hmm
-            display('Validating the model ...');
+            display('Optimizing model parameters over validation ...');
 %             model{1}.sw = 0;           % Evaluate the whole validation sequence 
             [model{1},s2,predictions{1}] = g(model{1},Xval,Yval);   % learn&optimize over validation
         else            
@@ -249,7 +249,8 @@ function [I2,k,seg,mk,mnsegs] = decode(I,params)
     
     mnsegs = zeros(1,size(I,1)); mk = zeros(1,size(I,1));
     % get model segments and k
-    if strcmp(params.msmType,'fix')
+    global MEDIANTYPE;
+    if strcmp(params.mType,MEDIANTYPE{2}) || strcmp(params.mType,MEDIANTYPE{4})
         mnsegs = round(I(:,end-1));
         mk = round(I(:,end));
         I2(:,end-1) = mnsegs;
@@ -330,7 +331,8 @@ function [valid,err] = validateI(I,params,maxSeg,X)
     %% check number of segments and k for the models    
     e5 = zeros(1,size(I2,1)); 
     e6 = zeros(1,size(I2,1));
-    if strcmp(params.msmType,'fix')
+    global MEDIANTYPE;
+    if strcmp(params.mType,MEDIANTYPE{2}) || strcmp(params.mType,MEDIANTYPE{4})
         nsBad = mnsegs < params.k0 | mnsegs > params.N0;
         if ~isempty(nsegs(nsBad))
             e5(nsBad) = abs(max(mnsegs(nsBad)-params.k0,params.N0-mnsegs(nsBad)))/100;
@@ -409,7 +411,7 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         if any(k > size(seg,2))
             error('fitnessFcn:k','k cannot be greater than the number of segments');
         end
-        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,[],[],[],Ytrain,[],X_I,[]);
+        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,k,[],[],[],Ytrain,[],X_I,[]);
 
         %% Get clustered training/learning data structures
         [~,kV] = min(mErrsV);
@@ -433,19 +435,20 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         end
         
         %% Compute Median (SubGesture) Models for each gesture 
-        if ~strcmp(params.msmType,'fix') && mnseg > 0 && mk > 0
-            model.M = getMSM(params,Xtrain_l,model,mnseg,mk);
-        elseif strcmp(params.msmType,'evoSegs')
-            model.M = getMSM(params,Xtrain_l,model);
-        elseif strcmp(params.msmType,'none')
+        if (strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')) ... 
+                && mnseg > 0 && mk > 0
+            model.M = getSM(params,Xtrain_l,model,mnseg,mk);
+        elseif strcmp(params.mType,'modelSM2') || strcmp(params.mType,'allSM2')
+            model.M = getSM(params,Xtrain_l,model);
+        elseif strcmp(params.mType,'direct') || strcmp(params.mType,'DCSR')
             model.M = params.M;
         else
-            error('fitnessFcn:optError','Option chosen for the Subgesture Models is not correct. Check params.msmType variable');
+            error('fitnessFcn:optError','Option chosen for the Subgesture Models is incorrect. Check the value of params.mType');
         end
 
         %% Compute costs of representing (Subgesture) Models 'M' in terms of Subgesture Models 'SM'
         model.KM = cell(1,length(model.M));
-%         if ~strcmp(params.msmType,'none')
+        if strcmp(params.mCostType,'mean')
             display('Computing the costs of the training sequences in terms of SM and mean align to the minimum cost ... ');
             for l = 1:length(model.KM)
                 model.KM{l} = cell(1,length(Xtrain_l{l}));
@@ -459,18 +462,18 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
             for l = 1:length(model.KM)
                 model.KM{l} = model.KM{l}';                
             end
-%         else
-% %             tic;
-%             display('Computing the costs of the models M in terms of SM ...');
-%             for i = 1:length(model.KM)            
-%                 if params.k > 0
-%                     model.KM{i} = getUpdatedCosts(model.M{i}{params.k},model.SM);
-%                 else
-%                     model.KM{i} = getUpdatedCosts(model.M{i},model.SM);
-%                 end
-%             end
-% %             toc;
-%         end
+        else
+%             tic;
+            display('Computing the costs of the models M in terms of SM ...');
+            for i = 1:length(model.KM)            
+                if params.k > 0
+                    model.KM{i} = getUpdatedCosts(model.M{i}{params.k},model.SM);
+                else
+                    model.KM{i} = getUpdatedCosts(model.M{i},model.SM);
+                end
+            end
+%             toc;
+        end
     
         %% Test the subsequence model
 %         model.bestThs = params.bestThs;

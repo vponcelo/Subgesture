@@ -1,9 +1,11 @@
 function [CsTrain,CsVal,mErrsT,mErrsV,timeT,timeV,Z] = ...
-    runKMeansDTW(params,Xtrain,Xval,Y,labelsT,labelsV,Xtrain_k,Xval_k)
+    runKMeansDTW(params,k0,kf,Xtrain,Xval,Y,labelsT,labelsV,Xtrain_k,Xval_k)
 % Prepare the data and parameters to run the specified version of the  
 % k-means-DTW algorithm
 % Input:
 %   params: set of parameters
+%   k0: initial number of clusters
+%   kf: final number of clusters
 %   Xtrain: Training data 
 %   Xval: Validation data
 %   Y: Learning data labels structure
@@ -19,7 +21,8 @@ else
     sampleData = false;
 end
 
-k0=params.k0;kf=k0;v=params.version;r=params.resize;d=params.dist;
+v = params.version; d = params.dist; r = params.resize;
+    
 CsTrain = cell(1,kf-k0+1);
 CsVal = cell(1,kf-k0+1);
 mErrsT = zeros(1,kf-k0+1);

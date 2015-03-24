@@ -223,15 +223,15 @@ while it < maxIter && ~all(convergs)
                     if i ~= idx
                         if strcmp(distance,'dtwCost')
                             if resize,
-                                alig_seqs(j,:,:)=imresize(X{idx(i)},[size(ptr,1),size(X{idx(i)},2)]);
+                                alig_seqs(i,:,:)=imresize(X{idx(i)},[size(ptr,1),size(X{idx(i)},2)]);
                             else
                                 W=dtwc(X{idx(i)},ptr,1);
                                 [~,~,A] = aligngesture(X{idx(i)},W);
-                            end
-                            if size(A,1) ~= size(alig_seqs,2)
-                                error('All elements of the cost matrix W are 0');
-                            end
-                            alig_seqs(i,:,:) = A;
+                                if size(A,1) ~= size(alig_seqs,2)
+                                    error('All elements of the cost matrix W are 0');
+                                end
+                                alig_seqs(i,:,:) = A;
+                            end                            
                         elseif strcmp(distance,'euclidean')
                             alig_seqs(i,:,:) = X{idx(i)};
                         end

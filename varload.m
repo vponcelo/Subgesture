@@ -19,7 +19,6 @@ global NORMTYPE;        % Normalization type 'neck' 'xyzangles'
 global MEDIANTYPE;      % Type of median models 
 global JOINTS;          % Selected joints
 global NAT;             % Type of Descriptor
-global MSM;             % Type of Median Subgesture Models to use: 'fixed' or 'evolutive'
 
 DATATYPE = 'chalearn2014';
 NORMTYPE = 'neck';
@@ -36,10 +35,9 @@ BASELINE = {'random','deriv','fixed'};
 STATE = [];
 OPTIONS = [];
 PERCENTDATA = 100;
-MEDIANTYPE = {'direct','modelMSM1','modelMSM2','allMSM1','allMSM2','DCSR'};
+MEDIANTYPE = {'direct','modelSM1','modelSM2','allSM1','allSM2','DCSR'};
 JOINTS = [4 6 7 8 10 11 12];%1:20;%  %[8,12] hands
 NAT = 0;
-MSM = {'none','fix','evoSegs'};
 
 %% parameters data structures
 nrsamples = 100;        % number of random samples
@@ -54,11 +52,12 @@ nSampGest = 0;          % Number of samples per gesture for the test sequence
 params.phmm.folds = 1;                 % k for k-fold Cross Validation
 params.phmm.states = 3;                % number of hidden states for the HMM
 params.phmm.it = 1000;                  % number of Iterations of the HMM
-params.phmm.clustType = 'none';        % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
-params.phmm.kD = 50;                   % number of clusters for discretizing
+params.phmm.clustType = 'kmlsample';        % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
+params.phmm.kD = 100;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 params.phmm.hmm = false;            % flag that indicates to train with hmm training 
+params.phmm.pmtk = false;           % flag that indicates to use the pmtk3 library implementation
 
 %% parameters genetic temporal clustering
 params.version = ...
@@ -85,7 +84,7 @@ params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
 params.maxWlen = 1000;      % maximum DTW cost matrix length to detect the start-end
-params.msmType = MSM{3};    % Type of Median Subgesture Models in the evolutive process 
+params.mCostType = 'mean';  % 'mean' subgesture costs for the models
 params.mType = MEDIANTYPE{3};  % Type of median models to consider
 params.usemax_l = true;        % use the median or the max-length gesture as reference
 params.resize = true;          % Use resizing instead of mean DTW alignment
