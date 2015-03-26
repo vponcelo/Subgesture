@@ -100,6 +100,10 @@ if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.genera
     end
     if ~isempty(STATE)
         state = STATE;
+    elseif ~isempty(state)
+        STATE = state;
+    else
+        error('runGenDTW:stateErr','State was not stored in previous execution');
     end
     problem.nvars=size(state.Population,2);
     options = gaoptimset(options,'PopulationSize',params.population);
