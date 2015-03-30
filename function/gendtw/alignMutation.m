@@ -61,7 +61,7 @@ for i=1:length(parents)
             end
         end
     end
-    if strcmp(params.msmType,'fix') % mutation of k and N for MSM
+    if strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')
         P(i,end-1) = P(i,end-1)  + scale(end-1) .* randn();
         P(i,end) = P(i,end)  + scale(end) .* randn();
     end

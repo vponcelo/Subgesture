@@ -4,7 +4,7 @@ function mutationChildren = mutationFcn(parents,options,nvars,FitnessFcn,state,t
 P = thisPopulation(parents,:);
 for i = 1:length(parents)
     if params.probSeg > 0
-        if strcmp(params.msmType,'fix')            
+        if strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')
             randSegs = rand(1,(nvars-3)/2);
         else
             randSegs = rand(1,(nvars-1)/2);

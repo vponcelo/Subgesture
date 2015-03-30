@@ -25,7 +25,7 @@ for i=1:nKids
     % This loop may seem like brute force, but it is twice as fast as the
     % vectorized version, because it does no allocation.
     
-    if strcmp(params.msmType,'fix')
+    if strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')
         ngenes = 3;
     else
         ngenes = 1;
@@ -39,14 +39,16 @@ for i=1:nKids
         if(rand > 0.5)
             xoverKids(i,j:k) = thisPopulation(r1,j:k);
             
-            if strcmp(params.msmType,'fix') && j == GenomeLength-ngenes
+            if (strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')) ...
+                    && j == GenomeLength-ngenes
                 % offspring of parents for the last 2 genes
                 xoverKids(i,end-1:end) = thisPopulation(r1,end-1:end);
             end
         else
             xoverKids(i,j:k) = thisPopulation(r2,j:k);
             
-            if strcmp(params.msmType,'fix') && j == GenomeLength-ngenes
+            if (strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')) ...
+                    && j == GenomeLength-ngenes
                 % offspring of parents for the last 2 genes
                 xoverKids(i,end-1:end) = thisPopulation(r2,end-1:end);
             end

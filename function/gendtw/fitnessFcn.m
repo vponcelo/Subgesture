@@ -100,12 +100,12 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             else
                 segA = reshape(seg(i,:,:),size(seg,2),size(seg,3));
             end
-            [~,model{i}] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k(i),segA,mnsegs(i),mk(i));
+            model{i} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k(i),segA,mnsegs(i),mk(i));
             Xv = Xval;          % Parfor doesn't accept modifying the value of Xval directly
             if ~params.phmm.hmm
-                display('Validating the model ...');
+                display('Optimizing model parameters over validation ...');
 %                 model{i}.sw = 0;           % Evaluate the whole validation sequence 
-                [~,sc(i),preds{i}] = g(model{i},Xv,Yval);
+                [model{i},sc(i),preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
             else
                 if ~strcmp(params.phmm.clustType,'none')
                     display('Discretizing validation sequence in Key Poses ...');
@@ -134,14 +134,14 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
         predictions = cell(1);
         model = cell(1);        
         if iscell(seg)            
-            [~,model{1}] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg),mnsegs,mk);            
+            model{1} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg),mnsegs,mk);            
         else
-            [~,model{1}] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
+            model{1} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
         end
         if ~params.phmm.hmm
-            display('Validating the model ...');
+            display('Optimizing model parameters over validation ...');
 %             model{1}.sw = 0;           % Evaluate the whole validation sequence 
-            [~,s2,predictions{1}] = g(model{1},Xval,Yval);
+            [model{1},s2,predictions{1}] = g(model{1},Xval,Yval);   % learn&optimize over validation
         else            
             if ~strcmp(params.phmm.clustType,'none')
                 display('Discretizing validation sequence in Key Poses ...');
@@ -249,7 +249,8 @@ function [I2,k,seg,mk,mnsegs] = decode(I,params)
     
     mnsegs = zeros(1,size(I,1)); mk = zeros(1,size(I,1));
     % get model segments and k
-    if strcmp(params.msmType,'fix')
+    global MEDIANTYPE;
+    if strcmp(params.mType,MEDIANTYPE{2}) || strcmp(params.mType,MEDIANTYPE{4})
         mnsegs = round(I(:,end-1));
         mk = round(I(:,end));
         I2(:,end-1) = mnsegs;
@@ -330,7 +331,8 @@ function [valid,err] = validateI(I,params,maxSeg,X)
     %% check number of segments and k for the models    
     e5 = zeros(1,size(I2,1)); 
     e6 = zeros(1,size(I2,1));
-    if strcmp(params.msmType,'fix')
+    global MEDIANTYPE;
+    if strcmp(params.mType,MEDIANTYPE{2}) || strcmp(params.mType,MEDIANTYPE{4})
         nsBad = mnsegs < params.k0 | mnsegs > params.N0;
         if ~isempty(nsegs(nsBad))
             e5(nsBad) = abs(max(mnsegs(nsBad)-params.k0,params.N0-mnsegs(nsBad)))/100;
@@ -380,13 +382,13 @@ function [exists,s] = getCacheVal(I,params)
                     ~ismember(max(CACHE.eval),s) && length(s) > 1 || ...
                     strcmp(params.scoreMeasure,'levenshtein') && ...
                     ~ismember(min(CACHE.eval),s) && length(s) > 1
-                error('fitnessFcn:CacheError','Elitist members not found within the population.\nCurrent position: %d\nBest in cache: %.4f\nBest in s (elitist): %.4f',CACHE.pos,max(CACHE.eval),max(s));
+                warning('fitnessFcn:ElitismError','Elitist members not found within the population.\nCurrent position: %d\nBest in cache: %.4f\nBest in s (elitist): %.4f',CACHE.pos,max(CACHE.eval),max(s));
             end
         end
     end
 end
 
-function [s,model] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
+function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 % Output:
 %   s: scores
 %   model: model structure
@@ -401,15 +403,17 @@ function [s,model] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 
     X_I = getDataPartitions(X,seg');
     
+    model = params;
+    
 %     if isempty(params.D)
         %% Temporal Clustering
         % Obtain subsets using the k-means DTW algorithm    
         if any(k > size(seg,2))
             error('fitnessFcn:k','k cannot be greater than the number of segments');
         end
-        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params.version,k,'dtwCost',k,[],[],[],Ytrain,[],X_I,[]);
+        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,k,[],[],[],Ytrain,[],X_I,[]);
 
-        %% Get clustered training/learning data structures     
+        %% Get clustered training/learning data structures
         [~,kV] = min(mErrsV);
         model.C = CsTrain{kV}{timeV(kV)};
 
@@ -423,8 +427,6 @@ function [s,model] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 %         model.KM = params.KM;
 %     end
     
-    model.sw = params.sw;
-
     if ~params.phmm.hmm
         %% compute Similarity matrix
         model.D = getSimilarities(model.SM);
@@ -433,31 +435,37 @@ function [s,model] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         end
         
         %% Compute Median (SubGesture) Models for each gesture 
-        if ~strcmp(params.msmType,'fix') && mnseg > 0 && mk > 0
-            model.M = getMSM(params,Xtrain_l,model,mnseg,mk);
-        elseif strcmp(params.msmType,'evoSegs')
-            model.M = getMSM(params,Xtrain_l,model);
-        elseif strcmp(params.msmType,'none')
+        if (strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')) ... 
+                && mnseg > 0 && mk > 0
+            model.M = getSM(params,Xtrain_l,model,mnseg,mk);
+        elseif strcmp(params.mType,'modelSM2') || strcmp(params.mType,'allSM2')
+            model.M = getSM(params,Xtrain_l,model);
+        elseif strcmp(params.mType,'direct') || strcmp(params.mType,'DCSR')
             model.M = params.M;
         else
-            error('fitnessFcn:optError','Option chosen for the Subgesture Models is not correct. Check params.msmType variable');
+            error('fitnessFcn:optError','Option chosen for the Subgesture Models is incorrect. Check the value of params.mType');
         end
 
-        %% Compute costs of representing the gesture samples in terms of Subgesture Models 'SM'
-        if strcmp(params.mType,'allMSM1') || strcmp(params.mType,'allMSM2')
-            model.KM = cell(0);
-            for gesture = 1:length(Xtrain_l)-1
-                model.KM = [model.KM cell(1,length(Xtrain_l{gesture}))];
-                for sample = 1:length(Xtrain_l{gesture})
-                    model.KM{sample} = getUpdatedCosts(Xtrain_l{gesture}{sample},model.SM);
+        %% Compute costs of representing (Subgesture) Models 'M' in terms of Subgesture Models 'SM'
+        model.KM = cell(1,length(model.M));
+        if strcmp(params.mCostType,'mean')
+            display('Computing the costs of the training sequences in terms of SM and mean align to the minimum cost ... ');
+            for l = 1:length(model.KM)
+                model.KM{l} = cell(1,length(Xtrain_l{l}));
+                for sample = 1:length(model.KM{l})
+                    KM = getUpdatedCosts(Xtrain_l{l}{sample},model.SM);
+                    model.KM{l}{sample} = KM';
+%                     model.KM{l}{sample} = min(KM)';
                 end
             end
+            model.KM = getModels(model.KM,length(model.KM),params);
+            for l = 1:length(model.KM)
+                model.KM{l} = model.KM{l}';                
+            end
         else
-            %% Compute costs of representing Median (Subgesture) Models 'M' in terms of Subgesture Models 'SM'
-            model.KM = cell(1,length(model.M));
-            display('Computing the costs of the models M in terms of SM ...');
 %             tic;
-            for i = 1:length(model.KM)
+            display('Computing the costs of the models M in terms of SM ...');
+            for i = 1:length(model.KM)            
                 if params.k > 0
                     model.KM{i} = getUpdatedCosts(model.M{i}{params.k},model.SM);
                 else
@@ -468,14 +476,14 @@ function [s,model] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         end
     
         %% Test the subsequence model
-        model.bestThs = params.bestThs;
-        model.nThreshs = params.nThreshs;
-        model.scoreMeasure = params.scoreMeasure;
-        model.maxWlen = params.maxWlen;
-        model.k = params.k;
+%         model.bestThs = params.bestThs;
+%         model.nThreshs = params.nThreshs;
+%         model.scoreMeasure = params.scoreMeasure;
+%         model.maxWlen = params.maxWlen;
+%         model.k = params.k;
         
-        display('Training the model parameters ...');
-        [model,s,~] = g(model,XtrainT,Ytrain);
+%         display('Training the model parameters ...');
+%         [model,s,~] = g(model,XtrainT,Ytrain);
     else
         if ~strcmp(params.phmm.clustType,'none')
             %% Discretize X
@@ -497,7 +505,6 @@ function [s,model] = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         %% train HMM for this data partitions and clusters
         display('Learning the HMM Model ...');
         [model.phmm.hmmTR, model.phmm.hmmE]=learnHMM(params.phmm.states,Dtrain,params.phmm.it);
-        s = 0;
 %         %% Discretize and evaluate training sequence
 %         if ~strcmp(params.phmm.clustType,'none')
 %             XtrainT = discretizeSequence(model.Ctrain,XtrainT);
