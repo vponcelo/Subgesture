@@ -91,6 +91,7 @@ params.resize = true;          % Use resizing instead of mean DTW alignment
 params.gmm = false;            % Use gmm instead of other non-probabilistic representations
 params.sw = 5000;              % sliding window (frame seq length): '0' means the whole sequence
 params.k = 0;               % current k to evaluate for the K-Nearest Neighbour DTW models
+params.pdtw=false;           % flag for indicating the use of gmms in feature modeling
 CACHE.pos = int32(1);       % Index positions
 % GENRESULTS.P = cell(1,params.generations);
 % GENRESULTS.eval = cell(1,params.generations);
