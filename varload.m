@@ -55,7 +55,7 @@ params.phmm.kD = 300;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 params.phmm.hmm = false;            % flag that indicates to train with hmm training 
-params.phmm.pmtk = false;           % flag that indicates to use the pmtk3 library implementation
+params.phmm.pmtk = true;           % flag that indicates to use the pmtk3 library implementation
 
 %% parameters genetic temporal clustering
 params.version = ...

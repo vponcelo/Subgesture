@@ -89,26 +89,26 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             params.phmm.C{k} = ...
             performClustering(Xtrain,[],params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
         end
-%         if strcmp(params.phmm.varType,'discrete')   % comment this case to avoid temporal clustering
-%             %% Temporal Clustering
-%             k0 = round(params.phmm.kD/2);
-%             Xc = Xtrain; Xtrain = [];
-%             for gest = 1:length(Xc)
-%                 Xsplit = cell(1,params.phmm.states);
-%                 div = round(size(Xc{gest},1)/params.phmm.states);
-%                 s = 1;
-%                 for i = 1:params.phmm.states
-%                     e = s+div;
-%                     Xsplit{i} = Xc{gest}(s:min(e,size(Xc{gest},1)),:);
-%                     s = e+1;
-%                 end
-%                 Xtrain = [Xtrain Xsplit];
-%             end
-%             emptyCells = cellfun(@isempty,Xtrain); Xtrain(emptyCells) = [];
-%             [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k0,k0,[],[],[],[],[],Xtrain,[]);
-%             [~,kV] = min(mErrsV);
-%             params.phmm.SM{k} = Z{kV}{timeV}; emptyCells = cellfun(@isempty,params.phmm.SM{k}); params.phmm.SM{k}(emptyCells) = [];
-%         end
+        if strcmp(params.phmm.varType,'discrete')   % comment this case to avoid temporal clustering
+            %% Temporal Clustering
+            k0 = round(params.phmm.kD/2);
+            Xc = Xtrain; Xtrain = [];
+            for gest = 1:length(Xc)
+                Xsplit = cell(1,params.phmm.states);
+                div = round(size(Xc{gest},1)/params.phmm.states);
+                s = 1;
+                for i = 1:params.phmm.states
+                    e = s+div;
+                    Xsplit{i} = Xc{gest}(s:min(e,size(Xc{gest},1)),:);
+                    s = e+1;
+                end
+                Xtrain = [Xtrain Xsplit];
+            end
+            emptyCells = cellfun(@isempty,Xtrain); Xtrain(emptyCells) = [];
+            [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k0,k0,[],[],[],[],[],Xtrain,[]);
+            [~,kV] = min(mErrsV);
+            params.phmm.SM{k} = Z{kV}{timeV}; emptyCells = cellfun(@isempty,params.phmm.SM{k}); params.phmm.SM{k}(emptyCells) = [];
+        end
         
         % Training HMM models
         for l = 1:length(Xtrain_l)-1
@@ -158,7 +158,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     learnHMM(params.phmm.states,params.phmm.Dtrain{k}{l},params.phmm.it);
             else
                 if strcmp(params.phmm.varType,'discrete')
-                    [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(params.phmm.Dtrain{k}{l}, params.phmm.states, params.phmm.varType);
+                    [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(params.phmm.Dtrain{k}{l}', params.phmm.states, params.phmm.varType);
                 elseif strcmp(params.phmm.varType,'gauss')
                     [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
                 elseif strcmp(params.phmm.varType,'mixgausstied')

@@ -159,7 +159,8 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                 [~,Dval] = min(KT);
             end
             display(sprintf('Evaluating the validation sequence ...'));
-            s2 = evaluateHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
+%             s2 = evaluateHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
+            s2 = evalswHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
             predictions{1} = 0;
         end
 %         toc;
@@ -405,28 +406,18 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
     
     model = params;
     
-%     if isempty(params.D)
-        %% Temporal Clustering
-        % Obtain subsets using the k-means DTW algorithm    
-        if any(k > size(seg,2))
-            error('fitnessFcn:k','k cannot be greater than the number of segments');
-        end
-        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,k,[],[],[],Ytrain,[],X_I,[]);
+    %% Temporal Clustering
+    % Obtain clsuters using the k-means DTW algorithm    
+    if any(k > size(seg,2))
+        error('fitnessFcn:k','k cannot be greater than the number of segments');
+    end
+    [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,k,[],[],[],Ytrain,[],X_I,[]);
+    [~,kV] = min(mErrsV);
+    model.C = CsTrain{kV}{timeV(kV)};
 
-        %% Get clustered training/learning data structures
-        [~,kV] = min(mErrsV);
-        model.C = CsTrain{kV}{timeV(kV)};
-
-        %% Obtain Subgesture Model for training/learning data
-        model.SM = Z{kV}{timeV}; emptyCells = cellfun(@isempty,model.SM); model.SM(emptyCells) = [];
-                
-%     else
-%         model.C = params.C;
-%         model.SM = params.SM;
-%         model.D = params.D;
-%         model.KM = params.KM;
-%     end
-    
+    %% Obtain Subgesture Model for training/learning data
+    model.SM = Z{kV}{timeV}; emptyCells = cellfun(@isempty,model.SM); model.SM(emptyCells) = [];
+            
     if ~params.phmm.hmm
         %% compute Similarity matrix
         model.D = getSimilarities(model.SM);
@@ -474,16 +465,6 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
             end
 %             toc;
         end
-    
-        %% Test the subsequence model
-%         model.bestThs = params.bestThs;
-%         model.nThreshs = params.nThreshs;
-%         model.scoreMeasure = params.scoreMeasure;
-%         model.maxWlen = params.maxWlen;
-%         model.k = params.k;
-        
-%         display('Training the model parameters ...');
-%         [model,s,~] = g(model,XtrainT,Ytrain);
     else
         if ~strcmp(params.phmm.clustType,'none')
             %% Discretize X
@@ -496,7 +477,7 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
                 KM = getUpdatedCosts(X_I{sample},model.SM);
                 [~,Dtrain{sample}] = min(KM);
             end
-            Dtrain = cell2mat(Dtrain);
+%             Dtrain = cell2mat(Dtrain);
         else
             KM = getUpdatedCosts(X_I,SM);
             [~,Dtrain] = min(KM);
@@ -505,21 +486,5 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         %% train HMM for this data partitions and clusters
         display('Learning the HMM Model ...');
         [model.phmm.hmmTR, model.phmm.hmmE]=learnHMM(params.phmm.states,Dtrain,params.phmm.it);
-%         %% Discretize and evaluate training sequence
-%         if ~strcmp(params.phmm.clustType,'none')
-%             XtrainT = discretizeSequence(model.Ctrain,XtrainT);
-%         end
-%         Dseq = cell(1,length(XtrainT));
-%         if iscell(XtrainT)
-%             for sample = 1:length(XtrainT)
-%                 KT = getUpdatedCosts(XtrainT{sample},model.SM);
-%                 [~,Dseq{sample}] = min(KT);
-%             end
-%         else
-%             KT = getUpdatedCosts(XtrainT,model.SM);
-%             [~,Dseq] = min(KT);
-%         end
-%         display(sprintf('Evaluating training sequence ...'));
-%         s = evaluateHMM(Dseq, model.phmm.hmmTR, model.phmm.hmmE);
     end
 end
