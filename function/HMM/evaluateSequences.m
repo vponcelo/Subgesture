@@ -1,4 +1,4 @@
-function probs=evaluateSequences(clusters,data,hmmTR, hmmE)
+function probs=evaluateSequences(clusters,data,hmmTR, hmmE, modelpmtk)
     % Analyze each sequence independently
     if ~iscell(data)
         n=1;
@@ -22,5 +22,5 @@ function probs=evaluateSequences(clusters,data,hmmTR, hmmE)
             discSeq=seq;
         end
         % Evaluate sequence        
-        probs(i) = evaluateHMM(discSeq,hmmTR, hmmE);
+        probs(i) = evaluateHMM(discSeq,hmmTR, hmmE, modelpmtk);
     end

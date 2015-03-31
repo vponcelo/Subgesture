@@ -2,7 +2,6 @@
 global DATATYPE;        % dataset: 'chalearn' 'random'
 global VISUALIZE;       % flag indicating whether or not to visualize the data groups using kmeans clustering
 global FRAMECOMPRESS;   % flag indicating whether or not to perform frame compression 
-%global ALLLEARNING;     
 global KMEANSDTWv;      % possible versions of the k-means DTW algorithm
 global DISTANCES;       % possible distances: 'dtw' 'euclidean'
 global SAMPLING;        % sampling type
@@ -25,7 +24,6 @@ NORMTYPE = 'neck';
 COORDS = 'pixel';
 VISUALIZE = false;
 FRAMECOMPRESS = true;
-%ALLLEARNING = true;
 KMEANSDTWv = {'v1_0','v1_1','v1_2','v1_3','v2_0_0','v2_0_1','v2_1_0',...
     'v2_1_1','v2_2_0','v2_2_1','v2_3_0','v2_3_1'};
 DISTANCES = {'dtwCost','euclidean'};
@@ -46,14 +44,14 @@ nframesSeg = 0;         % Fixed number of frames for subgesturing. '0' means no 
 sampling = SAMPLING{2}; % sampling type: 'random' 'label' 'segments'
 noise = true;          % flag indicating whether or not consider noise (iddle gesture) for the test sequence
 secsBatch = 60;         % reference seconds for the test sequence
-nSampGest = 0;          % Number of samples per gesture for the test sequence   
+nSampGest = 20;        % Number of samples per gesture for the test sequence   
 
 %% parameters hmm
 params.phmm.folds = 1;                 % k for k-fold Cross Validation
 params.phmm.states = 3;                % number of hidden states for the HMM
 params.phmm.it = 1000;                  % number of Iterations of the HMM
-params.phmm.clustType = 'kmlsample';        % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
-params.phmm.kD = 100;                   % number of clusters for discretizing
+params.phmm.clustType = 'none';        % clustering method: 'none' 'kmlsample' 'kmeans' 'haca'
+params.phmm.kD = 300;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 params.phmm.hmm = false;            % flag that indicates to train with hmm training 
@@ -71,7 +69,7 @@ params.N0 = 8;              % Number of segments to split the model sequences
 params.nThreshs = 20;       % Number of thresholds for testing (tunned to 20 and 22 for max models and median models, respectively)
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
-params.vectorized = 'off';   % vectorize the GA
+params.vectorized = 'on';   % vectorize the GA
 params.population = 10;     % population of the GA
 params.generations = 1000;  % number of generations of the GA
 params.Baseline = ...
@@ -89,9 +87,9 @@ params.mType = MEDIANTYPE{3};  % Type of median models to consider
 params.usemax_l = true;        % use the median or the max-length gesture as reference
 params.resize = true;          % Use resizing instead of mean DTW alignment
 params.gmm = false;            % Use gmm instead of other non-probabilistic representations
+params.pdtw = false;           % flag for indicating the use of gmms in feature modeling
 params.sw = 5000;              % sliding window (frame seq length): '0' means the whole sequence
 params.k = 0;               % current k to evaluate for the K-Nearest Neighbour DTW models
-params.pdtw=false;           % flag for indicating the use of gmms in feature modeling
 CACHE.pos = int32(1);       % Index positions
 % GENRESULTS.P = cell(1,params.generations);
 % GENRESULTS.eval = cell(1,params.generations);

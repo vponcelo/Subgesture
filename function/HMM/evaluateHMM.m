@@ -1,4 +1,4 @@
-function [prob] = evaluateHMM(seqTest,TRANS, EMIS)
+function [prob] = evaluateHMM(seqTest,TRANS, EMIS, modelpmtk)
 %
 % Donada una sequencia de test 'seqTest' i un model apres (matrius 'TRANS',
 % 'EMIS'), retorna una mesura de probabilitat que 'seqTest' s'hagi generat
@@ -7,7 +7,11 @@ function [prob] = evaluateHMM(seqTest,TRANS, EMIS)
 
 % S'estimen els estats versemblants:
 try
-    likelystates = hmmviterbi(seqTest, TRANS, EMIS);
+    if isempty(modelpmtk)
+        likelystates = hmmviterbi(seqTest, TRANS, EMIS);
+    else
+        likelystates = hmmMap(params.phmm.model{k}{m}, s);
+    end
 
     % Es calcula la mesura de versemblança
     prob=1;
