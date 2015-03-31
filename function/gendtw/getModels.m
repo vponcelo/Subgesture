@@ -1,4 +1,4 @@
-function m_dtw = getModels(X,k,params)
+function [m_dtw,lmodel] = getModels(X,k,params)
 % Get the refrence models from K-Means DTW
 % 
 % Input:
@@ -10,6 +10,7 @@ function m_dtw = getModels(X,k,params)
 % Ouptut:
 %   m_dtw: cell with means of the k clusters
 
+lmodel=[];
 m_dtw = cell(1,k);
 if strcmp(params.mType,'DCSR')
     W_ini = cell(1,k); 
@@ -116,7 +117,32 @@ for i = 1:k
                 else
                    alig_seqs(j,:,:)=ptr;
                 end            
-            end        
+            end 
+            %% estimate gmms 
+            if params.pdtw,                
+                falsaligs=0;
+                for hi=1:size(alig_seqs,2),
+                    Xi=(reshape((alig_seqs(:,hi,:)),size(alig_seqs,1),size(alig_seqs,3)));                
+                    io=0;
+                    flg=false;
+                    while (io<10 & ~flg), %%% try several times
+                        try
+%                             obj = fitgmdist(Xi,2,'SharedCov',true); %% matlab
+                            [obj, ~] = mixGaussFit(Xi, 2, 'maxIter', 100);
+                            Xi(find(isnan(Xi)))=0;Xi(find(isinf(Xi)))=0;
+                            flg=true;
+                        catch                           
+                            obj=[]; io=io+1; lasterr                       
+                        end
+                    end
+                    lmodel(i,hi).obj=obj;                
+                    if isempty(obj),
+                        falsaligs=falsaligs+1;
+                        lmodel(i,hi).failures=true;                
+                    end
+                end
+                lmodel(i,1).falsaligs=falsaligs;                                
+            end  %% end pdtw
             
             % Compute the mean among the aligned warping matrices
             if ~params.gmm
