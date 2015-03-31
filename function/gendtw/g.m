@@ -83,7 +83,28 @@ for isw = 1:ns  % sliding window
             TOL_THRESH = 0.001;
         else
             if ~iscell(model.M{k})
-                W = single(dtwc(X,model.M{k},false));
+                if ~model.pdtw,
+                    W = single(dtwc(X,model.M{k},false));
+                else
+                    Pql=[];Wp=zeros([size(X,1)+1, size(model.M{k},1)+1, size(X,2)]);
+                    for hh=1:size(model.M{k},1),
+                            if ~isempty(model.lmodel(k,hh).obj),
+                                Pql(:,hh)= mixGaussLogprob(model.lmodel(k,hh).obj,X);
+%                                 Pql(:,hh)= log(pdf(model.lmodel(k,hh).obj,X));
+                                Pql(find(isinf(Pql(:,hh))))=0;
+                            else
+                                Pql(:,hh)= zeros(size(X,1),1);
+                            end
+                    end
+                    noze=find(sum(Pql)~=0);
+                    Pql(find(Pql==0))=mean(mean(Pql(:,noze)));
+                    maval=max(max(abs(Pql)));
+                    Dima  = (1-Pql)./maval;
+                    DD=pdist2(X,model.M{k});
+                    DD = DD./max(max(DD));
+                    Dima=   (1-Pql)./maval.*pdist2(X,model.M{k});
+                    W=single(dtw3(X,model.M{k},false,Inf,Dima));            
+                end
             else
                 if ~isempty(model.M{k}{model.k})
                     W = single(dtwc(X,model.M{k}{model.k},false));            
