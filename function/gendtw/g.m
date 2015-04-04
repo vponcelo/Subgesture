@@ -10,8 +10,10 @@ function [model,score,predictions] = g(model,Xc,Yc)
 if iscell(Xc)
     error('g:classErr','Input data cannot be a cell here, need to specify this functionality');
 end
-
 sw = model.sw;
+if sw > length(Yc.Lfr)
+    error('g:swErr','sliding window is longer than the validation sequence');
+end
 if sw == 0
     sw = length(Xc)-1;
     ns = 1;
@@ -31,7 +33,7 @@ end
 % Y.Lfr=Y.Lfr(seg(isw));
     
 thresholds = cell(1,ns);
-overlaps = cell(1,ns);
+scores = cell(1,ns);
 predictions = cell(1,ns);
 
 for isw = 1:ns  % sliding window
@@ -41,9 +43,12 @@ for isw = 1:ns  % sliding window
     seg=r(isw):min(r(isw)+sw,length(Yc.Lfr));
     X=Xc(seg,:);
     Y.Lfr=Yc.Lfr(seg);
+    if model.classification
+        Y.L=Yc.Lfr; d=diff(Yc.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1];
+    end
     
     %% Compute the costs of the test sequence in terms of SM 
-    if ~isempty(model.D)    
+    if ~isempty(model.D)
         display('Computing the costs of the test sequence in terms of SM ...');
 %         tic;
         model.KT = getUpdatedCosts(X,model.SM);
@@ -53,11 +58,11 @@ for isw = 1:ns  % sliding window
     %% Learn threshold cost parameters for each gesture
     folds = 1;
     thresholds{isw} = cell(1,length(model.M));
-    overlaps{isw} = cell(1,length(model.M));
+    scores{isw} = cell(1,length(model.M));
     
     for k = 1:length(model.M)
         thresholds{isw}{k} = [];
-        overlaps{isw}{k} = [];
+        scores{isw}{k} = [];
     end
     
     for k = 1:length(model.M)
@@ -67,17 +72,21 @@ for isw = 1:ns  % sliding window
     %         model.KT = getUpdatedCosts(X,model.SM);
     %     end
         %         display(sprintf('Testing threshold cost parameters for gesture %d ...',k));
-        GTtestk = Y.Lfr == k;
+        if model.classification
+            GTtestk = Y.L == k;
+        else
+            GTtestk = Y.Lfr == k;
+        end
         if ~any(GTtestk)
             warning('g:missedLabel','Label %d is missing in the test sequence',k);
         end
         W = [];
-        if ~isempty(model.D)        
+        if ~isempty(model.D)
             if ~iscell(model.M{k})
                 W = single(dtwc(X,model.M{k},false,Inf,model.D,model.KM{k},model.KT));
             else
                 if ~isempty(model.M{k}{model.k})
-                    W = single(dtwc(X,model.M{k}{model.k},false,Inf,model.D,model.KM{k},model.KT));            
+                    W = single(dtwc(X,model.M{k}{model.k},false,Inf,model.D,model.KM{k},model.KT));
                 end
             end
             TOL_THRESH = 0.001;
@@ -86,24 +95,22 @@ for isw = 1:ns  % sliding window
                 if ~model.pdtw,
                     W = single(dtwc(X,model.M{k},false));
                 else
-                    Pql=[];Wp=zeros([size(X,1)+1, size(model.M{k},1)+1, size(X,2)]);
+                    Pql=zeros(size(X,1),size(model.M{k},1));
                     for hh=1:size(model.M{k},1),
-                            if ~isempty(model.lmodel(k,hh).obj),
-                                Pql(:,hh)= mixGaussLogprob(model.lmodel(k,hh).obj,X);
-%                                 Pql(:,hh)= log(pdf(model.lmodel(k,hh).obj,X));
-                                Pql(find(isinf(Pql(:,hh))))=0;
-                            else
-                                Pql(:,hh)= zeros(size(X,1),1);
-                            end
+                        if ~isempty(model.lmodel(k,hh).obj),
+                            Pql(:,hh)= mixGaussLogprob(model.lmodel(k,hh).obj,X);
+%                             Pql(:,hh)= log(pdf(model.lmodel(k,hh).obj,X));
+                            Pql(isinf(Pql(:,hh)))=0;
+                        end
                     end
-                    noze=find(sum(Pql)~=0);
-                    Pql(find(Pql==0))=mean(mean(Pql(:,noze)));
+                    noze= sum(Pql)~=0;
+                    Pql(Pql==0)=mean(mean(Pql(:,noze)));
                     maval=max(max(abs(Pql)));
-                    Dima  = (1-Pql)./maval;
-                    DD=pdist2(X,model.M{k});
-                    DD = DD./max(max(DD));
-                    Dima=   (1-Pql)./maval.*pdist2(X,model.M{k});
-                    W=single(dtw3(X,model.M{k},false,Inf,Dima));            
+%                     Dima  = (1-Pql)./maval;
+%                     DD=pdist2(X,model.M{k});
+%                     DD = DD./max(max(DD));
+                    Dima  = (1-Pql)./maval.*pdist2(X,model.M{k});
+                    W=single(dtw3(X,model.M{k},false,Inf,Dima));
                 end
             else
                 if ~isempty(model.M{k}{model.k})
@@ -125,9 +132,16 @@ for isw = 1:ns  % sliding window
             end
         end
         swthreshs = zeros(folds,model.nThreshs);
-        swoverlaps = zeros(folds,model.nThreshs);
+        if model.classification
+            swScores = zeros(folds,model.nThreshs,2);
+        else
+            swScores = zeros(folds,model.nThreshs);
+        end
         for K = 1:folds
-            detSeqLog = false(model.nThreshs,length(GTtestk));
+            detSeqLog = false(model.nThreshs,length(Y.Lfr));
+            if model.classification
+                hits = 0;
+            end
             if ~isempty(W)
                 tMin = min(W(end,2:end));
     %             detSeqLog3 = false(1,length(X));
@@ -139,8 +153,8 @@ for isw = 1:ns  % sliding window
                         swthreshs(K,i) = model.bestThs(k);
                     end
                     idx = find(W(end,:) <= swthreshs(K,i));
-                    idx(ismember(idx,idxEval)) = [];
-                    detSeqLog(i,:) = getDetectedSeqs_c(W,int32(idx),detSeqLog(i,:),model.maxWlen);
+                    idx(ismember(idx,idxEval)) = [];                    
+                    %% Old, much slower
     %                 tic;
     %                 toc;
     %                 tic;
@@ -161,21 +175,39 @@ for isw = 1:ns  % sliding window
     %     %                 end
     %                 end
     %                 toc;
-                    idxEval = unique([idxEval idx(detSeqLog(i,idx-1)==true)]);            
+                    %% This is much faster
+                    detSeqLog(i,:) = getDetectedSeqs_c(W,int32(idx),detSeqLog(i,:),model.maxWlen);
+                    %%
+                    % to compensate for the offset of deep-features
+                    detSeqLog(i,:)=([detSeqLog(i,6:end),0,0,0,0,0]);
+                    idxEval = unique([idxEval idx(detSeqLog(i,idx-1)==true)]);
     %                 if ~isequal(detSeqLog3,detSeqLog)
     %                     find(detSeqLog3~=detSeqLog)
     %                     if sum(detSeqLog3~=detSeqLog) > 1
     %                         error();
     %                     end
     %                 end
-                    %%%%% to compensate for the offset of deep-features
-                    detSeqLog(i,:)=([detSeqLog(i,6:end),0,0,0,0,0]);
-                    swoverlaps(K,i) = sum(GTtestk & detSeqLog(i,:))/sum(GTtestk | detSeqLog(i,:));
+                    
+                    if model.classification                        
+                        d = diff(detSeqLog(i,:)); idxL = find(d~=0);
+                        for l = 1:length(idxL)
+                            cLabel = sum(Y.seg < idxL(l));
+                            if cLabel > 0
+                                if Y.L(cLabel) == k
+                                    hits = hits + 1;
+                                end
+                            end
+                        end
+                        swScores(K,i,1) = hits/length(Y.L);                                             % Precision
+                        swScores(K,i,2) = hits/length(Y.L==k);                                          % Recall
+                    else
+                        swScores(K,i) = sum(GTtestk & detSeqLog(i,:))/sum(GTtestk | detSeqLog(i,:));    % Overlap (Jaccard Index)
+                    end
                 end
             end
             thresholds{isw}{k} = swthreshs(K,:);
-            overlaps{isw}{k} = swoverlaps(K,:);
-            [~,pos] = max(overlaps{isw}{k});
+            scores{isw}{k} = swScores(K,:,1);       % Optimize Precision/Overlap or Recall score: swScores(K,:,1) or swScores(K,:,2), respectively
+            [~,pos] = max(scores{isw}{k});
             idx = find(detSeqLog(pos,:) == 1);
             if ~isempty(idx)
                 inF = idx(1);
@@ -198,14 +230,14 @@ for isw = 1:ns  % sliding window
     end
 end
 
-bestOverlaps = cell(1,ns);
+bestScores = cell(1,ns);
 score = zeros(1,ns);
 for j = 1:ns
-    bestOverlaps{j} = zeros(1,k);
+    bestScores{j} = zeros(1,k);
     for i = 1:k        
-        [bestOverlaps{j}(i),~] = max(overlaps{j}{i});
+        [bestScores{j}(i),~] = max(scores{j}{i});
     end
-    score(j) = mean(bestOverlaps{j});
+    score(j) = mean(bestScores{j});
     %     gtF = Y.Lfr;
     %     save('predictions.mat','predictionsF','gtF');
     %     imagesc(confusionmat(predictionsF,gtF)); colormap(hot);
@@ -224,7 +256,7 @@ end
 if strcmp(model.scoreMeasure,'overlap')
     model.bestThs = zeros(1,length(thresholds{p}));
     for i = 1:k
-        [~,pos] = max(overlaps{p}{i});
+        [~,pos] = max(scores{p}{i});
         model.bestThs(i) = thresholds{p}{i}(pos);
     end
 %     gtF = Y.Lfr;
