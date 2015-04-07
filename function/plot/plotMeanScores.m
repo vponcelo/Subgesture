@@ -51,15 +51,7 @@ plot(x,S_eu,'k');
 hold on
 plot(x,S,'b');
 hold off
-if strcmp(params.scoreMeasure,'overlap')
-    title(sprintf('Mean overlaps throughout %d generations',currentGeneration));
-elseif strcmp(params.scoreMeasure,'levenshtein')
-    title(sprintf('Mean levenshtein distances throughout %d generations',currentGeneration));
-end
+title(sprintf('Mean scores throughout %d generations',currentGeneration));
 % legend('Euclidean','Model');
 xlabel('Generation');
-if strcmp(params.scoreMeasure,'overlap')
-    ylabel('Mean overlaps');
-elseif strcmp(params.scoreMeasure,'levenshtein')
-    ylabel('Mean levenshtein distances');
-end
+ylabel('Mean scores');

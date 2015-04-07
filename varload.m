@@ -44,7 +44,10 @@ nframesSeg = 0;         % Fixed number of frames for subgesturing. '0' means no 
 sampling = SAMPLING{2}; % sampling type: 'random' 'label' 'segments'
 noise = true;          % flag indicating whether or not consider noise (iddle gesture) for the test sequence
 secsBatch = 60;         % reference seconds for the test sequence
-nSampGest = 20;        % Number of samples per gesture for the test sequence   
+nSampGest = 0;        % Number of samples per gesture for the test sequence
+
+%% classification type parameter
+params.classification = true;       % flag that indicates to perform global category classification
 
 %% parameters hmm
 params.phmm.folds = 1;                 % k for k-fold Cross Validation
@@ -55,7 +58,7 @@ params.phmm.kD = 300;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 params.phmm.hmm = false;            % flag that indicates to train with hmm training 
-params.phmm.pmtk = true;           % flag that indicates to use the pmtk3 library implementation
+params.phmm.pmtk = false;           % flag that indicates to use the pmtk3 library implementation
 
 %% parameters genetic temporal clustering
 params.version = ...
@@ -69,7 +72,7 @@ params.N0 = 8;              % Number of segments to split the model sequences
 params.nThreshs = 20;       % Number of thresholds for testing (tunned to 20 and 22 for max models and median models, respectively)
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
-params.vectorized = 'on';   % vectorize the GA
+params.vectorized = 'off';   % vectorize the GA
 params.population = 10;     % population of the GA
 params.generations = 1000;  % number of generations of the GA
 params.Baseline = ...

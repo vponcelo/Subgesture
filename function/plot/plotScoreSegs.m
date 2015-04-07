@@ -1,3 +1,4 @@
+
 function state = plotScoreSegs(options,state,~,params)
 % plot mean scores
 
@@ -17,18 +18,10 @@ s(s < 0) = 0;
 currentGeneration = params.generations-options.Generations+state.Generation;
 
 plot(x,s,'o');
-if strcmp(params.scoreMeasure,'overlap')
-    title(sprintf('Mean overlaps throughout %d generations',currentGeneration));
-elseif strcmp(params.scoreMeasure,'levenshtein')
-    title(sprintf('Mean levenshtein distances throughout %d generations',currentGeneration));
-end
+title(sprintf('Mean scores throughout %d generations',currentGeneration));
 % legend('Euclidean','Model');
 xlabel('Number of segments');
-if strcmp(params.scoreMeasure,'overlap')
-    ylabel('Mean overlap');
-elseif strcmp(params.scoreMeasure,'levenshtein')
-    ylabel('Mean levenshtein distances');
-end
+ylabel('Mean scores');
 
 global S;
 

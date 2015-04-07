@@ -1,17 +1,17 @@
-function testHMM()
+function [score,model] = testHMM(params)
 
-clear all
-close all
-addPath
+% clear all
+% close all
+% addPath
 
 %% Generate global variables, cache and parameters
 varload
-if nargin == 0
-    measure = 'overlap';
-    lastGen = 0;
+if ~exist('params','var')
+    params.scoreMeasure = 'overlap';  % Score Measure: 'overlap' or 'levenshtein'    
+    clear CACHE S BASELINE OPTIONS STATE;
+else
+    nSampGest = 10;
 end
-params.scoreMeasure = measure;  % Score Measure: 'overlap' or 'levenshtein'
-clear CACHE S BASELINE OPTIONS STATE;
 
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
@@ -29,6 +29,7 @@ Xval_l = getGroupedGestures(X,Y,2);
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
 l = [];
 [Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,nSampGest);
+Xval = Xdev{2}; Yval = Ydev{2};
 
 %% Obtain Cross Validation subsets over training data
 Indices = cell(1,length(Xtrain_l)-1);
@@ -36,14 +37,17 @@ for l = 1:length(Xtrain_l)-1
     Indices{l} = cell(1,params.phmm.folds);
     Indices{l} = crossvalind('Kfold',length(Xtrain_l{l}),params.phmm.folds);        
 end
+if ~strcmp(params.phmm.clustType,'none') 
+    params.phmm.C = cell(1,params.phmm.folds);
+end
+params.phmm.SM = cell(1,params.phmm.folds);
 if strcmp(params.phmm.varType,'discrete') 
     params.phmm.Dtrain = cell(1,params.phmm.folds);
 end
 params.phmm.hmmTR_f = cell(1,params.phmm.folds); params.phmm.hmmE_f = cell(1,params.phmm.folds);
-params.phmm.model = cell(1,params.phmm.folds);
-params.phmm.pTrain_f = cell(1,params.phmm.folds); params.phmm.pVal_f = cell(1,params.phmm.folds);
-params.phmm.C = cell(1,params.phmm.folds); params.phmm.SM = cell(1,params.phmm.folds);
-params.phmm.path = cell(1,params.phmm.folds);  params.phmm.minProb = cell(1,params.phmm.folds);
+params.phmm.model = cell(1,params.phmm.folds); params.phmm.path = cell(1,params.phmm.folds);
+params.phmm.pTrain_f = cell(1,params.phmm.folds); params.phmm.pVal_f = cell(1,params.phmm.folds); 
+params.phmm.mapHMMtrain = cell(1,params.phmm.folds); params.phmm.mapHMMval = cell(1,params.phmm.folds); params.phmm.minProb = cell(1,params.phmm.folds); 
 params.phmm.accTrain = cell(1,params.phmm.folds); params.phmm.accLearn = cell(1,params.phmm.folds);
 
 %% Train and save learning results
@@ -54,27 +58,15 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         if strcmp(params.phmm.varType,'discrete') 
             params.phmm.Dtrain{k} = cell(1,length(Xtrain_l)-1);
         end
-        params.phmm.hmmTR_f{k} = cell(1,length(Xtrain_l)-1);
-        params.phmm.hmmE_f{k} = cell(1,length(Xtrain_l)-1);
-        params.phmm.model{k} = cell(1,length(Xtrain_l)-1);
-        params.phmm.mapHMMtrain{k} = cell(1,length(Xtrain_l)-1);
-        params.phmm.mapHMMval{k} = cell(1,length(Xtrain_l)-1);
-        params.phmm.accTrain{k} = zeros(1,length(Xtrain_l)-1);
-        params.phmm.accLearn{k} = zeros(1,length(Xtrain_l)-1);
-        if ~params.phmm.pmtk
-            params.phmm.pTrain_f{k} = cell(1,length(Xtrain_l)-1);
-            params.phmm.pVal_f{k} = cell(1,length(Xtrain_l)-1);
-            params.phmm.minProb{k} = zeros(1,length(Xtrain_l)-1);            
-        else
-            params.phmm.phmmloglikHist{k} = cell(1,length(Xtrain_l)-1);
-            params.phmm.path{k} = cell(1,length(Xtrain_l)-1);
-            params.phmm.trueModelViterbiErr{k} = cell(1,length(Xtrain_l)-1);
-            params.phmm.trueModelMaxMargErr{k} = cell(1,length(Xtrain_l)-1);
-            params.phmm.emModelViterbiErr{k} = cell(1,length(Xtrain_l)-1);
-            params.phmm.emModelMaxMargErr{k} = cell(1,length(Xtrain_l)-1);
-        end
+        params.phmm.pTrain_f{k} = cell(1,length(Xtrain_l)-1); params.phmm.pVal_f{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.mapHMMtrain{k} = cell(1,length(Xtrain_l)-1); params.phmm.mapHMMval{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.minProb{k} = zeros(1,length(Xtrain_l)-1);
+        params.phmm.accTrain{k} = zeros(1,length(Xtrain_l)-1); params.phmm.accLearn{k} = zeros(1,length(Xtrain_l)-1);
+        params.phmm.hmmTR_f{k} = cell(1,length(Xtrain_l)-1); params.phmm.hmmE_f{k} = cell(1,length(Xtrain_l)-1);
+        params.phmm.model{k} = cell(1,length(Xtrain_l)-1); params.phmm.path{k} = cell(1,length(Xtrain_l)-1);
         
-        Xtrain = []; 
+        %% Select a sample containing gesture samples of each class
+        Xtrain = [];
         for l = 1:length(Xtrain_l)
             if ~nSampGest
                 Xtrain = [Xtrain Xtrain_l{l}];
@@ -85,36 +77,37 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         end
         params.phmm.kD = length(Xtrain);
         if ~strcmp(params.phmm.clustType,'none')
-            %% Clustering            
+            %% Clustering over the sample
             params.phmm.C{k} = ...
             performClustering(Xtrain,[],params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
         end
         if strcmp(params.phmm.varType,'discrete')   % comment this case to avoid temporal clustering
-            %% Temporal Clustering
-            k0 = round(params.phmm.kD/2);
-            Xc = Xtrain; Xtrain = [];
-            for gest = 1:length(Xc)
+            %% Temporal Clustering over the sample
+            Xt = [];
+            for gest = 1:length(Xtrain)
                 Xsplit = cell(1,params.phmm.states);
-                div = round(size(Xc{gest},1)/params.phmm.states);
+                div = round(size(Xtrain{gest},1)/params.phmm.states);
                 s = 1;
                 for i = 1:params.phmm.states
                     e = s+div;
-                    Xsplit{i} = Xc{gest}(s:min(e,size(Xc{gest},1)),:);
+                    Xsplit{i} = Xtrain{gest}(s:min(e,size(Xtrain{gest},1)),:);
                     s = e+1;
                 end
-                Xtrain = [Xtrain Xsplit];
+                Xt = [Xt Xsplit];
             end
-            emptyCells = cellfun(@isempty,Xtrain); Xtrain(emptyCells) = [];
-            [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k0,k0,[],[],[],[],[],Xtrain,[]);
+            emptyCells = cellfun(@isempty,Xt); Xt(emptyCells) = [];
+            k0 = round(params.phmm.kD/2);
+            [~,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k0,k0,[],[],[],[],[],Xt,[]);
             [~,kV] = min(mErrsV);
             params.phmm.SM{k} = Z{kV}{timeV}; emptyCells = cellfun(@isempty,params.phmm.SM{k}); params.phmm.SM{k}(emptyCells) = [];
         end
         
         % Training HMM models
         for l = 1:length(Xtrain_l)-1
-            %% Obtain Training data
-            Ytrain = Ydev{1}.Lfr(Ydev{1}.Lfr==l); Xtrain = Xtrain_l{l}; % gesture cells
-%             Xtrain = Xdev{1}(Ydev{1}.Lfr==l,:);                       % gesture vector
+            %% Obtain Training data for each gesture class            
+            Xtrain = Xtrain_l{l}(1:1+(nSampGest-1));
+%             Ytrain = Ydev{1}.Lfr(Ydev{1}.Lfr==l); Xtrain = Xtrain_l{l}; % gesture cells
+%             Xtrain = Xdev{1}(Ydev{1}.Lfr==l,:);                         % gesture vector
             %% Discretize training data
             if strcmp(params.phmm.varType,'discrete')
                 if ~strcmp(params.phmm.clustType,'none')
@@ -130,7 +123,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                             KM = getUpdatedCosts(Xtrain{sample},params.phmm.SM{k});
                             [~,params.phmm.Dtrain{k}{l}{sample}] = min(KM);
                         elseif ~strcmp(params.phmm.clustType,'none')
-                            params.phmm.Dtrain{k}{l}{sample} = Xtrain{sample};
+                            params.phmm.Dtrain{k}{l}{sample} = Xtrain{sample}';
                         else
                             error('testHMM:noFcn','This discrete case is not considered/implemented');
                         end
@@ -143,7 +136,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                         KM = getUpdatedCosts(Xtrain,params.phmm.SM{k});
                         [~,params.phmm.Dtrain{k}{l}] = min(KM);
                     elseif ~strcmp(params.phmm.clustType,'none')
-                         params.phmm.Dtrain{k}{l} = Xtrain;
+                         params.phmm.Dtrain{k}{l} = Xtrain';
                     else
                         error('testHMM:noFcn','This discrete case is not considered/implemented');
                     end
@@ -152,17 +145,30 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                 warning('testHMM:noFcn','Continuous version is not implemented yet');
             end
             %% Learn HMMs
-            if ~params.phmm.pmtk
-                display(sprintf('Learning the HMM Model for gesture %d ...\n',l));                
+            display(sprintf('Learning the HMM Model for gesture %d ...\n',l));
+            if ~params.phmm.pmtk                
                 [params.phmm.hmmTR_f{k}{l}, params.phmm.hmmE_f{k}{l}] = ...
                     learnHMM(params.phmm.states,params.phmm.Dtrain{k}{l},params.phmm.it);
             else
                 if strcmp(params.phmm.varType,'discrete')
-                    [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(params.phmm.Dtrain{k}{l}', params.phmm.states, params.phmm.varType);
-                elseif strcmp(params.phmm.varType,'gauss')
-                    [params.phmm.model{k}{l}, params.phmm.phmmloglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType);
-                elseif strcmp(params.phmm.varType,'mixgausstied')
-                    [params.phmm.model{k}{l}, params.phmm.loglikHist] = hmmFit(Xtrain, params.phmm.states, params.phmm.varType, 'nmix', params.phmm.states);
+                    [params.phmm.model{k}{l},~] = hmmFit(params.phmm.Dtrain{k}{l}', params.phmm.states, params.phmm.varType);
+                elseif strcmp(params.phmm.varType,'gauss') || strcmp(params.phmm.varType,'mixgausstied')
+                    for samp = 1:length(Xtrain)
+                        Xtrain{samp} = Xtrain{samp}';
+                    end
+                    io=0;
+                    flg=false;
+                    while (io<10 && ~flg), %%% try several times
+                        try
+                            [params.phmm.model{k}{l},~] = hmmFit(Xtrain', params.phmm.states, params.phmm.varType, 'nmix', 2);
+                            flg=true;
+                        catch e
+                            params.phmm.model{k}{l}=[]; io=io+1; %lasterr
+                        end
+                    end
+                    if isempty(params.phmm.model{k}{l})
+                        error(e.identifier,e.message);
+                    end
                 end
             end
         end
@@ -172,7 +178,6 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             %% Obtain Training data
             % Xval = Xdev{2}(Ydev{2}.Lfr==l,:);    % gesture vector
             if params.sw > 0
-                Xval = [];
                 while isempty(Xval)     % baseline 2 | 1+2
                     r = inf;
                     if params.sw == length(Ydev{2}.Lfr)
@@ -183,24 +188,24 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                         end
                     end
                     seg=r(1):min(r(1)+params.sw,length(Ydev{2}.Lfr));
-                    Xval=Xdev{2}(seg,:); Yval=Ydev{2}.Lfr(seg);                         % gesture vector
-                    Xval = Xval(Yval == l,:);  % baseline 1+2: get current gesture label
+                    Xval=Xdev{2}(seg,:); Yval.Lfr=Ydev{2}.Lfr(seg);                         % gesture vector
+%                     Xval = Xval(Yval.Lfr == l,:);  % baseline 1+2: get current gesture label
                 end
             else
-                Yval = Ydev{2}.Lfr(Ydev{2}.Lfr==l); Xval = Xval_l{l};                   % gesture cells
-            end
+                Yval.Lfr = Ydev{2}.Lfr(Ydev{2}.Lfr==l); Xval = Xval_l{l};                   % gesture cells
+            end            
             %% Discretize validation data
             if strcmp(params.phmm.varType,'discrete')
                 if ~strcmp(params.phmm.clustType,'none')
                     display('Discretizing validation sequence/s in Key Poses ...');
                     Xval = discretizeSequence(params.phmm.C{k},Xval);
                 end
+                display('Computing the costs of the validation sequences in terms of SM and discretizing to the minimum cost ... ');
                 if iscell(Xval)
                     Dval = cell(1,length(Xval));
                     for sample = 1:length(Xval)
                         if ~isempty(params.phmm.SM{k})
                             %% Obtain Subgesture cost representations for validation data
-                            if sample==1,display('Computing the costs of the validation sequences in terms of SM and discretizing to the minimum cost ... ');end
                             KT = getUpdatedCosts(Xval{sample},params.phmm.SM{k});
                             [~,Dval{sample}] = min(KT);
                         elseif ~strcmp(params.phmm.clustType,'none')
@@ -208,7 +213,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                         else
                             error('testHMM:noFcn','This discrete case is not considered/implemented');
                         end
-                    end                    
+                    end
                 else
                     if ~isempty(params.phmm.SM{k})
                         KT = getUpdatedCosts(Xval,params.phmm.SM{k});
@@ -224,6 +229,20 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             end
                 
             %% Evaluate sequences and obtain learning rates
+            if params.phmm.hmm
+                sw = params.sw;
+                if sw > 0
+                    r = inf;
+                    while any(r > length(Dval)-sw)
+                        r=randperm(round(length(Dval)),1);
+                    end
+                    seg=r(1):min(r(1)+sw,length(Yval.Lfr));
+                    Dval=Dval(seg);
+                    Yval.Lfr=Yval.Lfr(seg);
+                end
+                [model,score] = evalswHMM(params, Dval, Yval, params.phmm.hmmTR_f{k},params.phmm.hmmE_f{k},params.phmm.model{k});
+                return;
+            end
             params.phmm.pTrain_f{k}{l} = zeros(length(params.phmm.Dtrain{k}),length(params.phmm.Dtrain{k}{l}));
             params.phmm.mapHMMtrain{k}{l} = zeros(1,length(params.phmm.Dtrain{k}{l}));
             if iscell(Dval), 
@@ -233,55 +252,18 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                 params.phmm.pVal_f{k}{l} = zeros(length(Xtrain_l)-1,1);                
             end
             
-            display(sprintf('Evaluation of training sequences of gesture %d with each HMM model ...',l));
             for m = 1:length(Xtrain_l)-1
+                display(sprintf('Evaluation of learning sequences of gesture %d with the HMM model of gesture %d ...',l,m));
                 if strcmp(params.phmm.varType,'discrete')
                     if iscell(params.phmm.Dtrain{k}{l})
-%                         display(sprintf('Evaluation of training sequences of gesture %d with the HMM model of gesture %d ...',l,m));
 %                         params.phmm.pTrain_f{k}{l}(m,:) = evaluateSequences([],params.phmm.Dtrain{k}{l},params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});
-                        params.phmm.pTrain_f{k}{l}(m,:) = evalswHMM(params.phmm.Dtrain{k}{l},params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m},[]);
+                        params.phmm.pTrain_f{k}{l}(m,:) = evalswHMM(params,params.phmm.Dtrain{k}{l},params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m},params.phmm.model{k}{m});
                     end
-%                     display(sprintf('Evaluation of validation sequences of gesture %d with the HMM model of gesture %d ...',l,m));
 %                     params.phmm.pVal_f{k}{l}(m,:) = evaluateSequences([],Dval,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m});
-                    params.phmm.pVal_f{k}{l}(m,:) = evaluateSequences([],Dval,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m},[]);
-                elseif params.phmm.pmtk
-                    if strcmp(params.phmm.varType,'discrete')
-                        if iscell(Dval), s = Dval{1}; else s = Dval; end                        
-                        params.phmm.path{k}{l}(m,:) = hmmMap(params.phmm.model{k}{m}, s);
-                    elseif strcmp(params.phmm.varType,'gauss')
-                        if iscell(Dval), s = Xval{1}; else s = Xval; end
-                        [observed, hidden] = hmmSample(params.phmm.model{k}{m}, length(s));
-                        params.phmm.path{k}{l}(m,:) = hmmMap(params.phmm.model{k}{m}, observed);
-                    elseif strcmp(params.phmm.varType,'mixgausstied')
-                        if iscell(Dval), s = Xval{1}; else s = Xval; end
-                        [observed, hidden] = hmmSample(params.phmm.model{k}{m}, length(s));
-                        params.phmm.path{k}{l}(m,:) = hmmMap(params.phmm.model{k}{m}, observed);
-                    end
-                    %% Decode using true model
-                    try
-                        decodedFromTrueViterbi = bestPermutation(params.phmm.path{k}{l}(m,:), hidden);
-                        params.phmm.trueModelViterbiErr{k}{l}(m) = mean(decodedFromTrueViterbi ~= hidden);
-                    catch
-                    end
-                        decodedFromTrueMaxMarg = maxidx(hmmInferNodes(params.phmm.model{k}{m}, observed), [], 1);
-                    try
-                        decodedFromTrueMaxMarg = bestPermutation(decodedFromTrueMaxMarg, hidden);
-                        params.phmm.trueModelMaxMargErr{k}{l}(m) = mean(decodedFromTrueMaxMarg ~= hidden);
-                    catch
-                    end
-
-                    %% Decode using the EM model
-                    try
-                        modelEM = hmmFit(observed, params.phmm.states, 'discrete', ...
-                                'convTol', 1e-5, 'nRandomRestarts', 2, 'verbose', false);
-                        decodedFromEMviterbi = hmmMap(modelEM, observed);
-                        decodedFromEMviterbi = bestPermutation(decodedFromEMviterbi, hidden);
-                        params.phmm.emModelViterbiErr{k}{l}(m) = mean(decodedFromEMviterbi ~= hidden);
-                        decodedFromEMmaxMarg = maxidx(hmmInferNodes(modelEM, observed), [], 1);
-                        decodedFromEMmaxMarg = bestPermutation(decodedFromEMmaxMarg, hidden);
-                        params.phmm.emModelMaxMargErr{k}{l}(m) = mean(decodedFromEMmaxMarg ~= hidden);
-                    catch
-                    end
+                    params.phmm.pVal_f{k}{l}(m,:) = evalswHMM(params,Dval,params.phmm.hmmTR_f{k}{m},params.phmm.hmmE_f{k}{m},params.phmm.model{k}{m});
+                elseif params.phmm.pmtk && strcmp(params.phmm.varType,'gauss') || strcmp(params.phmm.varType,'mixgausstied')
+                    params.phmm.pTrain_f{k}{l}(m,:) = evalswHMM(Xtrain_l{l}(1:1+(nSampGest-1)),[],[],params.phmm.model{k}{m});
+                    params.phmm.pVal_f{k}{l}(m,:) = evalswHMM(Xval,[],[],params.phmm.model{k}{m});                    
                 else
                     error('testHMM:hmmTrainError','Error on the HMM training settings. Check varType and clustType parameters');
                 end
@@ -333,12 +315,12 @@ else
             Dtest = cell(1,length(Xtest));
             if iscell(Xtest)
                 for sample = 1:length(Xtest)
-                    KT = getUpdatedCosts(Xtest{sample},params.phmm.SM{kBest}{l});     
+                    KT = getUpdatedCosts(Xtest{sample},params.phmm.SM{kBest});
                     [~,Dtest{sample}] = min(KT);
     %                         Dval{sample} = Xtest{sample};
                 end
             else
-                KT = getUpdatedCosts(Xtest,params.phmm.SM{kBest}{l});
+                KT = getUpdatedCosts(Xtest,params.phmm.SM{kBest});
                 [~,Dtest] = min(KT);
     %                     Dtest = Xtest;
             end

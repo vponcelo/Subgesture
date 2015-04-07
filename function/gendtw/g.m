@@ -20,21 +20,18 @@ if sw == 0
     r=1;
 else
     sw = model.sw;
-    ns = 1;     % changing this value to 1 evaluates the sequence once    
+    ns = 1;     %round(length(Yc.Lfr)/sw)     % changing this value to 1 evaluates the sequence once
     r = inf;
     while any(r > length(Yc.Lfr)-sw)
         r=randperm(round(length(Yc.Lfr)),ns);
     end
-
 end
-
-
-% X=X(seg(isw),:);
-% Y.Lfr=Y.Lfr(seg(isw));
-    
+  
 thresholds = cell(1,ns);
 scores = cell(1,ns);
-predictions = cell(1,ns);
+if ~model.classification && strcmp(model.scoreMeasure,'levenshtein')
+    predictions = cell(1,ns);
+end
 
 for isw = 1:ns  % sliding window
     % last sliding window is the size of the sequence
@@ -56,7 +53,6 @@ for isw = 1:ns  % sliding window
     end
         
     %% Learn threshold cost parameters for each gesture
-    folds = 1;
     thresholds{isw} = cell(1,length(model.M));
     scores{isw} = cell(1,length(model.M));
     
@@ -131,82 +127,75 @@ for isw = 1:ns  % sliding window
                 end
             end
         end
-        swthreshs = zeros(folds,model.nThreshs);
-        if model.classification
-            swScores = zeros(folds,model.nThreshs,2);
-        else
-            swScores = zeros(folds,model.nThreshs);
-        end
-        for K = 1:folds
-            detSeqLog = false(model.nThreshs,length(Y.Lfr));
-            if model.classification
-                hits = 0;
-            end
-            if ~isempty(W)
-                tMin = min(W(end,2:end));
-    %             detSeqLog3 = false(1,length(X));
-                idxEval = [];
-                for i = 1:model.nThreshs                
-                    if isempty(model.bestThs)
-                        swthreshs(K,i) = tMin + (i-1)*interv;
-                    else
-                        swthreshs(K,i) = model.bestThs(k);
-                    end
-                    idx = find(W(end,:) <= swthreshs(K,i));
-                    idx(ismember(idx,idxEval)) = [];                    
-                    %% Old, much slower
-    %                 tic;
-    %                 toc;
-    %                 tic;
-    %                 for j = 1:length(idx)
-    %     %                 if detSeqLog(idx(j)-1)==0
-    %         %                 fprintf('%d ',idx(j)-1);
-    %     %                     fprintf('testing with threshold %.2f\n',idx(j));
-    %     %                     [in,fi,~] = aligngesture([],W(:,1:idx(j)));
-    %                         [in,fi] = detectSeqC(W(:,1:idx(j)));
-    %     %                     [~,in3,fi3] = getDTWcseq(W(:,1:idx(j)));
-    %                         if ~isequal(in,in2,in3) || ~isequal(fi,fi2,fi3)
-    %                             disp('');
-    %                         end
-    %                         if length(in) > 1 || length(fi) > 1
-    %                             error('Start and end of the gesture must be scalars');
-    %                         end
-    %                         detSeqLog3(in:fi) = 1;
-    %     %                 end
-    %                 end
-    %                 toc;
-                    %% This is much faster
-                    detSeqLog(i,:) = getDetectedSeqs_c(W,int32(idx),detSeqLog(i,:),model.maxWlen);
-                    %%
-                    % to compensate for the offset of deep-features
-                    detSeqLog(i,:)=([detSeqLog(i,6:end),0,0,0,0,0]);
-                    idxEval = unique([idxEval idx(detSeqLog(i,idx-1)==true)]);
-    %                 if ~isequal(detSeqLog3,detSeqLog)
-    %                     find(detSeqLog3~=detSeqLog)
-    %                     if sum(detSeqLog3~=detSeqLog) > 1
-    %                         error();
-    %                     end
-    %                 end
-                    
-                    if model.classification                        
-                        d = diff(detSeqLog(i,:)); idxL = find(d~=0);
-                        for l = 1:length(idxL)
-                            cLabel = sum(Y.seg < idxL(l));
-                            if cLabel > 0
-                                if Y.L(cLabel) == k
-                                    hits = hits + 1;
-                                end
-                            end
+        swthreshs = zeros(1,model.nThreshs);
+        swScores = zeros(1,model.nThreshs);
+        detSeqLog = false(model.nThreshs,length(Y.Lfr));
+        if ~isempty(W)
+            tMin = min(W(end,2:end));
+%             detSeqLog3 = false(1,length(X));
+            idxEval = [];
+            for i = 1:model.nThreshs
+                if isempty(model.bestThs)
+                    swthreshs(i) = tMin + (i-1)*interv;
+                else
+                    swthreshs(i) = model.bestThs(k);
+                end
+                idx = find(W(end,:) <= swthreshs(i));
+                idx(ismember(idx,idxEval)) = [];                    
+                %% Old, much slower
+%                 tic;
+%                 toc;
+%                 tic;
+%                 for j = 1:length(idx)
+%     %                 if detSeqLog(idx(j)-1)==0
+%         %                 fprintf('%d ',idx(j)-1);
+%     %                     fprintf('testing with threshold %.2f\n',idx(j));
+%     %                     [in,fi,~] = aligngesture([],W(:,1:idx(j)));
+%                         [in,fi] = detectSeqC(W(:,1:idx(j)));
+%     %                     [~,in3,fi3] = getDTWcseq(W(:,1:idx(j)));
+%                         if ~isequal(in,in2,in3) || ~isequal(fi,fi2,fi3)
+%                             disp('');
+%                         end
+%                         if length(in) > 1 || length(fi) > 1
+%                             error('Start and end of the gesture must be scalars');
+%                         end
+%                         detSeqLog3(in:fi) = 1;
+%     %                 end
+%                 end
+%                 toc;
+                %% This is much faster
+                detSeqLog(i,:) = getDetectedSeqs_c(W,int32(idx),detSeqLog(i,:),model.maxWlen);
+                %%
+                % to compensate for the offset of deep-features
+                detSeqLog(i,:)=([detSeqLog(i,6:end),0,0,0,0,0]);
+                idxEval = unique([idxEval idx(detSeqLog(i,idx-1)==true)]);
+%                 if ~isequal(detSeqLog3,detSeqLog)
+%                     find(detSeqLog3~=detSeqLog)
+%                     if sum(detSeqLog3~=detSeqLog) > 1
+%                         error();
+%                     end
+%                 end
+
+                if model.classification
+                    d = diff(detSeqLog(i,:)); idxL = find(d~=0); 
+                    detSw = zeros(1,length(GTtestk));
+                    for l = 1:length(idxL)
+                        cLabel = sum(Y.seg < idxL(l));
+                        if cLabel > 0
+                            detSeqLog(i,cLabel) = 1;
                         end
-                        swScores(K,i,1) = hits/length(Y.L);                                             % Precision
-                        swScores(K,i,2) = hits/length(Y.L==k);                                          % Recall
-                    else
-                        swScores(K,i) = sum(GTtestk & detSeqLog(i,:))/sum(GTtestk | detSeqLog(i,:));    % Overlap (Jaccard Index)
                     end
+%                     swScores(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
+%                     swScores(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
+                    swScores(i) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
+                else
+                    swScores(i) = sum(GTtestk & detSeqLog(i,:))./sum(GTtestk | detSeqLog(i,:));     % overlap (Jaccard Index)
                 end
             end
-            thresholds{isw}{k} = swthreshs(K,:);
-            scores{isw}{k} = swScores(K,:,1);       % Optimize Precision/Overlap or Recall score: swScores(K,:,1) or swScores(K,:,2), respectively
+        end
+        thresholds{isw}{k} = swthreshs;
+        scores{isw}{k} = swScores;
+        if ~model.classification && strcmp(model.scoreMeasure,'levenshtein')
             [~,pos] = max(scores{isw}{k});
             idx = find(detSeqLog(pos,:) == 1);
             if ~isempty(idx)
@@ -242,7 +231,7 @@ for j = 1:ns
     %     save('predictions.mat','predictionsF','gtF');
     %     imagesc(confusionmat(predictionsF,gtF)); colormap(hot);
 end
-[score,p] = max(score);
+[score,p] = max(score); % should be the mean
 
 % try
 %     seg=r(p):min(r(p)+sw,length(Yc.Lfr));

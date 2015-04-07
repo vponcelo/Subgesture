@@ -121,21 +121,22 @@ for i = 1:k
             %% estimate gmms 
             if params.pdtw,                
                 falsaligs=0;
-                for hi=1:size(alig_seqs,2),
+                for hi=1:size(alig_seqs,2), % Learn gaussian for each frame
                     Xi=(reshape((alig_seqs(:,hi,:)),size(alig_seqs,1),size(alig_seqs,3)));                
                     io=0;
                     flg=false;
-                    while (io<10 & ~flg), %%% try several times
+                    while (io<10 && ~flg), %%% try several times
+                        if io==1, Xi(isnan(Xi))=0;Xi(isinf(Xi))=0; end
                         try
-%                             obj = fitgmdist(Xi,2,'SharedCov',true); %% matlab
-                            [obj, ~] = mixGaussFit(Xi, 2, 'maxIter', 100);
-                            Xi(find(isnan(Xi)))=0;Xi(find(isinf(Xi)))=0;
+%                             obj = fitgmdist(Xi,2,'SharedCov',true); %% matlab new
+%                             obj = gmdistribution.fit(Xi,2,'SharedCov',true); %% matlab old
+                            [obj, ~] = mixGaussFit(Xi, 2, 'maxIter', 100, 'verbose', false);
                             flg=true;
                         catch                           
-                            obj=[]; io=io+1; lasterr                       
+                            obj=[]; io=io+1; %lasterr                            
                         end
                     end
-                    lmodel(i,hi).obj=obj;                
+                    lmodel(i,hi).obj=obj;
                     if isempty(obj),
                         falsaligs=falsaligs+1;
                         lmodel(i,hi).failures=true;                

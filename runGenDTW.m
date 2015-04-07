@@ -47,8 +47,7 @@ Xval_l = getGroupedGestures(X,Y,2);
 
 %% Compute median models from training/learning data
 % profile -memory on
-% params.M = getModels(Xtrain_l,length(Xtrain_l)-1,params);
-[params.M,params.lmodel] = getModels(Xtrain_l,length(Xtrain_l)-1,params);
+if ~params.phmm.hmm, [params.M,params.lmodel] = getModels(Xtrain_l,length(Xtrain_l)-1,params); end
 % profreport
 
 %% Generate development sequences
@@ -59,9 +58,11 @@ l = [];
 %% Baseline 
 % First evaluation with euclidean distance
 % profile -memory on
-% params.sw = 0;          % in the baseline, we evaluate the whole sequence 
-[~,S_eu,~] = g(params,Xdev{2},Ydev{2});
-% params.sw = 5000;       % In training, we evaluate sequence portions
+if ~params.phmm.hmm
+    [~,S_eu,~] = g(params,Xdev{2},Ydev{2});
+else
+    [S_eu,~] = testHMM(params);
+end
 % profreport
 
 %% Genetic algorithm optimization

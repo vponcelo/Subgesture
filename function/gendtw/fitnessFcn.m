@@ -66,7 +66,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     idx = exists==0 & valid==1;
     [I2,k,seg,mk,mnsegs] = decode(I2(idx,:),params);
 %     cd('results/temp/');
-%     save('temp.mat','seg','X','XtrainT','Ytrain','params','k');    
+%     save('temp.mat','seg','X','XtrainT','Ytrain','params','k');
     if length(idx) > 1
         sc = zeros(1,length(k));
         preds = cell(1,length(k));
@@ -101,9 +101,10 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                 segA = reshape(seg(i,:,:),size(seg,2),size(seg,3));
             end
             model{i} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k(i),segA,mnsegs(i),mk(i));
-            Xv = Xval;          % Parfor doesn't accept modifying the value of Xval directly
-            if ~params.phmm.hmm
-                display('Optimizing model parameters over validation ...');
+            Xv = Xval;      % Parfor doesn't accept modifying the value of Xval directly
+            Yv = Yval;      % Parfor doesn't accept modifying the value of Yval directly
+            display('Optimizing model parameters over validation ...');
+            if ~params.phmm.hmm                
 %                 model{i}.sw = 0;           % Evaluate the whole validation sequence 
                 [model{i},sc(i),preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
             else
@@ -112,6 +113,17 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                     Xv = discretizeSequence(model{i}.Ctrain,Xv);      
                 end
                 %% Discretize validation sequence
+                display('Discretizing validation sequence in Subgestures ...');
+                sw = model{i}.sw;
+                if sw > 0
+                    r = inf;
+                    while any(r > length(Xv)-sw)
+                        r=randperm(round(length(Xv)),1);
+                    end
+                    sseg=r(1):min(r(1)+sw,length(Yv.Lfr));
+                    Xv=Xv(sseg,:);
+                    Yv.Lfr=Yv.Lfr(sseg);
+                end
                 Dval = cell(1,length(Xv));
                 if iscell(Xv)
                     for sample = 1:length(Xv)
@@ -122,8 +134,8 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                     KT = getUpdatedCosts(Xv,model{i}.SM);
                     [~,Dval] = min(KT);
                 end
-                display(sprintf('Evaluating the validation sequence ...'));
-                sc(i) = evaluateHMM(Dval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE);
+%                 sc(i) = evaluateHMM(Dval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE);
+                [model{i},sc(i)] = evalswHMM(model{i}, Dval, Yval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE, model{i}.phmm.model)
                 preds{i} = 0;
             end
         end
@@ -132,22 +144,33 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
         clear preds;
     else
         predictions = cell(1);
-        model = cell(1);        
-        if iscell(seg)            
-            model{1} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg),mnsegs,mk);            
+        model = cell(1);
+        if iscell(seg)
+            model{1} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg),mnsegs,mk);
         else
             model{1} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
         end
+        display('Optimizing model parameters over validation ...');
         if ~params.phmm.hmm
-            display('Optimizing model parameters over validation ...');
 %             model{1}.sw = 0;           % Evaluate the whole validation sequence 
             [model{1},s2,predictions{1}] = g(model{1},Xval,Yval);   % learn&optimize over validation
-        else            
+        else
             if ~strcmp(params.phmm.clustType,'none')
                 display('Discretizing validation sequence in Key Poses ...');
                 Xval = discretizeSequence(model{1}.Ctrain,Xval);
             end
             %% Discretize validation sequence
+            display('Discretizing validation sequence in Subgestures ...');
+            sw = model{1}.sw;
+            if sw > 0
+                r = inf;
+                while any(r > length(Xval)-sw)
+                    r=randperm(round(length(Xval)),1);
+                end
+                sseg=r(1):min(r(1)+sw,length(Yval.Lfr));
+                Xval=Xval(sseg,:);
+                Yval.Lfr=Yval.Lfr(sseg);
+            end
             Dval = cell(1,length(Xval));
             if iscell(Xval)
                 for sample = 1:length(Xval)
@@ -158,12 +181,10 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                 KT = getUpdatedCosts(Xval,model{1}.SM);
                 [~,Dval] = min(KT);
             end
-            display(sprintf('Evaluating the validation sequence ...'));
-%             s2 = evaluateHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
-            s2 = evalswHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
+%             s2 = evalswHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
+            [model{1},s2] = evalswHMM(model{1}, Dval, Yval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE, model{1}.phmm.model);
             predictions{1} = 0;
         end
-%         toc;
     end
 
     % Save current best model
@@ -417,15 +438,17 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 
     %% Obtain Subgesture Model for training/learning data
     model.SM = Z{kV}{timeV}; emptyCells = cellfun(@isempty,model.SM); model.SM(emptyCells) = [];
-            
+    
     if ~params.phmm.hmm
         %% compute Similarity matrix
-        model.D = getSimilarities(model.SM);
-        if sum(~any(model.D))
-            error('fitnessFcn:D','Some elements of the dissimilarity matrix are wrong');
-        end
+        if ~params.pdtw
+            model.D = getSimilarities(model.SM);
+            if sum(~any(model.D))
+                error('fitnessFcn:D','Some elements of the dissimilarity matrix are wrong');
+            end
+        end       
         
-        %% Compute Median (SubGesture) Models for each gesture 
+        %% Compute Median/Max (SubGesture) Models for each gesture 
         if (strcmp(params.mType,'modelSM1') || strcmp(params.mType,'allSM1')) ... 
                 && mnseg > 0 && mk > 0
             model.M = getSM(params,Xtrain_l,model,mnseg,mk);
@@ -436,9 +459,9 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         else
             error('fitnessFcn:optError','Option chosen for the Subgesture Models is incorrect. Check the value of params.mType');
         end
-
+    
         %% Compute costs of representing (Subgesture) Models 'M' in terms of Subgesture Models 'SM'
-        model.KM = cell(1,length(model.M));
+        model.KM = cell(1,length(Xtrain_l));
         if strcmp(params.mCostType,'mean')
             display('Computing the costs of the training sequences in terms of SM and mean align to the minimum cost ... ');
             for l = 1:length(model.KM)
@@ -451,7 +474,7 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
             end
             model.KM = getModels(model.KM,length(model.KM),params);
             for l = 1:length(model.KM)
-                model.KM{l} = model.KM{l}';                
+                model.KM{l} = model.KM{l}';
             end
         else
 %             tic;
@@ -466,25 +489,31 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 %             toc;
         end
     else
-        if ~strcmp(params.phmm.clustType,'none')
-            %% Discretize X
-            model.Ctrain = performClustering(X_I,Ytrain,params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
-            X_I = discretizeSequence(model.Ctrain,X_I);            
-        end
-        if iscell(X_I)
-            Dtrain = cell(1,length(X_I));
-            for sample = 1:length(X_I)
-                KM = getUpdatedCosts(X_I{sample},model.SM);
+        model.phmm.hmmTR = cell(1,length(Xtrain_l)); 
+        model.phmm.hmmE = cell(1,length(Xtrain_l));
+        model.phmm.model = cell(1,length(Xtrain_l));
+        
+        display('Discretizing training sequence and learning the HMM Models for each gesture');
+        for l = 1:length(Xtrain_l)
+            Xtrain = Xtrain_l{l};
+            if ~strcmp(params.phmm.clustType,'none')
+                %% Discretize gestures key poses
+                model.Ctrain = performClustering(Xtrain,Ytrain,params.phmm.clustType,params.phmm.kD,params.phmm.cIters);
+                Xtrain = discretizeSequence(model.Ctrain,Xtrain);
+            end
+            Dtrain = cell(1,length(Xtrain));
+            for sample = 1:length(Xtrain)
+                %% Discretize in subgestures
+                KM = getUpdatedCosts(Xtrain{sample},model.SM);
                 [~,Dtrain{sample}] = min(KM);
             end
-%             Dtrain = cell2mat(Dtrain);
-        else
-            KM = getUpdatedCosts(X_I,SM);
-            [~,Dtrain] = min(KM);
+            %% train HMM for this gesture
+            if ~params.phmm.pmtk
+                [model.phmm.hmmTR{l}, model.phmm.hmmE{l}] = learnHMM(params.phmm.states,Dtrain,params.phmm.it);
+                model.phmm.model{l} = [];
+            else
+                [model.phmm.model{l},~] = hmmFit(Dtrain', params.phmm.states, params.phmm.varType);
+            end
         end
-        
-        %% train HMM for this data partitions and clusters
-        display('Learning the HMM Model ...');
-        [model.phmm.hmmTR, model.phmm.hmmE]=learnHMM(params.phmm.states,Dtrain,params.phmm.it);
     end
 end
