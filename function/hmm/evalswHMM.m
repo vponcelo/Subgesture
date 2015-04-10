@@ -1,5 +1,7 @@
-function [model,score] = evalswHMM(model, X, Y, TRANS, EMIS, modelpmtk)
+function [model,score,bestScores] = evalswHMM(model, X, Y, TRANS, EMIS, modelpmtk)
 % function that returns the score and learn parameters from the evaluation
+
+global DATATYPE; global NAT;
 
 sws = 10:10:60;     % size of gesture sequences is usually < 60
 if iscell(X)
@@ -14,28 +16,18 @@ if iscell(X)
     score = max(probs); model = [];
 else
     % X evaluate whole seq.
-    if model.classification
-        Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1];
-    end
     if model.phmm.pmtk, nm=length(modelpmtk); else nm=length(TRANS); end
-    swScores = cell(1,length(nm)); 
+    if model.classification
+        Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
+        scoresP = cell(1,nm); scoresR = cell(1,nm); scoresA = cell(1,nm);
+    end    
+    scoresO = cell(1,nm); 
     thresholds = cell(1,length(nm));
+    display(sprintf('Evaluating sequence of %d frames ...',length(Y.Lfr)));
     % test each gesture
     for k = 1:nm
-        if model.classification
-            GTtestk = Y.L == k;            
-        else
-            GTtestk = Y.Lfr == k;
-        end
-        probs = cell(1,length(sws));
-        %% evaluate sliding windows
-        for i = 1:length(sws)
-            probs{i} = [];
-            for st = 1:sws(i):size(X,2)-1
-                seq = X(:,st:min(st+sws(i),size(X,2)));
-                probs{i} = [probs{i} evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k})];
-            end
-        end
+        GTtestk = Y.L == k;
+        GTtestkFr = Y.Lfr == k;
         %% number of tresholds and interval to test threshs
         if ~isempty(model.bestThs)
             model.nThreshs = 1;
@@ -48,54 +40,73 @@ else
                 display(sprintf('Decreasing number of test thresholds to %d',model.nThreshs));
             end
         end
-        swScores{k} = zeros(length(sws),model.nThreshs);
-        %% compute scores from evaluated probabilities
+        %% compute scores from evaluated probabilities and thresholds
         thresholds{k} = zeros(1,model.nThreshs);
-        for i = 1:length(sws)
-            for j = 1:model.nThreshs
-                if isempty(model.bestThs)
-                    thresholds{k}(j) = tMin + (j-1)*interv;
+        detSeqLog = zeros(model.nThreshs,length(GTtestkFr));
+        scoresO{k} = zeros(1,model.nThreshs); 
+        if model.classification
+            scoresP{k} = zeros(1,model.nThreshs); scoresR{k} = zeros(1,model.nThreshs); scoresA{k} = zeros(1,model.nThreshs);
+        end
+        for j = 1:model.nThreshs
+            if isempty(model.bestThs)
+                thresholds{k}(j) = tMin + (j-1)*interv;
+            else
+                thresholds{k}(j) = model.bestThs(k);
+            end  
+            for i = 1:length(sws)
+                probs = [];
+                for st = 1:sws(i):size(X,2)-1
+                    seq = X(:,st:min(st+sws(i),size(X,2)));
+                    probs = [probs evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k})];
+                end
+                det = probs > thresholds{k}(j);
+                det = reshape(repmat(det,sws(i),1),[1 size(det,2)*sws(i)]);  % replicate to obtain detected frames
+                if length(det) > size(X,2)
+                    det(size(X,2)+1:end) = [];                               % remove offset sw
                 else
-                    thresholds{k}(j) = model.bestThs(k);
+                    det = [det repmat(det(end),size(X,2)-length(det))];      % add offset sw
                 end
-                detSw = probs{i} > thresholds{k}(j); detSw = reshape(repmat(detSw,sws(i),1),[1 size(detSw,2)*sws(i)]);
-                if length(detSw) > size(X,2)
-                    detSw(size(X,2)+1:end) = [];                                    % remove offset sw
-                else
-                    detSw = [detSw repmat(detSw(end),size(X,2)-length(detSw))];     % add offset sw
-                end
-                detSw=([detSw(6:end),0,0,0,0,0]);
-                if model.classification
-                    d = diff(detSw); idxL = find(d~=0); 
-                    detSw = zeros(1,length(GTtestk));
-                    for l = 1:length(idxL)
-                        cLabel = sum(Y.seg < idxL(l));
-                        if cLabel > 0
-                            detSw(cLabel) = 1;
-                        end
-                    end
-                end
-                if model.classification
-                    swScores{k}(i,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);   % Precision
-                    swScores{k}(i,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
-                    swScores{k}(i,j) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
-                else
-                    swScores{k}(i,j) = sum(GTtestk & detSw)./sum(GTtestk | detSw);          % overlap (Jaccard Index)
-                end
+                detSeqLog(j,:) = detSeqLog(j,:) | det;
             end
+            if strcmp(DATATYPE,'chalearn2014') && NAT == 3
+                detSeqLog(j,:) =([detSeqLog(j,6:end),0,0,0,0,0]);       % correct offset of deep features
+            end
+            scoresO{k}(j) = sum(GTtestkFr & detSeqLog(j,:))./sum(GTtestkFr | detSeqLog(j,:));     % overlap (Jaccard Index)
+            if isnan(scoresO{k}(j)), scoresO{k}(j) = 0; end
+            if model.classification
+                detSw = getActivations(detSeqLog(i,:), GTtestk, Y.seg);                
+                scoresP{k}(j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
+                if isnan(scoresP{k}(j)), scoresP{k}(j) = 0; end
+                scoresR{k}(j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
+                if isnan(scoresR{k}(j)), scoresR{k}(j) = 0; end
+                scoresA{k}(j) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
+                if isnan(scoresA{k}(j)), scoresA{k}(j) = 0; end
+            end            
         end
     end
-    bestScores = cell(1,length(sws)); bestThsPos = cell(1,length(sws));
-    score = zeros(1,length(sws));
-    for i = 1:length(sws)
-        bestScores{i} = zeros(1,k); bestThsPos{i} = zeros(1,k);
-        for l = 1:k
-            [bestScores{i}(l),bestThsPos{i}(l)] = max(swScores{k}(i,:));
-        end
-        score(i) = mean(bestScores{i});
+    if ~model.classification,
+        bestScores = zeros(k,1); bestThsPos = zeros(k,1);
+    else
+        bestScores = zeros(k,4); bestThsPos = zeros(k,4);
+        
     end
-    [score,p] = max(score);    
+    model.bestThs = zeros(1,k);
     for i = 1:k
-        model.bestThs(i) = thresholds{i}(bestThsPos{p}(i));
+        [bestScores(i,1),bestThsPos(i,1)] = max(scoresO{i});
+        if model.classification
+            [bestScores(i,2),bestThsPos(i,2)] = max(scoresP{i});
+            [bestScores(i,3),bestThsPos(i,3)] = max(scoresR{i});
+            [bestScores(i,4),bestThsPos(i,4)] = max(scoresA{i});            
+        end
+        if strcmp(model.scoreMeasure,'overlap')
+            model.bestThs(i) = max(thresholds{i}(bestThsPos(i,model.score2Optim)));
+        end
     end
+    end
+    if ~model.classification
+        score = mean(bestScores(:,1));
+    else
+        score = mean(bestScores(:,model.score2Optim));     
+    end
+    bestScores = reshape(mean(bestScores),[1 size(bestScores,2)]);
 end

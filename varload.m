@@ -1,5 +1,5 @@
 %% Global variables
-global DATATYPE;        % dataset: 'chalearn' 'random'
+global DATATYPE;        % datasets: 'random' 'chalearn2013' 'chalearn2014' 'madX' 'msr3d'
 global VISUALIZE;       % flag indicating whether or not to visualize the data groups using kmeans clustering
 global FRAMECOMPRESS;   % flag indicating whether or not to perform frame compression 
 global KMEANSDTWv;      % possible versions of the k-means DTW algorithm
@@ -14,12 +14,12 @@ global COORDS;          % type of coordinates
 global STATE;           % save state of previous GA run
 global OPTIONS;         % Options of the GA run
 global PERCENTDATA;     % percent of learning data to consider
-global NORMTYPE;        % Normalization type 'neck' 'xyzangles'
+global NORMTYPE;        % Normalization type 'neck' 'none'
 global MEDIANTYPE;      % Type of median models 
 global JOINTS;          % Selected joints
 global NAT;             % Type of Descriptor
 
-DATATYPE = 'chalearn2014';
+DATATYPE = 'msr3d';
 NORMTYPE = 'neck';
 COORDS = 'pixel';
 VISUALIZE = false;
@@ -80,7 +80,7 @@ params.Baseline = ...
 params.threshMov = 3;       % maximum number of low movement frames
 params.thMinMov = 1.3;      % Minimum portion of movement
 params.drawMovSkels = false;% flag indicating whether to draw skels
-params.thMutCross = 0.6;    % threshold of GA mutation and crossover
+params.thMutCross = 1;    % threshold of GA mutation and crossover: '1':= only standard
 params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
 params.probSeg = 0.2;       % probability of eliminate/change a segment
@@ -91,7 +91,9 @@ params.usemax_l = true;        % use the median or the max-length gesture as ref
 params.resize = true;          % Use resizing instead of mean DTW alignment
 params.gmm = false;            % Use gmm instead of other non-probabilistic representations
 params.pdtw = false;           % flag for indicating the use of gmms in feature modeling
-params.sw = 5000;              % sliding window (frame seq length): '0' means the whole sequence
+params.score2Optim = 3;        % Score to optimize --> Overlap: '1', Precision: '2', Recall: '3', Accuracy: '4'
+params.minOverlap = 0.5;        % Minimum overlap to detect the label
+params.sw = 0;              % sliding window (frame seq length): '0' means the whole sequence
 params.k = 0;               % current k to evaluate for the K-Nearest Neighbour DTW models
 CACHE.pos = int32(1);       % Index positions
 % GENRESULTS.P = cell(1,params.generations);

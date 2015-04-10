@@ -69,6 +69,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
 %     save('temp.mat','seg','X','XtrainT','Ytrain','params','k');
     if length(idx) > 1
         sc = zeros(1,length(k));
+        sc2 = zeros(length(k),1,4);
         preds = cell(1,length(k));
         model = cell(1,length(k));
         % 1) Launch length(k) processes.
@@ -106,7 +107,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             display('Optimizing model parameters over validation ...');
             if ~params.phmm.hmm                
 %                 model{i}.sw = 0;           % Evaluate the whole validation sequence 
-                [model{i},sc(i),preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
+                [model{i},sc(i),~,preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
             else
                 if ~strcmp(params.phmm.clustType,'none')
                     display('Discretizing validation sequence in Key Poses ...');
@@ -135,7 +136,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                     [~,Dval] = min(KT);
                 end
 %                 sc(i) = evaluateHMM(Dval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE);
-                [model{i},sc(i)] = evalswHMM(model{i}, Dval, Yval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE, model{i}.phmm.model)
+                [model{i},sc(i),sc2(i,:,:)] = evalswHMM(model{i}, Dval, Yval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE, model{i}.phmm.model)
                 preds{i} = 0;
             end
         end
@@ -153,7 +154,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
         display('Optimizing model parameters over validation ...');
         if ~params.phmm.hmm
 %             model{1}.sw = 0;           % Evaluate the whole validation sequence 
-            [model{1},s2,predictions{1}] = g(model{1},Xval,Yval);   % learn&optimize over validation
+            [model{1},s2,sc2,predictions{1}] = g(model{1},Xval,Yval);   % learn&optimize over validation
         else
             if ~strcmp(params.phmm.clustType,'none')
                 display('Discretizing validation sequence in Key Poses ...');
@@ -182,7 +183,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                 [~,Dval] = min(KT);
             end
 %             s2 = evalswHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
-            [model{1},s2] = evalswHMM(model{1}, Dval, Yval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE, model{1}.phmm.model);
+            [model{1},s2,sc2] = evalswHMM(model{1}, Dval, Yval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE, model{1}.phmm.model);
             predictions{1} = 0;
         end
     end
@@ -218,8 +219,9 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             end
         end        
         CACHE.ind(idxC,:) = I2(1:idxEnd,:); 
-        s3 = s2(idx);
+        s3 = s2(idx); s4 = sc2(idx,:,:);
         CACHE.eval(idxC) = s3(1:idxEnd);
+        CACHE.scores(idxC,:) = s4(1:idxEnd,:);
         if remain
             pos = 1;
             posEnd = pos+remain-1;
@@ -322,7 +324,7 @@ function [valid,err] = validateI(I,params,maxSeg,X)
                 e4(i) = sum(seg{i}(1,:)+seg{i}(2,:)-1 > maxSeg);
             else
                 e3(i) = sum(seg(i,2,:) < 2);
-                e4(i) = sum(seg(i,1,:)+seg{i}(2,:)-1 > maxSeg);
+                e4(i) = sum(seg(i,1,:)+seg(i,2,:)-1 > maxSeg);
             end
         end            
     end

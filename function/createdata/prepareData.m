@@ -65,8 +65,6 @@ switch DATATYPE
             display('Loading data...');
             load('data/randomData.mat');
         end
-        display('Done!');
-    
     case 'chalearn2013'
         display('Loading Chalearn 2013 data...');
         if ~exist(strcat('data/chalearn2013/chalearnData_',COORDS,'_',num2str(length(JOINTS)),'joints.mat'),'file'),
@@ -93,8 +91,6 @@ switch DATATYPE
 %             end            
             if strcmp(NORMTYPE,'neck')
                 X = norm2neck(X);
-            elseif strcmp(NORMTYPE,'xyzangles')
-                
             end
         end
         if PERCENTDATA < 100
@@ -150,8 +146,6 @@ switch DATATYPE
 %                 mev=mav-miv;                
 % %                 X{2}(:,length(JOINTS)+1:end)=(X{2}(:,length(JOINTS)+1:end)-repmat(miv(length(JOINTS)+1:end),size(X{2},1),1))./(repmat(mev(length(JOINTS)+1:end),size(X{2},1),1));
 %                 X{2}=(X{2}-repmat(miv,size(X{2},1),1))./(repmat(mev,size(X{2},1),1));
-            elseif strcmp(NORMTYPE,'xyzangles')
-                
             end
         end
         if PERCENTDATA < 100
@@ -161,6 +155,48 @@ switch DATATYPE
                 Y{i}.seg = Y{i}.seg(1:ns+1);
                 Y{i}.L = Y{i}.L(1:ns);
             end
-        end        
-        display('Done!');
+        end
+    case 'mad1'
+        display('Loading MAD 1 data ...');
+        if ~exist(strcat('data/MAD/MAD_1.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MAD/MAD_1.mat'));
+        end
+    case 'mad2'
+        display('Loading MAD 2 data ...');
+        if ~exist(strcat('data/MAD/MAD_2.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MAD/MAD_2.mat'));
+        end
+    case 'mad3'
+        display('Loading MAD 3 data ...');
+        if ~exist(strcat('data/MAD/MAD_3.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MAD/MAD_3.mat'));
+        end
+    case 'mad4'
+        display('Loading MAD 4 data ...');
+        if ~exist(strcat('data/MAD/MAD_4.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MAD/MAD_4.mat'));
+        end
+    case 'mad5'
+        display('Loading MAD 5 data ...');
+        if ~exist(strcat('data/MAD/MAD_5.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MAD/MAD_5.mat'));
+        end
+    case 'msr3d'
+        display('Loading MSR3D data ...');
+        if ~exist(strcat('data/MSR3D/MSRDA3D_1PCA.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MSR3D/MSRDA3D_1PCA.mat'));
+        end
 end
+display('Done!');

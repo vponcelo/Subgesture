@@ -1,4 +1,4 @@
-function [score,model] = testHMM(params)
+function [score,model,bestScores] = testHMM(params)
 
 % clear all
 % close all
@@ -28,7 +28,7 @@ Xval_l = getGroupedGestures(X,Y,2);
 %% Generate learning sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
 l = [];
-[Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,nSampGest);
+[Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,0);
 Xval = Xdev{2}; Yval = Ydev{2};
 
 %% Obtain Cross Validation subsets over training data
@@ -192,7 +192,8 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
 %                     Xval = Xval(Yval.Lfr == l,:);  % baseline 1+2: get current gesture label
                 end
             else
-                Yval.Lfr = Ydev{2}.Lfr(Ydev{2}.Lfr==l); Xval = Xval_l{l};                   % gesture cells
+                Xval=Xdev{2}; Yval.Lfr=Ydev{2}.Lfr;
+%                 Yval.Lfr = Ydev{2}.Lfr(Ydev{2}.Lfr==l); Xval = Xval_l{l};                   % gesture cells
             end            
             %% Discretize validation data
             if strcmp(params.phmm.varType,'discrete')
@@ -240,7 +241,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     Dval=Dval(seg);
                     Yval.Lfr=Yval.Lfr(seg);
                 end
-                [model,score] = evalswHMM(params, Dval, Yval, params.phmm.hmmTR_f{k},params.phmm.hmmE_f{k},params.phmm.model{k});
+                [model,score,bestScores] = evalswHMM(params, Dval, Yval, params.phmm.hmmTR_f{k},params.phmm.hmmE_f{k},params.phmm.model{k});
                 return;
             end
             params.phmm.pTrain_f{k}{l} = zeros(length(params.phmm.Dtrain{k}),length(params.phmm.Dtrain{k}{l}));

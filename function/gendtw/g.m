@@ -1,4 +1,4 @@
-function [model,score,predictions] = g(model,Xc,Yc)
+function [model,score,bestScores,predictions] = g(model,Xc,Yc)
 % Output:
 %   model
 %   score(default): mean overlap for the k detected gestures
@@ -7,6 +7,8 @@ function [model,score,predictions] = g(model,Xc,Yc)
 %   Xc: data to test against (cell or whole sequence)
 %   Yc: labels of X (cell or whole sequence)
 
+global DATATYPE; global NAT;
+
 if iscell(Xc)
     error('g:classErr','Input data cannot be a cell here, need to specify this functionality');
 end
@@ -14,36 +16,37 @@ sw = model.sw;
 if sw > length(Yc.Lfr)
     error('g:swErr','sliding window is longer than the validation sequence');
 end
+ns = 1;     % number of sliding windows, more than one ns > 1 is not recommended
 if sw == 0
     sw = length(Xc)-1;
-    ns = 1;
-    r=1;
+    r = 1;
 else
     sw = model.sw;
-    ns = 1;     %round(length(Yc.Lfr)/sw)     % changing this value to 1 evaluates the sequence once
     r = inf;
     while any(r > length(Yc.Lfr)-sw)
-        r=randperm(round(length(Yc.Lfr)),ns);
+        r = randperm(round(length(Yc.Lfr)),ns);
     end
 end
   
 thresholds = cell(1,ns);
-scores = cell(1,ns);
-if ~model.classification && strcmp(model.scoreMeasure,'levenshtein')
+scoresO = cell(1,ns);
+if model.classification
+    scoresP = cell(1,ns); scoresR = cell(1,ns); scoresA = cell(1,ns);
+else
     predictions = cell(1,ns);
 end
+nm = length(model.M);
 
-for isw = 1:ns  % sliding window
+for isw = 1:ns  % sliding window (ns > 1 not recommended)
     % last sliding window is the size of the sequence
-    display(sprintf('Evaluating %d of %d sequences of %d frames ...',isw,ns,sw));
     predictions{isw} = [];
     seg=r(isw):min(r(isw)+sw,length(Yc.Lfr));
     X=Xc(seg,:);
     Y.Lfr=Yc.Lfr(seg);
     if model.classification
-        Y.L=Yc.Lfr; d=diff(Yc.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1];
+        Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
     end
-    
+    display(sprintf('Evaluating %d of %d sequence of %d frames ...',isw,ns,length(Y.Lfr)));
     %% Compute the costs of the test sequence in terms of SM 
     if ~isempty(model.D)
         display('Computing the costs of the test sequence in terms of SM ...');
@@ -53,27 +56,16 @@ for isw = 1:ns  % sliding window
     end
         
     %% Learn threshold cost parameters for each gesture
-    thresholds{isw} = cell(1,length(model.M));
-    scores{isw} = cell(1,length(model.M));
-    
-    for k = 1:length(model.M)
-        thresholds{isw}{k} = [];
-        scores{isw}{k} = [];
+    thresholds{isw} = cell(1,nm);
+    scoresO{isw} = cell(1,nm);
+    if model.classification
+        scoresP{isw} = cell(1,nm); scoresR{isw} = cell(1,nm); scoresA{isw} = cell(1,nm);
     end
     
-    for k = 1:length(model.M)
-        
-    %     if ~isempty(model.D)    
-    %         display('Computing the partial costs of the test sequence in terms of SM ...');
-    %         model.KT = getUpdatedCosts(X,model.SM);
-    %     end
-        %         display(sprintf('Testing threshold cost parameters for gesture %d ...',k));
-        if model.classification
-            GTtestk = Y.L == k;
-        else
-            GTtestk = Y.Lfr == k;
-        end
-        if ~any(GTtestk)
+    for k = 1:nm
+        if model.classification, GTtestk = Y.L == k; end
+        GTtestkFr = Y.Lfr == k;
+        if ~any(GTtestkFr)
             warning('g:missedLabel','Label %d is missing in the test sequence',k);
         end
         W = [];
@@ -127,9 +119,12 @@ for isw = 1:ns  % sliding window
                 end
             end
         end
-        swthreshs = zeros(1,model.nThreshs);
-        swScores = zeros(1,model.nThreshs);
-        detSeqLog = false(model.nThreshs,length(Y.Lfr));
+        swthreshs = zeros(1,model.nThreshs); swOvs = zeros(1,model.nThreshs);
+        if model.classification
+            swPrecs = zeros(1,model.nThreshs); swRecs = zeros(1,model.nThreshs);
+            swAccs = zeros(1,model.nThreshs);
+        end
+        detSeqLog = false(model.nThreshs,length(GTtestkFr));
         if ~isempty(W)
             tMin = min(W(end,2:end));
 %             detSeqLog3 = false(1,length(X));
@@ -167,7 +162,9 @@ for isw = 1:ns  % sliding window
                 detSeqLog(i,:) = getDetectedSeqs_c(W,int32(idx),detSeqLog(i,:),model.maxWlen);
                 %%
                 % to compensate for the offset of deep-features
-                detSeqLog(i,:)=([detSeqLog(i,6:end),0,0,0,0,0]);
+                if strcmp(DATATYPE,'chalearn2014') && NAT == 3
+                    detSeqLog(i,:)=([detSeqLog(i,6:end),0,0,0,0,0]);    % correct offset of deep features
+                end
                 idxEval = unique([idxEval idx(detSeqLog(i,idx-1)==true)]);
 %                 if ~isequal(detSeqLog3,detSeqLog)
 %                     find(detSeqLog3~=detSeqLog)
@@ -175,28 +172,25 @@ for isw = 1:ns  % sliding window
 %                         error();
 %                     end
 %                 end
-
+                swOvs(i) = sum(GTtestkFr & detSeqLog(i,:))./sum(GTtestkFr | detSeqLog(i,:));     % overlap (Jaccard Index)
+                if isnan(swOvs(i)), swOvs(i) = 0; end
                 if model.classification
-                    d = diff(detSeqLog(i,:)); idxL = find(d~=0); 
-                    detSw = zeros(1,length(GTtestk));
-                    for l = 1:length(idxL)
-                        cLabel = sum(Y.seg < idxL(l));
-                        if cLabel > 0
-                            detSeqLog(i,cLabel) = 1;
-                        end
-                    end
-%                     swScores(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
-%                     swScores(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
-                    swScores(i) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
-                else
-                    swScores(i) = sum(GTtestk & detSeqLog(i,:))./sum(GTtestk | detSeqLog(i,:));     % overlap (Jaccard Index)
+                    detSw = getActivations(detSeqLog(i,:), GTtestkFr, Y.seg, model.minOverlap);
+                    swPrecs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
+                    if isnan(swPrecs(i)), swPrecs(i) = 0; end
+                    swRecs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
+                    if isnan(swRecs(i)), swRecs(i) = 0; end
+                    swAccs(i) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
+                    if isnan(swAccs(i)), swAccs(i) = 0; end
                 end
             end
         end
         thresholds{isw}{k} = swthreshs;
-        scores{isw}{k} = swScores;
-        if ~model.classification && strcmp(model.scoreMeasure,'levenshtein')
-            [~,pos] = max(scores{isw}{k});
+        scoresO{isw}{k} = swOvs;
+        if model.classification
+            scoresP{isw}{k} = swPrecs; scoresR{isw}{k} = swRecs; scoresA{isw}{k} = swAccs;
+        else
+            [~,pos] = max(scoresO{isw}{k});
             idx = find(detSeqLog(pos,:) == 1);
             if ~isempty(idx)
                 inF = idx(1);
@@ -219,20 +213,33 @@ for isw = 1:ns  % sliding window
     end
 end
 
-bestScores = cell(1,ns);
-score = zeros(1,ns);
-for j = 1:ns
-    bestScores{j} = zeros(1,k);
-    for i = 1:k        
-        [bestScores{j}(i),~] = max(scores{j}{i});
-    end
-    score(j) = mean(bestScores{j});
+if ~model.classification,    
+    bestScores = zeros(k,ns,1); bestThsPos = zeros(k,ns,1); 
+else
+    bestScores = zeros(k,ns,4); bestThsPos = zeros(k,ns,4);
+end
+for i = 1:k
+    for j = 1:ns
+        [bestScores(i,j,1),bestThsPos(i,j)] = max(scoresO{j}{i});
+        if model.classification
+            [bestScores(i,j,2),bestThsPos(i,j,2)] = max(scoresP{j}{i});
+            [bestScores(i,j,3),bestThsPos(i,j,3)] = max(scoresR{j}{i});
+            [bestScores(i,j,4),bestThsPos(i,j,4)] = max(scoresA{j}{i});            
+        end    
     %     gtF = Y.Lfr;
     %     save('predictions.mat','predictionsF','gtF');
     %     imagesc(confusionmat(predictionsF,gtF)); colormap(hot);
+    end
 end
-[score,p] = max(score); % should be the mean
-
+if ~model.classification
+    score = mean(bestScores(:,:,1));
+else
+    score = mean(bestScores(:,:,model.score2Optim));     
+end
+score = max(score);     % not reliable if ns > 1
+if ns == 1
+    bestScores = reshape(mean(bestScores(:,ns,:)),[1 size(bestScores,3)]);
+end
 % try
 %     seg=r(p):min(r(p)+sw,length(Yc.Lfr));
 %     Y.Lfr=Yc.Lfr(seg);
@@ -243,10 +250,13 @@ end
 % close gcf;
     
 if strcmp(model.scoreMeasure,'overlap')
-    model.bestThs = zeros(1,length(thresholds{p}));
+    model.bestThs = zeros(1,k);
     for i = 1:k
-        [~,pos] = max(scores{p}{i});
-        model.bestThs(i) = thresholds{p}{i}(pos);
+        ths = zeros(1,ns);
+        for j = 1:ns
+            ths(j) = thresholds{j}{i}(bestThsPos(i,j,model.score2Optim));
+        end
+        model.bestThs(i) = mean(ths);   % not reliable if ns > 1
     end
 %     gtF = Y.Lfr;
 %     save('predictions.mat','predictionsF','gtF');

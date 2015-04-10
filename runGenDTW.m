@@ -11,28 +11,30 @@ if nargin == 0
 end
 params.scoreMeasure = measure;  % Score Measure: 'overlap' or 'levenshtein'
 if strcmp(measure,'overlap')
-    CACHE.eval = zeros(...      % Cache with the scores of each individual
+    CACHE.eval = zeros(...      % Cache with the evaluations of each individual
         params.population*100,1);
+    CACHE.scores = zeros(...      % Cache with the scores of each individual
+        params.population*100,4);
 elseif strcmp(measure,'levenshtein')
-    CACHE.eval = inf*ones(...   % Cache with the scores of each individual
+    CACHE.eval = inf*ones(...   % Cache with the evaluations of each individual
         params.population*100,1);
+    CACHE.eval = inf*ones(...   % Cache with the scores of each individual
+        params.population*100,4);
 end
 
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
-[X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
+% [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % display('Press a key to continue...');
 % pause();
 
 %% Compute initial segmentation from motion
-[seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
+seg0 = [];
+% [seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
 
 %% Prepare training data depending on the chosen option and parameters
-DATATYPE = 'chalearn2014';
-NORMTYPE = 'none';
-COORDS = 'world';
-NAT = 3;
+NORMTYPE = 'none'; COORDS = 'world'; NAT = 3;
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
 [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
@@ -47,7 +49,8 @@ Xval_l = getGroupedGestures(X,Y,2);
 
 %% Compute median models from training/learning data
 % profile -memory on
-if ~params.phmm.hmm, [params.M,params.lmodel] = getModels(Xtrain_l,length(Xtrain_l)-1,params); end
+if strcmp(DATATYPE,'msr3d'), nModels = length(Xtrain_l); else nModels = length(Xtrain_l)-1; end
+if ~params.phmm.hmm, [params.M,params.lmodel] = getModels(Xtrain_l,nModels,params); end
 % profreport
 
 %% Generate development sequences
@@ -59,18 +62,18 @@ l = [];
 % First evaluation with euclidean distance
 % profile -memory on
 if ~params.phmm.hmm
-    [~,S_eu,~] = g(params,Xdev{2},Ydev{2});
+    [~,S_eu,bestScores,~] = g(params,Xdev{2},Ydev{2});
 else
-    [S_eu,~] = testHMM(params);
+    [S_eu,~,bestScores] = testHMM(params);
 end
 % profreport
 
 %% Genetic algorithm optimization
 % Evaluation function
 if strcmp(params.scoreMeasure,'overlap')
-    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Ydev{1},Xval_l(1:length(Xval_l)-1),Xdev{2},Ydev{2},params);    
+    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},params);    
 elseif strcmp(params.scoreMeasure,'levenshtein') || params.phmm.hmm
-    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:length(Xtrain_l)-1),Ydev{1},Xval_l(1:length(Xval_l)-1),Xdev{2},Ydev{2},params);
+    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},params);
 end
 
 % Display functions
