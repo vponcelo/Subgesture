@@ -6,6 +6,10 @@ if state.Generation < 1
     return;
 end
 
+global BESTIND; global MODEL;
+bestind.state = state; bestind.model = MODEL;
+BESTIND = [BESTIND bestind];
+
 x = sum(state.Population(:,2:end)' < inf)/2;
 
 if strcmp(params.scoreMeasure,'overlap');
@@ -29,8 +33,6 @@ if length(S) > 1
     if state.Generation > 0 && S(end) > S(end-1) %&& mod(currentGeneration,1) == 0
         global DATATYPE;
         global CACHE;
-        global MODEL;
-        global PERCENTDATA;
         global COORDS;
         global JOINTS;
         global NAT;
@@ -52,7 +54,7 @@ if length(S) > 1
             params.Baseline,'_',params.mType,'_',num2str(currentGeneration),'gens','_',...
             num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT));
         try        
-            save(strcat(filename,'.mat'),'S','CACHE','state','options','MODEL','-v7.3');
+            save(strcat(filename,'.mat'),'S','CACHE','state','BESTIND','options','-v7.3');
             hgsave(gcf,filename,'-v7.3');
         catch e
             display(e.message);

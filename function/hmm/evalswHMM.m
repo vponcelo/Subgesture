@@ -74,7 +74,7 @@ else
             scoresO{k}(j) = sum(GTtestkFr & detSeqLog(j,:))./sum(GTtestkFr | detSeqLog(j,:));     % overlap (Jaccard Index)
             if isnan(scoresO{k}(j)), scoresO{k}(j) = 0; end
             if model.classification
-                detSw = getActivations(detSeqLog(i,:), GTtestk, Y.seg);                
+                detSw = getActivations(detSeqLog(i,:), GTtestkFr, Y.seg, model.minOverlap);
                 scoresP{k}(j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
                 if isnan(scoresP{k}(j)), scoresP{k}(j) = 0; end
                 scoresR{k}(j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall

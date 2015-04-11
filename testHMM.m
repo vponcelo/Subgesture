@@ -71,8 +71,8 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
             if ~nSampGest
                 Xtrain = [Xtrain Xtrain_l{l}];
             elseif nSampGest > 0
-                r = randi([1,length(Xtrain_l{l})-nSampGest]);
-                Xtrain = [Xtrain Xtrain_l{l}(r:r+(nSampGest-1))];
+                r = randi([1,max(1,length(Xtrain_l{l})-nSampGest)]);
+                Xtrain = [Xtrain Xtrain_l{l}(r:min(length(Xtrain_l{l}),r+(nSampGest-1)))];
             end            
         end
         params.phmm.kD = length(Xtrain);

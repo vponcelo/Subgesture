@@ -1,5 +1,5 @@
 %% Global variables
-global DATATYPE;        % datasets: 'random' 'chalearn2013' 'chalearn2014' 'madX' 'msr3d'
+global DATATYPE;        % datasets: 'random' 'chalearn2013' 'chalearn2014' 'madX' 'msr3d' 'msract3d'
 global VISUALIZE;       % flag indicating whether or not to visualize the data groups using kmeans clustering
 global FRAMECOMPRESS;   % flag indicating whether or not to perform frame compression 
 global KMEANSDTWv;      % possible versions of the k-means DTW algorithm
@@ -7,7 +7,7 @@ global DISTANCES;       % possible distances: 'dtw' 'euclidean'
 global SAMPLING;        % sampling type
 global S;               % Scores from the GA training
 global CACHE;           % Cache for the GA
-% global GENRESULTS;      % Population at each generation and results
+global BESTIND;         % Best individual at each generation
 global PREDICTIONS;     % Predictions reached: [startFrame,endFrame,predLabel]
 global BASELINE;        % Baseline to be used in the GA
 global COORDS;          % type of coordinates
@@ -19,7 +19,7 @@ global MEDIANTYPE;      % Type of median models
 global JOINTS;          % Selected joints
 global NAT;             % Type of Descriptor
 
-DATATYPE = 'msr3d';
+DATATYPE = 'msract3d';
 NORMTYPE = 'neck';
 COORDS = 'pixel';
 VISUALIZE = false;
@@ -31,6 +31,7 @@ SAMPLING = {'random','labels','segments'};
 S = [];
 BASELINE = {'random','deriv','fixed'};
 STATE = [];
+BESTIND = [];
 OPTIONS = [];
 PERCENTDATA = 100;
 MEDIANTYPE = {'direct','modelSM1','modelSM2','allSM1','allSM2','DCSR'};

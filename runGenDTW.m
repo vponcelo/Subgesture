@@ -49,7 +49,7 @@ Xval_l = getGroupedGestures(X,Y,2);
 
 %% Compute median models from training/learning data
 % profile -memory on
-if strcmp(DATATYPE,'msr3d'), nModels = length(Xtrain_l); else nModels = length(Xtrain_l)-1; end
+if strcmp(DATATYPE,'msr3d') || strcmp(DATATYPE,'msract3d'), nModels = length(Xtrain_l); else nModels = length(Xtrain_l)-1; end
 if ~params.phmm.hmm, [params.M,params.lmodel] = getModels(Xtrain_l,nModels,params); end
 % profreport
 

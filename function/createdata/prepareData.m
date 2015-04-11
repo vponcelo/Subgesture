@@ -198,5 +198,12 @@ switch DATATYPE
         else
             load(strcat('data/MSR3D/MSRDA3D_1PCA.mat'));
         end
+    case 'msract3d'
+        display('Loading MSRACT3D data ...');
+        if ~exist(strcat('data/MSRACT3D/MSRACT3D_PCA.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MSRACT3D/MSRACT3D_PCA.mat'));
+        end        
 end
 display('Done!');
