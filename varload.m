@@ -6,6 +6,7 @@ global KMEANSDTWv;      % possible versions of the k-means DTW algorithm
 global DISTANCES;       % possible distances: 'dtw' 'euclidean'
 global SAMPLING;        % sampling type
 global S;               % Scores from the GA training
+global Stest;           % Scores of the GA optimization in test
 global CACHE;           % Cache for the GA
 global BESTIND;         % Best individual at each generation
 global PREDICTIONS;     % Predictions reached: [startFrame,endFrame,predLabel]
@@ -28,7 +29,7 @@ KMEANSDTWv = {'v1_0','v1_1','v1_2','v1_3','v2_0_0','v2_0_1','v2_1_0',...
     'v2_1_1','v2_2_0','v2_2_1','v2_3_0','v2_3_1'};
 DISTANCES = {'dtwCost','euclidean'};
 SAMPLING = {'random','labels','segments'};
-S = [];
+S = []; Stest = [];
 BASELINE = {'random','deriv','fixed'};
 STATE = [];
 BESTIND = [];

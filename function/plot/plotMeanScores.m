@@ -1,6 +1,6 @@
-function state = plotMeanScores(options,state,~,params,S_eu)
+function state = plotMeanScores(options,state,~,params,S_base,X,Y)
 % plot mean scores
-% S_eu: Mean score directly obtained from DTW with euclidean distance
+% S_base: Mean score directly obtained from DTW with euclidean distance
 
 if state.Generation < 1
     return;
@@ -11,7 +11,7 @@ currentGeneration = params.generations-options.Generations+state.Generation;
 display(sprintf('Generation %d\n\n',currentGeneration));
 
 x = 1:1:currentGeneration;
-S_eu = S_eu*ones(1,length(x));
+S_base = S_base*ones(1,length(x));
 
 if strcmp(params.scoreMeasure,'overlap');
     s = -state.Best(end);    
@@ -47,11 +47,17 @@ if length(S) ~= length(x)
 	S(length(x)+1:end) = [];
 end
 
-plot(x,S_eu,'k');
+plot(x,S_base,'k');
 hold on
 plot(x,S,'b');
+if ~isempty(Xtest),
+    global Stest; global MODEL
+    stest = testLastGen(state,MODEL,X,Y);
+    Stest = [Stest stest];
+    plot(x,Stest,'r');
+end    
 hold off
 title(sprintf('Mean scores throughout %d generations',currentGeneration));
-% legend('Euclidean','Model');
+% legend('Euclidean','optModel','Test');
 xlabel('Generation');
 ylabel('Mean scores');

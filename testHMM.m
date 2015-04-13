@@ -105,7 +105,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         % Training HMM models
         for l = 1:length(Xtrain_l)-1
             %% Obtain Training data for each gesture class            
-            Xtrain = Xtrain_l{l}(1:1+(nSampGest-1));
+            Xtrain = Xtrain_l{l}(1:min(length(Xtrain_l{l}),1+(nSampGest-1)));
 %             Ytrain = Ydev{1}.Lfr(Ydev{1}.Lfr==l); Xtrain = Xtrain_l{l}; % gesture cells
 %             Xtrain = Xdev{1}(Ydev{1}.Lfr==l,:);                         % gesture vector
             %% Discretize training data

@@ -62,9 +62,9 @@ l = [];
 % First evaluation with euclidean distance
 % profile -memory on
 if ~params.phmm.hmm
-    [~,S_eu,bestScores,~] = g(params,Xdev{2},Ydev{2});
+    [~,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
 else
-    [S_eu,~,bestScores] = testHMM(params);
+    [S_base,~,bestScores] = testHMM(params);
 end
 % profreport
 
@@ -77,7 +77,7 @@ elseif strcmp(params.scoreMeasure,'levenshtein') || params.phmm.hmm
 end
 
 % Display functions
-fPlotComp = @(options,state,flag)plotMeanScores(options,state,flag,params,S_eu);
+fPlotComp = @(options,state,flag)plotMeanScores(options,state,flag,params,S_base,Xtest,Ytest);
 fPlotSI = @(options,state,flag)plotScoresPopul(options,state,flag,params);
 fPlotSG = @(options,state,flag)plotScoreSegs(options,state,flag,params);
 
