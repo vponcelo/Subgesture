@@ -50,7 +50,7 @@ end
 plot(x,S_base,'k');
 hold on
 plot(x,S,'b');
-if ~isempty(Xtest),
+if ~isempty(X),
     global Stest; global MODEL
     stest = testLastGen(state,MODEL,X,Y);
     Stest = [Stest stest];
