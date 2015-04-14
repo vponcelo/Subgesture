@@ -75,12 +75,12 @@ else
             if isnan(scoresO{k}(j)), scoresO{k}(j) = 0; end
             if model.classification
                 % recognition from spotting
-                detSw = getActivations(detSeqLog(i,:), GTtestkFr, Y.seg, model);
+                detSw = getActivations(detSeqLog(j,:), GTtestkFr, Y.seg, model);
                 % only for MADX database (recognition)
                 if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
                         || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
                         || strcmp(DATATYPE,'mad5') 
-                    [~,~,R] = estimate_overlap_mad(GTtestk, detSeqLog(i,:), model.minOverlap);
+                    [~,~,R] = estimate_overlap_mad(GTtestk, detSeqLog(j,:), model.minOverlap);
                     scoresP{k}(j) = R.prec2;    % Precision
                     scoresR{k}(j) = R.rec2;     % Recall
                 else

@@ -1,7 +1,16 @@
 function s = testLastGen(state,model,X,Y)
 
-[Xdev,Ydev] = getDevSequences(X,Y,[],true,[],0);
-Xval = Xdev{2}; Yval = Ydev{2};    
+if iscell(X)
+    [Xdev,Ydev] = getDevSequences(X,Y,[],true,[],0);
+    Xval = Xdev{2}; Yval = Ydev{2};
+else
+    Y.Lfr = [];
+    for i = 1:length(Y.seg)-1
+        Y.Lfr = [Y.Lfr repmat(Y.L(i),1,Y.seg(i+1)-Y.seg(i))];
+        if i == length(Y.seg)-1, Y.Lfr = [Y.Lfr Y.Lfr(end)]; end
+    end
+    Xval = X; Yval = Y;
+end
 [~,bestPos] = min(state.Score);
 I = state.Population(bestPos,:);
 Iseg = round(I(2:end));
