@@ -191,19 +191,54 @@ switch DATATYPE
         else
             load(strcat('data/MAD/MAD_5.mat'));
         end
-    case 'msr3d'
-        display('Loading MSR3D data ...');
-        if ~exist(strcat('data/MSR3D/MSRDA3D_1PCA.mat'),'file'),
+    case 'msr3d1'
+        display('Loading MSR3D 1 data ...');
+        if ~exist(strcat('data/MSR3D/MSRDaily3D_PCA_1.mat'),'file'),
             error('prepareData:noDB','The selected data base does not exist');
         else
-            load(strcat('data/MSR3D/MSRDA3D_1PCA.mat'));
+            load(strcat('data/MSR3D/MSRDaily3D_PCA_1.mat'));
+        end
+    case 'msr3d2'
+        display('Loading MSR3D 2 data ...');
+        if ~exist(strcat('data/MSR3D/MSRDaily3D_PCA_2.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MSR3D/MSRDaily3D_PCA_2.mat'));
+        end
+    case 'msr3d3'
+        display('Loading MSR3D 3 data ...');
+        if ~exist(strcat('data/MSR3D/MSRDaily3D_PCA_3.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MSR3D/MSRDaily3D_PCA_3.mat'));
+        end
+    case 'msr3d4'
+        display('Loading MSR3D 4 data ...');
+        if ~exist(strcat('data/MSR3D/MSRDaily3D_PCA_4.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MSR3D/MSRDaily3D_PCA_4.mat'));
+        end
+    case 'msr3d5'
+        display('Loading MSR3D 5 data ...');
+        if ~exist(strcat('data/MSR3D/MSRDaily3D_PCA_5.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MSR3D/MSRDaily3D_PCA_5.mat'));
+        end
+    case 'msr3dS'
+        display('Loading MSR3D Split data ...');
+        if ~exist(strcat('data/MSR3D/MSRDaily3D_PCA_Split.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/MSR3D/MSRDaily3D_PCA_Split.mat'));
         end
     case 'msract3d'
         display('Loading MSRACT3D data ...');
-        if ~exist(strcat('data/MSRACT3D/MSRACT3D_PCA.mat'),'file'),
+        if ~exist(strcat('data/MSRACT3D/MSRACT3DPCA_HH_Split.mat'),'file'),
             error('prepareData:noDB','The selected data base does not exist');
         else
-            load(strcat('data/MSRACT3D/MSRACT3D_PCA.mat'));
-        end        
+            load(strcat('data/MSRACT3D/MSRACT3DPCA_HH_Split.mat'));
+        end
 end
 display('Done!');

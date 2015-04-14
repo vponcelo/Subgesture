@@ -43,8 +43,8 @@ NORMTYPE = 'none'; COORDS = 'world'; NAT = 3;
 % pause();
 
 %% Obtain all samples grouped (labeled) by gestures
-Xtrain_l = getGroupedGestures(X,Y,1);
-Xval_l = getGroupedGestures(X,Y,2);
+Xtrain_l = getGroupedGestures(X,Y,1); if sum(cellfun(@isempty,Xtrain_l)), error('Empty gesture classes'); end
+Xval_l = getGroupedGestures(X,Y,2); if sum(cellfun(@isempty,Xval_l)), error('Empty gesture classes'); end
 %Xtrain_l = getGroupedGestures(X,Y,0);
 
 %% Compute median models from training/learning data

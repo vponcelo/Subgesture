@@ -74,12 +74,22 @@ else
             scoresO{k}(j) = sum(GTtestkFr & detSeqLog(j,:))./sum(GTtestkFr | detSeqLog(j,:));     % overlap (Jaccard Index)
             if isnan(scoresO{k}(j)), scoresO{k}(j) = 0; end
             if model.classification
-                detSw = getActivations(detSeqLog(i,:), GTtestkFr, Y.seg, model.minOverlap);
-                scoresP{k}(j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
-                if isnan(scoresP{k}(j)), scoresP{k}(j) = 0; end
-                scoresR{k}(j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
-                if isnan(scoresR{k}(j)), scoresR{k}(j) = 0; end
+                % recognition from spotting
+                detSw = getActivations(detSeqLog(i,:), GTtestkFr, Y.seg, model);
+                % only for MADX database (recognition)
+                if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
+                        || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
+                        || strcmp(DATATYPE,'mad5') 
+                    [~,~,R] = estimate_overlap_mad(GTtestk, detSeqLog(i,:), model.minOverlap);
+                    scoresP{k}(j) = R.prec2;    % Precision
+                    scoresR{k}(j) = R.rec2;     % Recall
+                else
+                    scoresP{k}(j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
+                    scoresR{k}(j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
+                end
                 scoresA{k}(j) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
+                if isnan(scoresP{k}(j)), scoresP{k}(j) = 0; end
+                if isnan(scoresR{k}(j)), scoresR{k}(j) = 0; end
                 if isnan(scoresA{k}(j)), scoresA{k}(j) = 0; end
             end            
         end
