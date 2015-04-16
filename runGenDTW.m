@@ -3,18 +3,25 @@ function runGenDTW(measure,lastGen)
 close all
 addPath
 
-%% Generate global variables, cache and parameters
+%% Generate global variables for the GA, cache and parameters
 varload
 if nargin == 0
     measure = 'overlap';
     lastGen = 0;
 end
+switch params.score2optim
+    case 'o', if ~params.classification, params.score2optim = 1; else error('g:optErr','Spotting is not allowed in classification ...for now... (ODL!)'); end
+    case 'p', if ~params.classification, params.score2optim = 2; else params.score2optim = 1; end
+    case 'r', if ~params.classification, params.score2optim = 3; else params.score2optim = 2; end
+    case 'a', if ~params.classification, params.score2optim = 4; else params.score2optim = 3; end
+end
 params.scoreMeasure = measure;  % Score Measure: 'overlap' or 'levenshtein'
 if strcmp(measure,'overlap')
     CACHE.eval = zeros(...      % Cache with the evaluations of each individual
         params.population*100,1);
+    if params.classification, nsc = 3; else nsc = 4; end
     CACHE.scores = zeros(...      % Cache with the scores of each individual
-        params.population*100,4);
+        params.population*100,nsc);
 elseif strcmp(measure,'levenshtein')
     CACHE.eval = inf*ones(...   % Cache with the evaluations of each individual
         params.population*100,1);
@@ -49,7 +56,7 @@ Xval_l = getGroupedGestures(X,Y,2); if sum(cellfun(@isempty,Xval_l)), error('Emp
 
 %% Compute median models from training/learning data
 % profile -memory on
-if strcmp(DATATYPE,'msr3d') || strcmp(DATATYPE,'msract3d'), nModels = length(Xtrain_l); else nModels = length(Xtrain_l)-1; end
+if strcmp(DATATYPE,'msr3d') || strcmp(DATATYPE,'msract3d'), nModels = length(Xtrain_l); else nModels = length(Xtrain_l)-1; end  % -1 indicates don't consider iddle gesture
 if ~params.phmm.hmm, [params.M,params.lmodel] = getModels(Xtrain_l,nModels,params); end
 % profreport
 

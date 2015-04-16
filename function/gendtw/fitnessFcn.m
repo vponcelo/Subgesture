@@ -69,7 +69,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
 %     save('temp.mat','seg','X','XtrainT','Ytrain','params','k');
     if length(idx) > 1
         sc = zeros(1,length(k));
-        sc2 = zeros(length(k),1,4);
+        if params.classification, sc2 = zeros(length(k),3); else sc2 = zeros(length(k),4); end
         preds = cell(1,length(k));
         model = cell(1,length(k));
         % 1) Launch length(k) processes.
@@ -136,7 +136,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                     [~,Dval] = min(KT);
                 end
 %                 sc(i) = evaluateHMM(Dval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE);
-                [model{i},sc(i),sc2(i,:,:)] = evalswHMM(model{i}, Dval, Yval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE, model{i}.phmm.model)
+                [model{i},sc(i),sc2(i,:)] = evalswHMM(model{i}, Dval, Yval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE, model{i}.phmm.model)
                 preds{i} = 0;
             end
         end
@@ -219,7 +219,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             end
         end        
         CACHE.ind(idxC,:) = I2(1:idxEnd,:); 
-        s3 = s2(idx); s4 = sc2(idx,:,:);
+        s3 = s2(idx); s4 = sc2(idx,:);
         CACHE.eval(idxC) = s3(1:idxEnd);
         CACHE.scores(idxC,:) = s4(1:idxEnd,:);
         if remain
