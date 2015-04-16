@@ -276,9 +276,10 @@ else
                 if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
                         || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
                         || strcmp(DATATYPE,'mad5') 
-                    [~,~,R] = estimate_overlap_mad(GTtestk, detSeqLog(i,:), model.minOverlap);
+                    [~,~,R] = estimate_overlap_madold(GTtestk, detSeqLog(i,:), model.minOverlap);
                     precs(i) = R.prec2;  % Precision
                     recs(i) = R.rec2;    % Recall
+                    prexp(i,:,k)=detSeqLog(i,:);
                 else
                     precs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
                     recs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
@@ -325,10 +326,59 @@ else
             predLabels = []; lints = [];
         end
     end   
+          
+    %% here we generate a single prediction per frame    
+    actpred=-ones(1,size(prexp,2)); 
+    for i=1:size(prexp,2),       
+       cupred= [];
+       cues = reshape(prexp(:,i,:),size(prexp,1),size(prexp,3));
+       for j=1:k,
+           cupred(j)=cues(bestThsPos(j,model.score2optim),j);           
+       end
+       
+       ofin=find(cupred~=0);
+       if ~isempty(ofin),           
+           if length(ofin)==1
+               actpred(i)=ofin; % a single gesture activated
+           else
+%                actpred(i)=ofin(randi(length(ofin))); % random prediction               
+                ofinscores=bestScores(ofin,model.score2optim); % based on performance
+                [sa,sb]=max(ofinscores); actpred(i)=ofin(sb);
+           end
+       end       
+    end
+    nY=Y.Lfr;
+    nY(find(Y.Lfr>35))=-1;
+
+    predictions_=actpred;  %%% these are the real predictions
+    %%% if we want to plot predictions vs GT
+%     plot(actpred);
+%     gcf;hold on;
+%     plot(nY,':r');
     
-    %% save mean scores and learnt thresholds
-    score = mean(bestScores(:,model.score2optim));
-    bestScores = mean(bestScores);
+    % now estimate overlap, prec, rec, and f1 (no accuracy right now)
+    [~,~,R,ovlp] = estimate_overlap_mad(nY,actpred,model.minOverlap);
+    
+    bestScores(1) = R.prec; 
+    bestScores(2) = R.rec;    
+    bestScores(3) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
+    
+    
+    if model.score2optim==1,
+        score=ovlp;
+    elseif model.score2optim==2,
+        score=R.prec;
+    elseif model.score2optim==3,
+        score=R.rec;
+    else
+        score=(2.*R.rec.*R.prec)./(R.rec + R.prec);
+    end
+    clear prexp R ovlp ofinscores ofin cupred cues;
+    
+    %%%%% as before
+    %% save mean scores and learnt thresholds   
+%     score = mean(bestScores(:,model.score2optim));
+%     bestScores = mean(bestScores);
     model.bestThs = zeros(1,k);
     for i = 1:k
         model.bestThs(i) = thresholds{i}(bestThsPos(i,model.score2optim));
