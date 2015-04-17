@@ -111,36 +111,66 @@ if model.classification
             thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
         end
     end
-    scoresP = zeros(length(Y.L),model.nThreshs); scoresR = zeros(length(Y.L),model.nThreshs); scoresA = zeros(length(Y.L),model.nThreshs);
-    for s = 1:length(Y.L)
-        for i = 1:model.nThreshs
-            TP = 0; FP = 0; FN = 0; %TN = 0;  % NO SE CONSIDERAN LOS TN, DECIDIR SI LOS USAMOS SEGUN LO HABLADO
-            idxDet = Wc(s,:) < thresholds(:,i)';
-            if Y.L(s) < nm+1    % iddle gesture is ignored if it wasn't learnt
-                if idxDet(Y.L(s))
-                    TP = TP + 1;    % DECIDISION DE LA ASIGNACION DE VERDADEROS POSITIVOS
-                    if sum(idxDet) > 1, FP = FP + sum(idxDet)-1; end
-                else
-                    FN = FN + 1; FP = FP + sum(idxDet); 
-                end
+%     scoresP = zeros(length(Y.L),model.nThreshs); scoresR = zeros(length(Y.L),model.nThreshs); scoresA = zeros(length(Y.L),model.nThreshs);
+    %% accuracy estimation for single-label prediction 
+    scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
+    Yones=zeros(size(Y.L,2),nm);
+    for i=1:nm,
+        Yones(find(Y.L==i),i)=1;
+    end
+    for i = 1:model.nThreshs,
+        for s = 1:nm,            
+            idxDet = Wc(:,s)<thresholds(s,i);  
+            TP=sum(idxDet & Yones(:,s));            
+            TN=sum(~idxDet & ~Yones(:,s));                        
+            FP=sum(idxDet & ~Yones(:,s));
+            FN=sum(~idxDet & Yones(:,s));                        
+            
+            if model.accuracyglobal,
+                %%% global accuracy: 
+                scoresA(s,i)= (TN+TP)./(TP+TN+FP+FN); 
             else
-                FP = FP + sum(idxDet); 
+                %%% weighted accuracy (for imbalanced data sets). 
+                scoresA(s,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
             end
-%             if sum(~idxDet)       % DECISION PARA ASIGNACION DE VERDADEROS NEGATIVOS
-%                 if ~idxDet(Y.L(s))
-%                     TN = TN + sum(~idxDet)-1;
-%                 else
-%                     TN = TN + sum(~idxDet);
-%                 end
-%             end
+            
             scoresP(s,i) = TP./(TP+FP);
             scoresR(s,i) = TP./(TP+FN);
-            scoresA(s,i) = (TP)./(TP+FN+FP);    %%% (TP/(TP+FN) + TN/(TN+FP))/2   % METRICA PARA EL BALANCEO ENTRE CLASES
+            
             if isnan(scoresP(s,i)), scoresP(s,i) = 0; end
             if isnan(scoresR(s,i)), scoresR(s,i) = 0; end
             if isnan(scoresA(s,i)), scoresA(s,i) = 0; end
         end
     end
+%     for s = 1:length(Y.L)
+%         for i = 1:model.nThreshs
+%             TP = 0; FP = 0; FN = 0; TN = 0;  % NO SE CONSIDERAN LOS TN, DECIDIR SI LOS USAMOS SEGUN LO HABLADO
+%             idxDet = Wc(s,:) < thresholds(:,i)';
+%             if Y.L(s) < nm+1    % iddle gesture is ignored if it wasn't learnt
+%                 if idxDet(Y.L(s))
+%                     TP = TP + 1;    % DECIDISION DE LA ASIGNACION DE VERDADEROS POSITIVOS
+%                     if sum(idxDet) > 1, FP = FP + sum(idxDet)-1; end
+%                 else
+%                     FN = FN + 1; FP = FP + sum(idxDet); 
+%                 end
+%             else
+%                 FP = FP + sum(idxDet); 
+%             end
+% %             if sum(~idxDet)       % DECISION PARA ASIGNACION DE VERDADEROS NEGATIVOS
+% %                 if ~idxDet(Y.L(s))
+% %                     TN = TN + sum(~idxDet)-1;
+% %                 else
+% %                     TN = TN + sum(~idxDet);
+% %                 end
+% %             end
+%             scoresP(s,i) = TP./(TP+FP);
+%             scoresR(s,i) = TP./(TP+FN);
+%             scoresA(s,i) = (TP)./(TP+FN+FP);    %%% (TP/(TP+FN) + TN/(TN+FP))/2   % METRICA PARA EL BALANCEO ENTRE CLASES
+%             if isnan(scoresP(s,i)), scoresP(s,i) = 0; end
+%             if isnan(scoresR(s,i)), scoresR(s,i) = 0; end
+%             if isnan(scoresA(s,i)), scoresA(s,i) = 0; end
+%         end
+%     end
     [bestScores(1),bestThsPos(1)] = max(mean(scoresP));
     [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
     [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
