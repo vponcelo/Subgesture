@@ -116,7 +116,7 @@ if model.classification
     scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
     Yones=zeros(size(Y.L,2),nm);
     for i=1:nm,
-        Yones(find(Y.L==i),i)=1;
+        Yones(Y.L==i,i)=1;
     end
     for i = 1:model.nThreshs,
         for s = 1:nm,            
@@ -189,10 +189,9 @@ else
     end
         
     %% Learn threshold cost parameters for each gesture
-    thresholds = cell(1,nm);
-    scoresO = cell(1,nm); 
-    scoresP = cell(1,nm); scoresR = cell(1,nm); scoresA = cell(1,nm);
-    bestScores = zeros(nm,4); bestThsPos = zeros(nm,1);
+    thresholds = zeros(nm,model.nThreshs); 
+    scoresO = cell(1,nm); scoresP = cell(1,nm); scoresR = cell(1,nm); scoresA = cell(1,nm);
+    bestScores = zeros(nm,4); bestThsPos = zeros(nm,1); 
     for k = 1:nm
         GTtestk = Y.L == k; GTtestkFr = Y.Lfr == k;
         if ~any(GTtestkFr)
@@ -207,7 +206,6 @@ else
                     W = single(dtwc(X,model.M{k}{model.k},false,Inf,model.D,model.KM{k},model.KT));
                 end
             end
-            TOL_THRESH = 0.001;
         else
             if ~iscell(model.M{k})
                 if ~model.pdtw,
@@ -234,35 +232,25 @@ else
                 if ~isempty(model.M{k}{model.k})
                     W = single(dtwc(X,model.M{k}{model.k},false));
                 end
-            end        
-            TOL_THRESH = 0.01;
+            end
         end
         if ~isempty(model.bestThs)
-            model.nThreshs = 1; nThs = 1;
+            model.nThreshs = 1; model.nThreshs = 1;
+            thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;            
         else
             if ~isempty(W)
-                nThs = model.nThreshs;
-                interv = (max(W(end,2:end))-min(W(end,2:end)))/nThs;
+                interv = (max(W(end,2:end))-min(W(end,2:end)))/model.nThreshs;
                 tMin = min(W(end,2:end));
-                if interv == 0, interv = tMin*2/nThs; end
-                while interv < TOL_THRESH && nThs > 1
-                    nThs = round(nThs/2); interv = interv*2;
-                    display(sprintf('Decreasing number of test thresholds to %d',nThs));
-                end
+                thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
             end
         end
-        ovs = zeros(1,nThs); precs = zeros(1,nThs); recs = zeros(1,nThs); accs = zeros(1,nThs);
-        detSeqLog = false(nThs,length(GTtestkFr));
+        ovs = zeros(1,model.nThreshs); precs = zeros(1,model.nThreshs); recs = zeros(1,model.nThreshs); accs = zeros(1,model.nThreshs);
+        detSeqLog = false(model.nThreshs,length(GTtestkFr));
         if ~isempty(W)
 %             detSeqLog3 = false(1,length(X));
-            idxEval = [];
-            if isempty(model.bestThs)
-                swthreshs = tMin + ((1:model.nThreshs)-1)*interv;
-            else
-                swthreshs = model.bestThs;
-            end
-            for i = 1:nThs                
-                idx = find(W(end,:) <= swthreshs(i));
+            idxEval = [];            
+            for i = 1:model.nThreshs                
+                idx = find(W(end,:) <= thresholds(k,i));
                 idx(ismember(idx,idxEval)) = [];
                 %% Old, much slower
 %                 tic;
@@ -315,15 +303,13 @@ else
                     recs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
                 end
                 accs(i) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
-                if isnan(ovs(i)), ovs(i) = 0; end                
+                if isnan(ovs(i)), ovs(i) = 0; end
                 if isnan(recs(i)), recs(i) = 0; end
                 if isnan(precs(i)), precs(i) = 0; end
                 if isnan(accs(i)), accs(i) = 0; end
             end
         end
-        thresholds{k} = swthreshs;
-        scoresO{k} = ovs;
-        scoresP{k} = precs; scoresR{k} = recs; scoresA{k} = accs;            
+        scoresO{k} = ovs; scoresP{k} = precs; scoresR{k} = recs; scoresA{k} = accs;            
         [bestScores(k,1),bestThsPos(k,1)] = max(scoresO{k});
         [bestScores(k,2),bestThsPos(k,2)] = max(scoresP{k});
         [bestScores(k,3),bestThsPos(k,3)] = max(scoresR{k});
@@ -355,67 +341,63 @@ else
             end
             predLabels = []; lints = [];
         end
-    end   
+    end
           
-    %% here we generate a single prediction per frame    
-    actpred=-ones(1,size(prexp,2)); 
-    for i=1:size(prexp,2),       
-       cupred= [];
-       cues = reshape(prexp(:,i,:),size(prexp,1),size(prexp,3));
-       for j=1:k,
-           cupred(j)=cues(bestThsPos(j,model.score2optim),j);           
-       end
-       
-       ofin=find(cupred~=0);
-       if ~isempty(ofin),           
-           if length(ofin)==1
-               actpred(i)=ofin; % a single gesture activated
-           else
-%                actpred(i)=ofin(randi(length(ofin))); % random prediction               
-                ofinscores=bestScores(ofin,model.score2optim); % based on performance
-                [sa,sb]=max(ofinscores); actpred(i)=ofin(sb);
+    %% here we generate a single prediction per frame
+    if strcmp(model.scoreMeasure,'overlap')
+        predictions=-ones(1,size(prexp,2)); 
+        for i=1:size(prexp,2),       
+           cupred= zeros(1,k);
+           cues = reshape(prexp(:,i,:),size(prexp,1),size(prexp,3));
+           for j=1:k,
+               cupred(j)=cues(bestThsPos(j,1),j);           
            end
-       end       
-    end
-    nY=Y.Lfr;
-    nY(find(Y.Lfr>35))=-1;
 
-    predictions_=actpred;  %%% these are the real predictions
-    %%% if we want to plot predictions vs GT
-%     plot(actpred);
-%     gcf;hold on;
-%     plot(nY,':r');
+           ofin=find(cupred~=0);
+           if ~isempty(ofin),           
+               if length(ofin)==1
+                   predictions(i)=ofin; % a single gesture activated
+               else
+    %                predictions(i)=ofin(randi(length(ofin))); % random prediction               
+                    ofinscores=bestScores(ofin,model.score2optim); % based on performance
+                    [~,sb]=max(ofinscores); predictions(i)=ofin(sb);
+               end
+           end       
+        end
+        nY=Y.Lfr;
+%         nY(Y.Lfr>35)=-1;        %%% IDDLE GESTURE FOR MAD DATASET IS NOT CONSIDERED
+        
+        clear bestScores;
+        
+        %%% if we want to plot predictions vs GT
+        % plot(predictions);
+        % gcf;hold on;
+        % plot(nY,':r');
+
+        % now estimate overlap, prec, rec, and f1 (no accuracy right now)
+        [~,~,R,ovlp] = estimate_overlap_mad(nY,predictions,model.minOverlap);
+        
+        bestScores(1) = ovlp;  bestScores(2) = R.prec; bestScores(3) = R.rec; bestScores(4) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
+
+        switch model.score2optim
+            case 1, score=ovlp;
+            case 2, score=R.prec;
+            case 3, score=R.rec;
+            case 4, score=(2.*R.rec.*R.prec)./(R.rec + R.prec);
+        end
+        clear prexp R ovlp ofinscores ofin cupred cues;
+
+        %%%%% as before
+        %% save mean scores and learnt thresholds   
+    %     score = mean(bestScores(:,model.score2optim));
+    %     bestScores = mean(bestScores);
+        model.bestThs = zeros(1,k);
+        for i = 1:k
+            model.bestThs(i) = thresholds(i,bestThsPos(i,1));
+        end
     
-    % now estimate overlap, prec, rec, and f1 (no accuracy right now)
-    [~,~,R,ovlp] = estimate_overlap_mad(nY,actpred,model.minOverlap);
-    
-    bestScores(1) = R.prec; 
-    bestScores(2) = R.rec;    
-    bestScores(3) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
-    
-    
-    if model.score2optim==1,
-        score=ovlp;
-    elseif model.score2optim==2,
-        score=R.prec;
-    elseif model.score2optim==3,
-        score=R.rec;
-    else
-        score=(2.*R.rec.*R.prec)./(R.rec + R.prec);
-    end
-    clear prexp R ovlp ofinscores ofin cupred cues;
-    
-    %%%%% as before
-    %% save mean scores and learnt thresholds   
-%     score = mean(bestScores(:,model.score2optim));
-%     bestScores = mean(bestScores);
-    model.bestThs = zeros(1,k);
-    for i = 1:k
-        model.bestThs(i) = thresholds{i}(bestThsPos(i,model.score2optim));
-    end
-    
-    if ~isempty(predictions), plotmistakes(predictions,Y,1); display(e.message); end
-    if strcmp(model.scoreMeasure,'levenshtein') && ~isempty(predictions)
+    elseif strcmp(model.scoreMeasure,'levenshtein') && ~isempty(predictions)
+        if ~isempty(predictions), plotmistakes(predictions,Y,1); end
         for i = 1:size(X,1)
             l = find(predictions(1:3:end) == i);
             while ~isempty(l) && ~any(ismember(l,lints))
