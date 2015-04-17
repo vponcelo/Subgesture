@@ -100,8 +100,8 @@ if model.classification
         end
     end
     if ~isempty(model.bestThs)
-        model.nThreshs = 1;
         thresholds(:,1) = model.bestThs;
+        if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
     else
         thresholds = zeros(nm,model.nThreshs);
         for k = 1:nm     % save dtw costs of each non-iddle sequence vs its model
@@ -175,7 +175,7 @@ if model.classification
     [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
     [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
     score = bestScores(model.score2optim);
-    model.bestThs = zeros(1,k);
+    model.bestThs = zeros(1,k); model.nThreshs = 1;
     for i = 1:k
         model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
     end
@@ -188,10 +188,16 @@ else
         model.KT = getUpdatedCosts(X,model.SM);
     end
         
-    %% Learn threshold cost parameters for each gesture
-    thresholds = zeros(nm,model.nThreshs); 
+    %% Learn threshold cost parameters for each gesture    
+    if isempty(model.bestThs), 
+        thresholds = zeros(nm,model.nThreshs);
+    else
+        thresholds(:,1) = model.bestThs; 
+        if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
+    end
     scoresO = cell(1,nm); scoresP = cell(1,nm); scoresR = cell(1,nm); scoresA = cell(1,nm);
-    bestScores = zeros(nm,4); bestThsPos = zeros(nm,1); 
+    prexp = false(model.nThreshs,length(Y.Lfr),nm);
+    bestScores = zeros(nm,4); bestThsPos = zeros(nm,1);
     for k = 1:nm
         GTtestk = Y.L == k; GTtestkFr = Y.Lfr == k;
         if ~any(GTtestkFr)
@@ -234,18 +240,12 @@ else
                 end
             end
         end
-        if ~isempty(model.bestThs)
-            model.nThreshs = 1; model.nThreshs = 1;
-            thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;            
-        else
-            if ~isempty(W)
-                interv = (max(W(end,2:end))-min(W(end,2:end)))/model.nThreshs;
-                tMin = min(W(end,2:end));
-                thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
-            end
+        if isempty(model.bestThs)
+            interv = (max(W(end,2:end))-min(W(end,2:end)))/model.nThreshs; 
+            tMin = min(W(end,2:end));
+            thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
         end
         ovs = zeros(1,model.nThreshs); precs = zeros(1,model.nThreshs); recs = zeros(1,model.nThreshs); accs = zeros(1,model.nThreshs);
-        detSeqLog = false(model.nThreshs,length(GTtestkFr));
         if ~isempty(W)
 %             detSeqLog3 = false(1,length(X));
             idxEval = [];            
@@ -274,30 +274,29 @@ else
 %                 end
 %                 toc;
                 %% This is much faster
-                detSeqLog(i,:) = getDetectedSeqs_c(W,int32(idx),detSeqLog(i,:),model.maxWlen);
+                prexp(i,:,k) = getDetectedSeqs_c(W,int32(idx),prexp(i,:,k),model.maxWlen);
                 %%
                 % to compensate for the offset of deep-features
                 if strcmp(DATATYPE,'chalearn2014') && NAT == 3
-                    detSeqLog(i,:)=([detSeqLog(i,6:end),0,0,0,0,0]);    % correct offset of deep features
+                    prexp(i,:,k)=([prexp(i,6:end,k),0,0,0,0,0]);    % correct offset of deep features
                 end
-                idxEval = unique([idxEval idx(detSeqLog(i,idx-1)==true)]);
+                idxEval = unique([idxEval idx(prexp(i,idx-1,k)==true)]);
 %                 if ~isequal(detSeqLog3,detSeqLog)
 %                     find(detSeqLog3~=detSeqLog)
 %                     if sum(detSeqLog3~=detSeqLog) > 1
 %                         error();
 %                     end
 %                 end
-                ovs(i) = sum(GTtestkFr & detSeqLog(i,:))./sum(GTtestkFr | detSeqLog(i,:));     % overlap (Jaccard Index)
+                ovs(i) = sum(GTtestkFr & prexp(i,:,k))./sum(GTtestkFr | prexp(i,:,k));     % overlap (Jaccard Index)
                 % recognition from spotting
-                detSw = getActivations(detSeqLog(i,:), GTtestkFr, Y.seg, model);
+                detSw = getActivations(prexp(i,:,k), GTtestkFr, Y.seg, model);
                 % only for MADX database (recognition)
                 if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
                         || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
                         || strcmp(DATATYPE,'mad5') 
-                    [~,~,R] = estimate_overlap_madold(GTtestk, detSeqLog(i,:), model.minOverlap);
+                    [~,~,R] = estimate_overlap_madold(GTtestk, prexp(i,:,k), model.minOverlap);
                     precs(i) = R.prec2;  % Precision
                     recs(i) = R.rec2;    % Recall
-                    prexp(i,:,k)=detSeqLog(i,:);
                 else
                     precs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
                     recs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
@@ -321,7 +320,7 @@ else
     
         if strcmp(model.scoreMeasure,'levenshtein')
             [~,pos] = max(scoresO{k});
-            idx = find(detSeqLog(pos,:) == 1);
+            idx = find(prexp(pos,:,k) == 1);
             if ~isempty(idx)
                 inF = idx(1);
                 for i = 2:length(idx)
@@ -364,8 +363,6 @@ else
                end
            end       
         end
-        nY=Y.Lfr;
-%         nY(Y.Lfr>35)=-1;        %%% IDDLE GESTURE FOR MAD DATASET IS NOT CONSIDERED
         
         clear bestScores;
         
@@ -375,7 +372,7 @@ else
         % plot(nY,':r');
 
         % now estimate overlap, prec, rec, and f1 (no accuracy right now)
-        [~,~,R,ovlp] = estimate_overlap_mad(nY,predictions,model.minOverlap);
+        [~,~,R,ovlp] = estimate_overlap_mad(Y.Lfr,predictions,model.minOverlap);
         
         bestScores(1) = ovlp;  bestScores(2) = R.prec; bestScores(3) = R.rec; bestScores(4) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
 
@@ -391,7 +388,7 @@ else
         %% save mean scores and learnt thresholds   
     %     score = mean(bestScores(:,model.score2optim));
     %     bestScores = mean(bestScores);
-        model.bestThs = zeros(1,k);
+        model.bestThs = zeros(1,k); model.nThreshs = 1;
         for i = 1:k
             model.bestThs(i) = thresholds(i,bestThsPos(i,1));
         end
