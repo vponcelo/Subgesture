@@ -20,7 +20,7 @@ global MEDIANTYPE;      % Type of median models
 global JOINTS;          % Selected joints
 global NAT;             % Type of Descriptor
 
-DATATYPE = 'mad1';
+DATATYPE = 'msr3d1';
 NORMTYPE = 'neck';
 COORDS = 'pixel';
 VISUALIZE = false;
@@ -49,7 +49,7 @@ secsBatch = 60;         % reference seconds for the test sequence
 nSampGest = 0;        % Number of samples per gesture for the test sequence
 
 %% classification type parameter
-params.classification = false;       % flag that indicates to perform global category classification
+params.classification = true;       % flag that indicates to perform global category classification
 
 %% parameters hmm
 params.phmm.folds = 1;                 % k for k-fold Cross Validation
@@ -93,10 +93,11 @@ params.usemax_l = true;        % use the median or the max-length gesture as ref
 params.resize = true;          % Use resizing instead of mean DTW alignment
 params.gmm = false;            % Use gmm instead of other non-probabilistic representations
 params.pdtw = false;           % flag for indicating the use of gmms in feature modeling
-params.score2optim = 'o';        % Score to optimize --> Overlap: 'o', Precision: 'p', Recall: 'r', Accuracy: 'a'
+params.score2optim = 'a';        % Score to optimize --> Overlap: 'o', Precision: 'p', Recall: 'r', Accuracy: 'a'
 params.minOverlap = 0.5;        % Minimum overlap to detect the label
 params.sw = 0;              % sliding window (frame seq length): '0' means the whole sequence
 params.k = 0;               % current k to evaluate for the K-Nearest Neighbour DTW models
+params.accuracyglobal = 0;  % if this flag is on, then the standard/global accuracy is used, otherwise a class-imbalance measure
 CACHE.pos = int32(1);       % Index positions
 % GENRESULTS.P = cell(1,params.generations);
 % GENRESULTS.eval = cell(1,params.generations);
