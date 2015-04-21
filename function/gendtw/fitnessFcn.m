@@ -29,7 +29,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
 
     global CACHE;
     global PREDICTIONS;
-    global MODEL;
+    global BESTIND;
     
     [I2,idxUniques] = unique(I,'rows');    
     idxRepsI = ~ismember(1:size(I,1),idxUniques);
@@ -190,7 +190,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     % Save current best model
     [bestScore,best] = max(s2(idx));
     if bestScore > max(CACHE.eval)
-        MODEL = model{best};
+        BESTIND.model = model{best};
     end
     %%%% if want to plot the performance of the best solution so far
 %     plotmistakes(predictions{best}, Yval,0)
@@ -490,8 +490,8 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 %             toc;
         end
     else
-        model.phmm.hmmTR = cell(1,length(Xtrain_l)); 
-        model.phmm.hmmE = cell(1,length(Xtrain_l));
+        model.phmm.hmmTR_f = cell(1,length(Xtrain_l)); 
+        model.phmm.hmmE_f = cell(1,length(Xtrain_l));
         model.phmm.model = cell(1,length(Xtrain_l));
         
         display('Discretizing training sequence and learning the HMM Models for each gesture');
@@ -510,7 +510,7 @@ function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
             end
             %% train HMM for this gesture
             if ~params.phmm.pmtk
-                [model.phmm.hmmTR{l}, model.phmm.hmmE{l}] = learnHMM(params.phmm.states,Dtrain,params.phmm.it);
+                [model.phmm.hmmTR_f{l}, model.phmm.hmmE_f{l}] = learnHMM(params.phmm.states,Dtrain,params.phmm.it);
                 model.phmm.model{l} = [];
             else
                 [model.phmm.model{l},~] = hmmFit(Dtrain', params.phmm.states, params.phmm.varType);

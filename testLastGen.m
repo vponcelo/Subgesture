@@ -49,5 +49,5 @@ else
         KT = getUpdatedCosts(Xval,model.SM);
         [~,Dval] = min(KT);
     end
-    [~,s] = evalswHMM(model, Dval, Yval, model.phmm.hmmTR, model.phmm.hmmE, model.phmm.model);
+    [~,s] = evalswHMM(model, Dval, Yval);
 end

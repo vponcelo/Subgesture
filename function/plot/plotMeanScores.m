@@ -51,8 +51,8 @@ plot(x,S_base,'k');
 hold on
 plot(x,S,'b');
 if ~isempty(X),
-    global Stest; global MODEL
-    stest = testLastGen(state,MODEL,X,Y);
+    global Stest; global BESTIND;
+    stest = testLastGen(state,BESTIND.model,X,Y);
     Stest = [Stest stest];
     plot(x,Stest,'r');
 end    
