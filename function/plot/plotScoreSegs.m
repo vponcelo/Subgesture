@@ -27,10 +27,10 @@ title(sprintf('Mean scores throughout %d generations',currentGeneration));
 xlabel('Number of segments');
 ylabel('Mean scores');
 
-global S;
+global S; global Stest;
 
-if length(S) > 1
-    if state.Generation > 0 && S(end) > S(end-1) %&& mod(currentGeneration,1) == 0
+if length(S) > 1 && length(Stest) > 1
+    if state.Generation == 2 || S(end) > S(end-1) || Stest(end) > Stest(end-1)
         global DATATYPE;
         global CACHE;
         global COORDS;
