@@ -13,6 +13,13 @@ else
     nSampGest = 10;
 end
 
+switch params.score2optim
+    case 'o', if ~params.classification, params.score2optim = 1; else error('g:optErr','Spotting is not allowed in classification ...for now... (ODL!)'); end
+    case 'p', if ~params.classification, params.score2optim = 2; else params.score2optim = 1; end
+    case 'r', if ~params.classification, params.score2optim = 3; else params.score2optim = 2; end
+    case 'a', if ~params.classification, params.score2optim = 4; else params.score2optim = 3; end
+end
+
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
@@ -241,7 +248,8 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     Dval=Dval(seg);
                     Yval.Lfr=Yval.Lfr(seg);
                 end
-                [model,score,bestScores] = evalswHMM(params, Dval, Yval, params.phmm.hmmTR_f{k},params.phmm.hmmE_f{k},params.phmm.model{k});
+                [model,score,bestScores] = evalswHMM(params, Dval, Yval);
+                model.SM = params.phmm.SM{k};
                 return;
             end
             params.phmm.pTrain_f{k}{l} = zeros(length(params.phmm.Dtrain{k}),length(params.phmm.Dtrain{k}{l}));

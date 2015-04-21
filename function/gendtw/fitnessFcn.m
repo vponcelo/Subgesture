@@ -107,7 +107,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             display('Optimizing model parameters over validation ...');
             if ~params.phmm.hmm                
 %                 model{i}.sw = 0;           % Evaluate the whole validation sequence 
-                [model{i},sc(i),~,preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
+                [model{i},sc(i),sc2(i,:),preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
             else
                 if ~strcmp(params.phmm.clustType,'none')
                     display('Discretizing validation sequence in Key Poses ...');
@@ -136,7 +136,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                     [~,Dval] = min(KT);
                 end
 %                 sc(i) = evaluateHMM(Dval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE);
-                [model{i},sc(i),sc2(i,:)] = evalswHMM(model{i}, Dval, Yval, model{i}.phmm.hmmTR, model{i}.phmm.hmmE, model{i}.phmm.model)
+                [model{i},sc(i),sc2(i,:)] = evalswHMM(model{i}, Dval, Yval)
                 preds{i} = 0;
             end
         end
@@ -182,8 +182,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                 KT = getUpdatedCosts(Xval,model{1}.SM);
                 [~,Dval] = min(KT);
             end
-%             s2 = evalswHMM(Dval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE);
-            [model{1},s2,sc2] = evalswHMM(model{1}, Dval, Yval, model{1}.phmm.hmmTR, model{1}.phmm.hmmE, model{1}.phmm.model);
+            [model{1},s2,sc2] = evalswHMM(model{1}, Dval, Yval);
             predictions{1} = 0;
         end
     end

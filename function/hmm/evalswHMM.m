@@ -1,7 +1,11 @@
-function [model,score,bestScores] = evalswHMM(model, X, Y, TRANS, EMIS, modelpmtk)
+function [model,score,bestScores] = evalswHMM(model, X, Y)
 % function that returns the score and learn parameters from the evaluation
 
 global DATATYPE; global NAT;
+
+if iscell(model.phmm.model), modelpmtk = model.phmm.model{1}; else modelpmtk = model.phmm.model; end
+if iscell(model.phmm.hmmTR_f), TRANS = model.phmm.hmmTR_f{1}; else TRANS = model.phmm.hmmTR_f; end
+if iscell(model.phmm.hmmE_f), EMIS = model.phmm.hmmE_f{1}; else EMIS = model.phmm.hmmE_f; end
 
 sws = 10:10:60;     % size of gesture sequences is usually < 60
 if iscell(X)
@@ -22,7 +26,7 @@ else    % X evaluate whole seq.
     
     %% number of tresholds and interval to test threshs
     if ~isempty(model.bestThs)
-        model.nThreshs = 1;
+        if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
         thresholds(:,1) = model.bestThs;
     else
         thresholds = zeros(nm,model.nThreshs);
@@ -31,10 +35,12 @@ else    % X evaluate whole seq.
             thresholds(k,:) = (1:model.nThreshs)*interv;
         end
     end
+    predictions = []; scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
     
-    %% begin evaluation
-    display(sprintf('Evaluating sequence of %d frames in %d gesture classes ...',length(Y.Lfr),nm));    
-    if model.classification        
+    %% begin evaluation    
+    if model.classification
+        display(sprintf('Classifying %d sequences in %d gesture classes ...',length(Y.L),nm));
+        %% Estimate scores & predictions from probabilities of generating X from each model
         probs = zeros(length(Y.L),nm);
         for s = 1:length(Y.L)      % save each sequence vs model dtw costs
             if s < length(Y.L)
@@ -43,36 +49,34 @@ else    % X evaluate whole seq.
                 seq = X(Y.seg(s):Y.seg(s+1));
             end
             for k = 1:nm
-                probs(s,k) = evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k});                
+                probs(s,k) = evaluateSequences([], seq, TRANS, EMIS, modelpmtk);
             end
         end
         
-        scoresP = zeros(length(Y.L),model.nThreshs); scoresR = zeros(length(Y.L),model.nThreshs); scoresA = zeros(length(Y.L),model.nThreshs);
-        for s = 1:length(Y.L)
-            for i = 1:model.nThreshs
-                % Se usan las 
-                TP = 0; FP = 0; FN = 0; %TN = 0;    % NO SE CONSIDERAN LOS TN, DECIDIR SI LOS USAMOS SEGUN LO HABLADO
-                idxDet = probs(s,:) < thresholds(:,i)';
-                if Y.L(s) < nm+1    % iddle gesture is ignored if it wasn't learnt
-                    if idxDet(Y.L(s))
-                        TP = TP + 1;    % DECIDISION DE LA ASIGNACION DE VERDADEROS POSITIVOS
-                        if sum(idxDet) > 1, FP = FP + sum(idxDet)-1; end
-                    else
-                        FN = FN + 1; FP = FP + sum(idxDet); 
-                    end
+        %% accuracy estimation for single-label prediction 
+        Yones=zeros(size(Y.L,2),nm);
+        for i=1:nm,
+            Yones(Y.L==i,i)=1;
+        end
+        for i = 1:model.nThreshs,
+            for s = 1:nm,
+                idxDet = probs(:,s) >= thresholds(s,i);  
+                TP=sum(idxDet & Yones(:,s));            
+                TN=sum(~idxDet & ~Yones(:,s));
+                FP=sum(idxDet & ~Yones(:,s));
+                FN=sum(~idxDet & Yones(:,s));
+
+                if model.accuracyglobal,
+                    %%% global accuracy:
+                    scoresA(s,i)= (TN+TP)./(TP+TN+FP+FN);
                 else
-                    FP = FP + sum(idxDet);
+                    %%% weighted accuracy (for imbalanced data sets). 
+                    scoresA(s,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
                 end
-%                 if sum(~idxDet)
-%                     if ~idxDet(Y.L(s)) 
-%                         TN = TN + sum(~idxDet)-1;
-%                     else
-%                         TN = TN + sum(~idxDet); 
-%                     end
-%                 end
+
                 scoresP(s,i) = TP./(TP+FP);
                 scoresR(s,i) = TP./(TP+FN);
-                scoresA(s,i) = (TP)./(TP+FN+FP);    %%% (TP/(TP+FN) + TN/(TN+FP))/2   % Métrica para el balanceo entre clases
+
                 if isnan(scoresP(s,i)), scoresP(s,i) = 0; end
                 if isnan(scoresR(s,i)), scoresR(s,i) = 0; end
                 if isnan(scoresA(s,i)), scoresA(s,i) = 0; end
@@ -82,56 +86,51 @@ else    % X evaluate whole seq.
         [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
         [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
         score = bestScores(model.score2optim);
-        model.bestThs = zeros(1,k);
+        model.bestThs = zeros(1,k); model.nThreshs = 1;
         for i = 1:k
             model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
         end
     else
+        %% Spotting
+        display(sprintf('Spotting the %d classes in a sequence of %d frames ...',nm,length(Y.Lfr)));
+        global DATATYPE; global NAT;
         scoresO = zeros(nm,model.nThreshs); scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
-        thresholds = zeros(nm,model.nThreshs);        
-            
-        display(sprintf('Evaluating sequence of %d frames in %d gesture classes ...',length(Y.Lfr),nm));
-        % test each gesture
+        prexp = false(model.nThreshs,length(Y.Lfr),nm);
+        bestScores = zeros(nm,4); bestThsPos = zeros(nm,4);
+        %% Estimate scores & predictions from probabilities of generating X from each model
         for k = 1:nm
-            GTtestk = Y.L == k;
-            GTtestkFr = Y.Lfr == k;
-            %% compute scores from evaluated probabilities and thresholds
-            detSeqLog = zeros(model.nThreshs,length(GTtestkFr));
-            for j = 1:model.nThreshs
-                if isempty(model.bestThs)
-                    thresholds(k,j) = tMin + (j-1)*interv;
-                else
-                    thresholds(k,j) = model.bestThs(k);
-                end
+            GTtestk = Y.L == k; GTtestkFr = Y.Lfr == k;            
+            for j = 1:model.nThreshs                
                 for i = 1:length(sws)
                     probs = [];
                     for st = 1:sws(i):size(X,2)-1
                         seq = X(:,st:min(st+sws(i),size(X,2)));
-                        probs = [probs evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k})];
+                        probs = [probs evaluateSequences([], seq, TRANS, EMIS, modelpmtk)];
                     end
-                    det = probs > thresholds(k,j);
+                    det = probs >= thresholds(k,j);
                     det = reshape(repmat(det,sws(i),1),[1 size(det,2)*sws(i)]);  % replicate to obtain detected frames
                     if length(det) > size(X,2)
                         det(size(X,2)+1:end) = [];                               % remove offset sw
                     else
                         det = [det repmat(det(end),size(X,2)-length(det))];      % add offset sw
                     end
-                    detSeqLog(j,:) = detSeqLog(j,:) | det;
+                    prexp(j,:,k) = prexp(j,:,k) | det;
                 end
                 if strcmp(DATATYPE,'chalearn2014') && NAT == 3
-                    detSeqLog(j,:) =([detSeqLog(j,6:end),0,0,0,0,0]);       % correct offset of deep features
+                    prexp(j,:,k) =([prexp(j,6:end,k),0,0,0,0,0]);       % correct offset of deep features
                 end
-                scoresO(k,j) = sum(GTtestkFr & detSeqLog(j,:))./sum(GTtestkFr | detSeqLog(j,:));     % overlap (Jaccard Index)
+                %% compute scores from evaluated probabilities and thresholds
+                scoresO(k,j) = sum(GTtestkFr & prexp(j,:,k))./sum(GTtestkFr | prexp(j,:,k));     % overlap (Jaccard Index)
                 if model.classification
                     % recognition from spotting
-                    detSw = getActivations(detSeqLog(j,:), GTtestkFr, Y.seg, model);
+                    detSw = getActivations(prexp(j,:,k), GTtestkFr, Y.seg, model);
                     % only for MADX database (recognition)
                     if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
                             || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
                             || strcmp(DATATYPE,'mad5') 
-                        [~,~,R] = estimate_overlap_mad(GTtestk, detSeqLog(j,:), model.minOverlap);
-                        scoresP(k,j) = R.prec2;    % Precision
-                        scoresR(k,j) = R.rec2;     % Recall
+                        [~,~,R] = estimate_overlap_mad(GTtestk, prexp(j,:,k), model.minOverlap);
+                        scoresP(k,j) = R.prec;    % Precision
+                        scoresR(k,j) = R.rec;     % Recall
                     else
                         scoresP(k,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
                         scoresR(k,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
@@ -143,9 +142,21 @@ else    % X evaluate whole seq.
                     if isnan(scoresA(k,j)), scoresA(k,j) = 0; end
                 end
             end
+            [bestScores(k,1),bestThsPos(k,1)] = max(scoresO(k,:));
+            [bestScores(k,2),bestThsPos(k,2)] = max(scoresP(k,:));
+            [bestScores(k,3),bestThsPos(k,3)] = max(scoresR(k,:));
+            [bestScores(k,4),bestThsPos(k,4)] = max(scoresA(k,:));            
+            %% save mean scores and learnt thresholds (allow multi-label assignment per frame)  
+%            score = mean(bestScores(:,model.score2optim));
+%            bestScores = mean(bestScores);
+            
+%            gtF = Y.Lfr;
+%            save('predictions.mat','predictionsF','gtF');
+%            imagesc(confusionmat(predictionsF,gtF)); colormap(hot);
+        
             if strcmp(model.scoreMeasure,'levenshtein')
-                [~,pos] = max(scoresO(k,:));
-                idx = find(detSeqLog(pos,:) == 1);
+                [~,pos] = max(scoresO{k});
+                idx = find(prexp(pos,:,k) == 1);
                 if ~isempty(idx)
                     inF = idx(1);
                     for i = 2:length(idx)
@@ -166,20 +177,56 @@ else    % X evaluate whole seq.
                 predLabels = []; lints = [];
             end
         end
-        bestScores = zeros(k,4); bestThsPos = zeros(k,4);
-        model.bestThs = zeros(1,k);
-        for i = 1:k
-            [bestScores(i,1),bestThsPos(i,1)] = max(scoresO(i,:));
-            [bestScores(i,2),bestThsPos(i,2)] = max(scoresP(i,:));
-            [bestScores(i,3),bestThsPos(i,3)] = max(scoresR(i,:));
-            [bestScores(i,4),bestThsPos(i,4)] = max(scoresA(i,:));
-            model.bestThs = thresholds(i,bestThsPos(i,model.score2optim));
-        end
-        score = mean(bestScores(:,model.score2optim));
-        bestScores = mean(bestScores);
         
-        if ~isempty(predictions), plotmistakes(predictions,Y,1); display(e.message); end
-        if strcmp(model.scoreMeasure,'levenshtein') && ~isempty(predictions)
+        if strcmp(model.scoreMeasure,'overlap')            
+            %% here we generate a single prediction per frame
+            predictions=-ones(1,size(prexp,2)); 
+            for i=1:size(prexp,2),       
+               cupred= zeros(1,k);
+               cues = reshape(prexp(:,i,:),size(prexp,1),size(prexp,3));
+               for j=1:k,
+                   cupred(j)=cues(bestThsPos(j,1),j);           
+               end
+
+               ofin=find(cupred~=0);
+               if ~isempty(ofin),           
+                   if length(ofin)==1
+                       predictions(i)=ofin; % a single gesture activated
+                   else
+        %                predictions(i)=ofin(randi(length(ofin))); % random prediction               
+                        ofinscores=bestScores(ofin,model.score2optim); % based on performance
+                        [~,sb]=max(ofinscores); predictions(i)=ofin(sb);
+                   end
+               end       
+            end
+
+            clear bestScores;
+
+            %%% if we want to plot predictions vs GT
+            % plot(predictions);
+            % gcf;hold on;
+            % plot(nY,':r');
+
+            % now estimate overlap, prec, rec, and f1 (no accuracy right now)
+            [~,~,R,ovlp] = estimate_overlap_mad(Y.Lfr,predictions,model.minOverlap);
+
+            % Assign Overlap, Precision, Recall, F1-score
+            bestScores(1) = ovlp;  bestScores(2) = R.prec; bestScores(3) = R.rec; bestScores(4) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
+            for j=1:length(bestScores), if isnan(bestScores(j)), bestScores(j)=0; end; end
+            
+            switch model.score2optim
+                case 1, score=ovlp;
+                case 2, score=R.prec;
+                case 3, score=R.rec;
+                case 4, score=(2.*R.rec.*R.prec)./(R.rec + R.prec);
+            end
+            clear prexp R ovlp ofinscores ofin cupred cues;
+            if isempty(model.bestThs)
+                model.nThreshs = 1; model.bestThs = zeros(1,k);
+                for i = 1:k, model.bestThs(i) = thresholds(i,bestThsPos(i,model.score2optim)); end
+            end
+        elseif strcmp(model.scoreMeasure,'levenshtein') && ~isempty(predictions)
+            if ~isempty(predictions), plotmistakes(predictions,Y,1); end
             for i = 1:size(X,1)
                 l = find(predictions(1:3:end) == i);
                 while ~isempty(l) && ~any(ismember(l,lints))

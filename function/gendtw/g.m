@@ -42,13 +42,19 @@ X=Xc(seg,:);
 Y.Lfr=Yc.Lfr(seg);
 Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
 
-predictions = [];
-
-%% begin evaluation
-display(sprintf('Evaluating sequence of %d frames in %d gesture classes ...',length(Y.Lfr),nm));
-
+ %% number of tresholds and interval to test threshs
+if isempty(model.bestThs), 
+    thresholds = zeros(nm,model.nThreshs);
+else
+    thresholds(:,1) = model.bestThs; 
+    if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
+end
+predictions = []; scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
+    
+% begin evaluation
 %% classification
 if model.classification
+    display(sprintf('Classifying %d sequences in %d gesture classes ...',length(Y.L),nm));
     Wc = zeros(length(Y.L),nm);
     for s = 1:length(Y.L)      % save each sequence vs model dtw costs
         if s < length(Y.L)
@@ -99,11 +105,7 @@ if model.classification
             Wc(s,k) = W(end,end);        
         end
     end
-    if ~isempty(model.bestThs)
-        thresholds(:,1) = model.bestThs;
-        if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
-    else
-        thresholds = zeros(nm,model.nThreshs);
+    if isempty(model.bestThs)
         for k = 1:nm     % save dtw costs of each non-iddle sequence vs its model
             interv = (max(Wc(Y.L==k,k))-min(Wc(Y.L==k,k)))/model.nThreshs;
             tMin = min(Wc(Y.L==k,k));
@@ -113,14 +115,13 @@ if model.classification
     end
 %     scoresP = zeros(length(Y.L),model.nThreshs); scoresR = zeros(length(Y.L),model.nThreshs); scoresA = zeros(length(Y.L),model.nThreshs);
     %% accuracy estimation for single-label prediction 
-    scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
     Yones=zeros(size(Y.L,2),nm);
     for i=1:nm,
         Yones(Y.L==i,i)=1;
     end
     for i = 1:model.nThreshs,
         for s = 1:nm,            
-            idxDet = Wc(:,s)<thresholds(s,i);  
+            idxDet = Wc(:,s)<=thresholds(s,i);  
             TP=sum(idxDet & Yones(:,s));            
             TN=sum(~idxDet & ~Yones(:,s));                        
             FP=sum(idxDet & ~Yones(:,s));
@@ -181,23 +182,17 @@ if model.classification
     end
 else
     %% Spotting
+    display(sprintf('Spotting the %d classes in a sequence of %d frames ...',nm,length(Y.Lfr)));
     global DATATYPE; global NAT;
     %% Compute the costs of the test sequence in terms of SM 
     if ~isempty(model.D)
         display('Computing the costs of the test sequence in terms of SM ...');
         model.KT = getUpdatedCosts(X,model.SM);
     end
-        
-    %% Learn threshold cost parameters for each gesture    
-    if isempty(model.bestThs), 
-        thresholds = zeros(nm,model.nThreshs);
-    else
-        thresholds(:,1) = model.bestThs; 
-        if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
-    end
-    scoresO = cell(1,nm); scoresP = cell(1,nm); scoresR = cell(1,nm); scoresA = cell(1,nm);
+    scoresO = zeros(nm,model.nThreshs);
     prexp = false(model.nThreshs,length(Y.Lfr),nm);
-    bestScores = zeros(nm,4); bestThsPos = zeros(nm,1);
+    bestScores = zeros(nm,4); bestThsPos = zeros(nm,4);
+    %% Estimate scores & predictions of aligning X to each model
     for k = 1:nm
         GTtestk = Y.L == k; GTtestkFr = Y.Lfr == k;
         if ~any(GTtestkFr)
@@ -245,7 +240,6 @@ else
             tMin = min(W(end,2:end));
             thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
         end
-        ovs = zeros(1,model.nThreshs); precs = zeros(1,model.nThreshs); recs = zeros(1,model.nThreshs); accs = zeros(1,model.nThreshs);
         if ~isempty(W)
 %             detSeqLog3 = false(1,length(X));
             idxEval = [];            
@@ -287,7 +281,7 @@ else
 %                         error();
 %                     end
 %                 end
-                ovs(i) = sum(GTtestkFr & prexp(i,:,k))./sum(GTtestkFr | prexp(i,:,k));     % overlap (Jaccard Index)
+                scoresO(k,i) = sum(GTtestkFr & prexp(i,:,k))./sum(GTtestkFr | prexp(i,:,k));     % overlap (Jaccard Index)
                 % recognition from spotting
                 detSw = getActivations(prexp(i,:,k), GTtestkFr, Y.seg, model);
                 % only for MADX database (recognition)
@@ -295,24 +289,26 @@ else
                         || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
                         || strcmp(DATATYPE,'mad5') 
                     [~,~,R] = estimate_overlap_madold(GTtestk, prexp(i,:,k), model.minOverlap);
-                    precs(i) = R.prec2;  % Precision
-                    recs(i) = R.rec2;    % Recall
+                    scoresP(k,i) = R.prec;  % Precision
+                    scoresR(k,i) = R.rec;    % Recall
                 else
-                    precs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
-                    recs(i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
+                    scoresP(k,i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
+                    scoresR(k,i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
                 end
-                accs(i) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
-                if isnan(ovs(i)), ovs(i) = 0; end
-                if isnan(recs(i)), recs(i) = 0; end
-                if isnan(precs(i)), precs(i) = 0; end
-                if isnan(accs(i)), accs(i) = 0; end
+                scoresA(k,i) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
+                if isnan(scoresO(k,i)), scoresO(k,i) = 0; end                
+                if isnan(scoresP(k,i)), scoresP(k,i) = 0; end
+                if isnan(scoresR(k,i)), scoresR(k,i) = 0; end
+                if isnan(scoresA(k,i)), scoresA(k,i) = 0; end
             end
         end
-        scoresO{k} = ovs; scoresP{k} = precs; scoresR{k} = recs; scoresA{k} = accs;            
-        [bestScores(k,1),bestThsPos(k,1)] = max(scoresO{k});
-        [bestScores(k,2),bestThsPos(k,2)] = max(scoresP{k});
-        [bestScores(k,3),bestThsPos(k,3)] = max(scoresR{k});
-        [bestScores(k,4),bestThsPos(k,4)] = max(scoresA{k});        
+        [bestScores(k,1),bestThsPos(k,1)] = max(scoresO(k,:));
+        [bestScores(k,2),bestThsPos(k,2)] = max(scoresP(k,:));
+        [bestScores(k,3),bestThsPos(k,3)] = max(scoresR(k,:));
+        [bestScores(k,4),bestThsPos(k,4)] = max(scoresA(k,:));        
+        %% save mean scores and learnt thresholds (allow multi-label assignment per frame)
+%         score = mean(bestScores(:,model.score2optim));
+%         bestScores = mean(bestScores);
         
 %         gtF = Y.Lfr;
 %         save('predictions.mat','predictionsF','gtF');
@@ -341,9 +337,9 @@ else
             predLabels = []; lints = [];
         end
     end
-          
-    %% here we generate a single prediction per frame
+    
     if strcmp(model.scoreMeasure,'overlap')
+        %% here we generate a single prediction per frame
         predictions=-ones(1,size(prexp,2)); 
         for i=1:size(prexp,2),       
            cupred= zeros(1,k);
@@ -374,8 +370,10 @@ else
         % now estimate overlap, prec, rec, and f1 (no accuracy right now)
         [~,~,R,ovlp] = estimate_overlap_mad(Y.Lfr,predictions,model.minOverlap);
         
+        % Assign Overlap, Precision, Recall, F1-score
         bestScores(1) = ovlp;  bestScores(2) = R.prec; bestScores(3) = R.rec; bestScores(4) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
-
+        for j=1:length(bestScores), if isnan(bestScores(j)), bestScores(j)=0; end; end
+        
         switch model.score2optim
             case 1, score=ovlp;
             case 2, score=R.prec;
@@ -383,16 +381,10 @@ else
             case 4, score=(2.*R.rec.*R.prec)./(R.rec + R.prec);
         end
         clear prexp R ovlp ofinscores ofin cupred cues;
-
-        %%%%% as before
-        %% save mean scores and learnt thresholds   
-    %     score = mean(bestScores(:,model.score2optim));
-    %     bestScores = mean(bestScores);
-        model.bestThs = zeros(1,k); model.nThreshs = 1;
-        for i = 1:k
-            model.bestThs(i) = thresholds(i,bestThsPos(i,1));
+        if isempty(model.bestThs)
+            model.bestThs = zeros(1,k); model.nThreshs = 1; 
+            for i = 1:k, model.bestThs(i) = thresholds(i,bestThsPos(i,model.score2optim)); end
         end
-    
     elseif strcmp(model.scoreMeasure,'levenshtein') && ~isempty(predictions)
         if ~isempty(predictions), plotmistakes(predictions,Y,1); end
         for i = 1:size(X,1)

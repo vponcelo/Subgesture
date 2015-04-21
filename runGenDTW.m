@@ -70,8 +70,12 @@ l = [];
 % profile -memory on
 if ~params.phmm.hmm
     [~,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
+    % [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
 else
     [S_base,~,bestScores] = testHMM(params);
+    % KT = getUpdatedCosts(Xtest,model.SM);
+    % [~,Dtest] = min(KT);
+    % [~,score,bestScores] = evalswHMM(model, Dtest, Ytest);
 end
 % profreport
 
