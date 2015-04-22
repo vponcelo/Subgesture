@@ -121,6 +121,10 @@ if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.genera
     else
         error('runGenDTW:stateErr','State was not stored in previous execution');
     end
+    if isempty(BESTIND)
+        error('runGenDTW:bestIndErr','BestIndividual was not stored in previous execution');
+    end
+    bestind.model = []; bestind.state = []; BESTIND = [BESTIND bestind];
     problem.nvars=size(state.Population,2);
     options = gaoptimset(options,'PopulationSize',params.population);
     options = gaoptimset(options,'Vectorized',params.vectorized);

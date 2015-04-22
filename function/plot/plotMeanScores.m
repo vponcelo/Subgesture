@@ -29,7 +29,11 @@ elseif strcmp(params.scoreMeasure,'levenshtein');
     end
 end
 
-global S;
+global S; global BESTIND
+if isempty(BESTIND(end).model)
+    error('plotMeanScores:bestModelErr','Best model was not assigned');
+end
+BESTIND(end).state = state;
 
 try 
     s_end = S(end);
@@ -41,7 +45,7 @@ end
 
 S = [S s];
 
-if length(S) ~= length(x)
+if length(S) > length(x)
     warning('Score length is must be equal to the x axis in order to plot');
     S(length(x)) = S(end);
 	S(length(x)+1:end) = [];
@@ -51,9 +55,24 @@ plot(x,S_base,'k');
 hold on
 plot(x,S,'b');
 if ~isempty(X),
-    global Stest; global BESTIND;
-    stest = testLastGen(state,BESTIND.model,X,Y);
+    global Stest;
+    if length(BESTIND) > 1
+        if ~isequal(BESTIND(end).model,BESTIND(end-1).model)
+            stest = testLastGen(state,BESTIND(end).model,X,Y);
+        else
+            stest = Stest(end);
+        end
+    else
+        stest = testLastGen(state,BESTIND(end).model,X,Y);
+    end    
     Stest = [Stest stest];
+    if length(Stest) > length(x)
+        Stest(length(x)) = Stest(end);
+        Stest(length(x)+1:end) = [];
+    else
+        Stest = Stest(end)*ones(1,length(x));
+    end
+        
     plot(x,Stest,'r');
 end    
 hold off

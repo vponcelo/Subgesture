@@ -27,9 +27,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     %      phmm: struct with the required parameters to learn hmm    
     %   state: GA state of the current generation
 
-    global CACHE;
-    global PREDICTIONS;
-    global BESTIND;
+    global CACHE; global PREDICTIONS; global BESTIND;
     
     [I2,idxUniques] = unique(I,'rows');    
     idxRepsI = ~ismember(1:size(I,1),idxUniques);
@@ -187,11 +185,6 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
         end
     end
 
-    % Save current best model
-    [bestScore,best] = max(s2(idx));
-    if bestScore > max(CACHE.eval)
-        BESTIND.model = model{best};
-    end
     %%%% if want to plot the performance of the best solution so far
 %     plotmistakes(predictions{best}, Yval,0)
 
@@ -241,7 +234,17 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
         end
         CACHE.pos = posEnd + 1;
     end
-        
+    
+    % Save current best model    
+    [bestScore,best] = max(s2(idx));
+    if bestScore >= max(CACHE.eval)
+        BESTIND(end).model = model{best};
+    else
+        if isempty(BESTIND(end).model)
+            BESTIND(end).model = BESTIND(end-1).model;
+        end
+    end
+    
     % Return all final scores    
     s(idxUniques) = s2;
     s(idxRepsI) = s2(posRepsI2);

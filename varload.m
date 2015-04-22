@@ -29,10 +29,10 @@ KMEANSDTWv = {'v1_0','v1_1','v1_2','v1_3','v2_0_0','v2_0_1','v2_1_0',...
     'v2_1_1','v2_2_0','v2_2_1','v2_3_0','v2_3_1'};
 DISTANCES = {'dtwCost','euclidean'};
 SAMPLING = {'random','labels','segments'};
-S = []; Stest = [];
+S = []; Stest = [0 0];
 BASELINE = {'random','deriv','fixed'};
 STATE = [];
-BESTIND = [];
+BESTIND.model = []; BESTIND.state = [];
 OPTIONS = [];
 PERCENTDATA = 100;
 MEDIANTYPE = {'direct','modelSM1','modelSM2','allSM1','allSM2','DCSR'};
