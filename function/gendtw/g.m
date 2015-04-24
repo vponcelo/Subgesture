@@ -238,6 +238,7 @@ else
         if isempty(model.bestThs)
             interv = (max(W(end,2:end))-min(W(end,2:end)))/model.nThreshs; 
             tMin = min(W(end,2:end));
+            if interv == 0, interv = tMin*2/model.nThreshs; end
             thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
         end
         if ~isempty(W)
