@@ -7,17 +7,57 @@ if iscell(model.phmm.model), modelpmtk = model.phmm.model{1}; else modelpmtk = m
 if iscell(model.phmm.hmmTR_f), TRANS = model.phmm.hmmTR_f{1}; else TRANS = model.phmm.hmmTR_f; end
 if iscell(model.phmm.hmmE_f), EMIS = model.phmm.hmmE_f{1}; else EMIS = model.phmm.hmmE_f; end
 
-sws = 10:10:60;     % size of gesture sequences is usually < 60
 if iscell(X)
-    probs = zeros(length(sws),length(X));
-    seqs = cell(1,length(X));
-    for i = 1:length(sws)
-        for j = 1:length(seqs)
-            seqs{j} = X{j}(:,1:min(sws(i),size(X{j},2)));
+    probs = zeros(1,length(X));
+    for i = 1:length(X)
+        for j = 1:length(TRANS)
+            probs(i,j) = evaluateSequences([],X{i}, TRANS{j}, EMIS{j}, modelpmtk{j});
         end
-        probs(i,:) = evaluateSequences([],seqs, TRANS, EMIS, modelpmtk);
     end
-    score = max(probs); model = [];
+    %% number of tresholds and interval to test threshs
+    
+    scoresP = zeros(length(TRANS),model.nThreshs);
+    scoresR = zeros(length(TRANS),model.nThreshs);
+    scoresA = zeros(length(TRANS),model.nThreshs);
+    
+    thresholds = zeros(length(TRANS),model.nThreshs);
+    
+    %% accuracy estimation for single-label prediction
+    Yones = ones(1,length(X))';
+    for j = 1:length(TRANS)
+        interv = (max(probs(:,j))-min(probs(:,j)))/model.nThreshs;
+        tMin = min(probs(:,j));
+        if interv == 0, interv = tMin*2/model.nThreshs; end
+        thresholds(j,:) = tMin + ((1:model.nThreshs)-1)*interv;
+        for i = 1:model.nThreshs,
+            idxDet = probs(:,j) >= thresholds(j,i);
+            TP=sum(idxDet & Yones);            
+            TN=sum(~idxDet & ~Yones);
+            FP=sum(idxDet & ~Yones);
+            FN=sum(~idxDet & Yones);
+
+            if model.accuracyglobal,
+                %%% global accuracy:
+                scoresA(j,i)= (TN+TP)./(TP+TN+FP+FN);
+            else
+                %%% weighted accuracy (for imbalanced data sets). 
+                scoresA(j,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
+            end
+
+            scoresP(j,i) = TP./(TP+FP);
+            scoresR(j,i) = TP./(TP+FN);
+
+            if isnan(scoresP(j,i)), scoresP(j,i) = 0; end
+            if isnan(scoresR(j,i)), scoresR(j,i) = 0; end
+            if isnan(scoresA(j,i)), scoresA(j,i) = 0; end
+        end
+    end
+    % This gives the best
+    k = zeros(1,3); bestScores = zeros(1,3);
+    [bestScores(1),k(1)] = max(mean(scoresP));
+    [bestScores(2),k(2)] = max(mean(scoresR));
+    [bestScores(3),k(3)] = max(mean(scoresA));
+    score = k(model.score2optim);
 else    % X evaluate whole seq.
     if model.phmm.pmtk, nm=length(modelpmtk); else nm=length(TRANS); end
     
@@ -25,15 +65,11 @@ else    % X evaluate whole seq.
     predictions = [];
     
     %% number of tresholds and interval to test threshs
-    if ~isempty(model.bestThs)
-        if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
-        thresholds(:,1) = model.bestThs;
-    else
+    if isempty(model.bestThs), 
         thresholds = zeros(nm,model.nThreshs);
-        interv = 1./model.nThreshs;
-        for k = 1:nm     % save dtw costs of each non-iddle sequence vs its model
-            thresholds(k,:) = (1:model.nThreshs)*interv;
-        end
+    else
+        thresholds(:,1) = model.bestThs; 
+        if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
     end
     predictions = []; scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
     
@@ -48,11 +84,18 @@ else    % X evaluate whole seq.
             else
                 seq = X(Y.seg(s):Y.seg(s+1));
             end
-            for k = 1:nm
-                probs(s,k) = evaluateSequences([], seq, TRANS, EMIS, modelpmtk);
+            for k = 1:length(TRANS)
+                probs(s,k) = evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k});
             end
         end
-        
+        if isempty(model.bestThs)
+            for k = 1:nm     % save dtw costs of each non-iddle sequence vs its model
+                interv = (max(probs(Y.L==k,k))-min(probs(Y.L==k,k)))/model.nThreshs;
+                tMin = min(probs(Y.L==k,k));
+                if interv == 0, interv = tMin*2/model.nThreshs; end
+                thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
+            end
+        end
         %% accuracy estimation for single-label prediction 
         Yones=zeros(size(Y.L,2),nm);
         for i=1:nm,
@@ -86,28 +129,48 @@ else    % X evaluate whole seq.
         [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
         [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
         score = bestScores(model.score2optim);
-        model.bestThs = zeros(1,k); model.nThreshs = 1;
-        for i = 1:k
+        model.bestThs = zeros(1,nm); model.nThreshs = 1;
+        for i = 1:nm
             model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
         end
     else
         %% Spotting
         display(sprintf('Spotting the %d classes in a sequence of %d frames ...',nm,length(Y.Lfr)));
         global DATATYPE; global NAT;
+        sws = 10:10:60;     % size of gesture sequences is usually < 60
+        
+        %% number of tresholds and interval to test threshs
+        if ~isempty(model.bestThs)
+            if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
+            thresholds(:,1) = model.bestThs;
+        else
+            thresholds = zeros(nm,model.nThreshs);
+        end
+        
         scoresO = zeros(nm,model.nThreshs); scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
         prexp = false(model.nThreshs,length(Y.Lfr),nm);
         bestScores = zeros(nm,4); bestThsPos = zeros(nm,4);
         %% Estimate scores & predictions from probabilities of generating X from each model
         for k = 1:nm
-            GTtestk = Y.L == k; GTtestkFr = Y.Lfr == k;            
-            for j = 1:model.nThreshs                
+            GTtestk = Y.L == k; GTtestkFr = Y.Lfr == k;
+            probs = cell(1,length(sws));
+            for i = 1:length(sws)
+                probs{i} = zeros(1,round(size(X,2)/sws(i)));
+                for st = 1:sws(i):size(X,2)-1
+                    seq = X(:,st:min(st+sws(i),size(X,2)));
+                    probs{i}(round(st/sws(i))+1) = evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k});
+                end
+                if round(st/sws(i))+1 < length(probs{i}), probs{i}(round(st/sws(i))+2:end) = []; end
+            end
+            if isempty(model.bestThs)
+                maxim = max(cellfun(@max,probs)); minim = min(cellfun(@min,probs));
+                interv = (maxim-minim)/model.nThreshs; tMin = minim;
+                if interv == 0, interv = tMin*2/model.nThreshs; end
+                thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
+            end
+            for j = 1:model.nThreshs
                 for i = 1:length(sws)
-                    probs = [];
-                    for st = 1:sws(i):size(X,2)-1
-                        seq = X(:,st:min(st+sws(i),size(X,2)));
-                        probs = [probs evaluateSequences([], seq, TRANS, EMIS, modelpmtk)];
-                    end
-                    det = probs >= thresholds(k,j);
+                    det = probs{i} >= thresholds(k,j);
                     det = reshape(repmat(det,sws(i),1),[1 size(det,2)*sws(i)]);  % replicate to obtain detected frames
                     if length(det) > size(X,2)
                         det(size(X,2)+1:end) = [];                               % remove offset sw
@@ -116,31 +179,31 @@ else    % X evaluate whole seq.
                     end
                     prexp(j,:,k) = prexp(j,:,k) | det;
                 end
-                if strcmp(DATATYPE,'chalearn2014') && NAT == 3
-                    prexp(j,:,k) =([prexp(j,6:end,k),0,0,0,0,0]);       % correct offset of deep features
+            end
+            if strcmp(DATATYPE,'chalearn2014') && NAT == 3
+                prexp(j,:,k) =([prexp(j,6:end,k),0,0,0,0,0]);       % correct offset of deep features
+            end                
+            %% compute scores from evaluated probabilities and thresholds
+            scoresO(k,j) = sum(GTtestkFr & prexp(j,:,k))./sum(GTtestkFr | prexp(j,:,k));     % overlap (Jaccard Index)
+            if model.classification
+                % recognition from spotting
+                detSw = getActivations(prexp(j,:,k), GTtestkFr, Y.seg, model);
+                % only for MADX database (recognition)
+                if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
+                        || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
+                        || strcmp(DATATYPE,'mad5') 
+                    [~,~,R] = estimate_overlap_mad(GTtestk, prexp(j,:,k), model.minOverlap);
+                    scoresP(k,j) = R.prec;    % Precision
+                    scoresR(k,j) = R.rec;     % Recall
+                else
+                    scoresP(k,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
+                    scoresR(k,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
                 end
-                %% compute scores from evaluated probabilities and thresholds
-                scoresO(k,j) = sum(GTtestkFr & prexp(j,:,k))./sum(GTtestkFr | prexp(j,:,k));     % overlap (Jaccard Index)
-                if model.classification
-                    % recognition from spotting
-                    detSw = getActivations(prexp(j,:,k), GTtestkFr, Y.seg, model);
-                    % only for MADX database (recognition)
-                    if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
-                            || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
-                            || strcmp(DATATYPE,'mad5') 
-                        [~,~,R] = estimate_overlap_mad(GTtestk, prexp(j,:,k), model.minOverlap);
-                        scoresP(k,j) = R.prec;    % Precision
-                        scoresR(k,j) = R.rec;     % Recall
-                    else
-                        scoresP(k,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
-                        scoresR(k,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
-                    end
-                    scoresA(k,j) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
-                    if isnan(scoresO(k,j)), scoresO(k,j) = 0; end
-                    if isnan(scoresP(k,j)), scoresP(k,j) = 0; end
-                    if isnan(scoresR(k,j)), scoresR(k,j) = 0; end
-                    if isnan(scoresA(k,j)), scoresA(k,j) = 0; end
-                end
+                scoresA(k,j) = sum(GTtestk & detSw | ~GTtestk & ~detSw)./sum(GTtestk & detSw | GTtestk & ~detSw | ~GTtestk & detSw | ~GTtestk & ~detSw);   % Accuracy
+                if isnan(scoresO(k,j)), scoresO(k,j) = 0; end
+                if isnan(scoresP(k,j)), scoresP(k,j) = 0; end
+                if isnan(scoresR(k,j)), scoresR(k,j) = 0; end
+                if isnan(scoresA(k,j)), scoresA(k,j) = 0; end
             end
             [bestScores(k,1),bestThsPos(k,1)] = max(scoresO(k,:));
             [bestScores(k,2),bestThsPos(k,2)] = max(scoresP(k,:));

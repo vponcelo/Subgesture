@@ -105,7 +105,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             display('Optimizing model parameters over validation ...');
             if ~params.phmm.hmm                
 %                 model{i}.sw = 0;           % Evaluate the whole validation sequence 
-                [model{i},sc(i),sc2(i,:),preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
+                [model{i},sc(i),~,preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
             else
                 if ~strcmp(params.phmm.clustType,'none')
                     display('Discretizing validation sequence in Key Poses ...');
@@ -239,12 +239,10 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     [bestScore,best] = max(s2(idx));
     if bestScore >= max(CACHE.eval)
         BESTIND(end).model = model{best};
-    else
-        if isempty(BESTIND(end).model)
-            BESTIND(end).model = BESTIND(end-1).model;
-        end
     end
-    
+    if isempty(BESTIND(end).model)
+        BESTIND(end).model = BESTIND(end-1).model;
+    end
     % Return all final scores    
     s(idxUniques) = s2;
     s(idxRepsI) = s2(posRepsI2);

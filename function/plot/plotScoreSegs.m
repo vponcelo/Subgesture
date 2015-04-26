@@ -53,6 +53,9 @@ if length(S) > 1
         end
     end
 end
+if isempty(BESTIND(end).model)
+    error('plotMeanScores:bestModelErr','Best model was not assigned');
+end
 if currentGeneration < params.generations
     bestind.model = []; bestind.state = []; BESTIND = [BESTIND bestind];
 end

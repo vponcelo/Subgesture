@@ -29,7 +29,7 @@ elseif strcmp(params.scoreMeasure,'levenshtein');
     end
 end
 
-global S; global BESTIND
+global S; global BESTIND;
 if isempty(BESTIND(end).model)
     error('plotMeanScores:bestModelErr','Best model was not assigned');
 end
@@ -69,7 +69,7 @@ if ~isempty(X),
     if length(Stest) > length(x)
         Stest(length(x)) = Stest(end);
         Stest(length(x)+1:end) = [];
-    else
+    elseif length(Stest) < length(x)
         Stest = Stest(end)*ones(1,length(x));
     end
         
@@ -80,3 +80,4 @@ title(sprintf('Mean scores throughout %d generations',currentGeneration));
 % legend('Euclidean','optModel','Test');
 xlabel('Generation');
 ylabel('Mean scores');
+display(sprintf('Best validation score: %.2f\nBest test score: %.2f',S(end),Stest(end)));
