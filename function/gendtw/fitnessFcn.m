@@ -311,11 +311,11 @@ function [valid,err] = validateI(I,params,maxSeg,X)
             if iscell(seg)
                 e2(i) = sum(seg{i}(1,:) > maxSeg-params.nmax);
                 e3(i) = sum(seg{i}(2,:) < params.nmin);
-                e4(i) = sum(seg{i}(2,:) > params.nmax+1);
+                e4(i) = sum(seg{i}(2,:) > params.nmax);
             else
                 e2(i) = sum(seg(i,1,:) > maxSeg-params.nmax);
                 e3(i) = sum(seg(i,2,:) < params.nmin);
-                e4(i) = sum(seg(i,2,:) > params.nmax+1);
+                e4(i) = sum(seg(i,2,:) > params.nmax);
             end
         else
             e2(i) = 0;
@@ -377,6 +377,9 @@ function [valid,err] = validateI(I,params,maxSeg,X)
         % random initial population.
     end
     err = - (0.25*e0 + 0.5*e/length(I2(:,2:end))/2 + 0.25*e6);
+    if err, 
+        warning('fitnessFcn:invInd','Invalid individuals detected in Fitness function'); 
+    end
 end
 
 function segs = getDataPartitions(data,partitions)

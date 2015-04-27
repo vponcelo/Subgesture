@@ -1,6 +1,7 @@
 function runGenDTW(measure,lastGen)
 
 close all
+clear all
 addPath
 
 %% Generate global variables for the GA, cache and parameters
@@ -69,13 +70,13 @@ l = [];
 % First evaluation with euclidean distance
 % profile -memory on
 if ~params.phmm.hmm
-    [~,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
-    % [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
+    [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
+    [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
 else
-    [S_base,~,bestScores] = testHMM(params);
-    % KT = getUpdatedCosts(Xtest,model.SM);
-    % [~,Dtest] = min(KT);
-    % [~,score,bestScores] = evalswHMM(model, Dtest, Ytest);
+    [S_base,model,bestScores] = testHMM(params);
+    KT = getUpdatedCosts(Xtest,model.SM);
+    [~,Dtest] = min(KT);
+    [~,score,bestScores] = evalswHMM(model, Dtest, Ytest);
 end
 % profreport
 
@@ -161,7 +162,7 @@ tic;
 if strcmp(params.vectorized,'on')
     if matlabpool('size') > 0
         matlabpool close force;
-    end    
+    end
     pool(2);         % Cache with the populations
 end
 [x,finalOverlap,exitFlag,output,population,scores] = ga(problem);

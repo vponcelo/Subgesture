@@ -61,7 +61,7 @@ params.phmm.kD = 300;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 params.phmm.hmm = true;            % flag that indicates to train with hmm training 
-params.phmm.pmtk = false;           % flag that indicates to use the pmtk3 library implementation
+params.phmm.pmtk = true;           % flag that indicates to use the pmtk3 library implementation
 
 %% parameters genetic temporal clustering
 params.version = ...
@@ -94,7 +94,7 @@ params.usemax_l = true;        % use the median or the max-length gesture as ref
 params.resize = true;          % Use resizing instead of mean DTW alignment
 params.gmm = false;            % Use gmm instead of other non-probabilistic representations
 params.pdtw = false;           % flag for indicating the use of gmms in feature modeling
-params.score2optim = 'a';        % Score to optimize --> Overlap: 'o', Precision: 'p', Recall: 'r', Accuracy/F1-Score(spotting): 'a'
+params.score2optim = 'r';        % Score to optimize --> Overlap: 'o', Precision: 'p', Recall: 'r', Accuracy/F1-Score(spotting): 'a'
 params.minOverlap = 0.5;        % Minimum overlap to detect the label
 params.sw = 0;              % sliding window (frame seq length): '0' means the whole sequence
 params.k = 0;               % current k to evaluate for the K-Nearest Neighbour DTW models
