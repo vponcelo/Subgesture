@@ -155,6 +155,7 @@ else    % X evaluate whole seq.
             GTtestk = Y.L == k; GTtestkFr = Y.Lfr == k;
             probs = cell(1,length(sws));
             for i = 1:length(sws)
+                probs{i} = [];
                 for st = 1:sws(i):size(X,2)-1
                     seq = X(:,st:min(st+sws(i),size(X,2)));
                     probs{i} = [probs{i} evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k})];
