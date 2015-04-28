@@ -1,7 +1,7 @@
 function runGenDTW(measure,lastGen)
 
 close all
-clear all
+% clear all
 addPath
 
 %% Generate global variables for the GA, cache and parameters
@@ -71,7 +71,7 @@ l = [];
 % profile -memory on
 if ~params.phmm.hmm
     [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
-    [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
+%     [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
 else
     [S_base,model,bestScores] = testHMM(params);
     KT = getUpdatedCosts(Xtest,model.SM);
@@ -94,19 +94,19 @@ fPlotSI = @(options,state,flag)plotScoresPopul(options,state,flag,params);
 fPlotSG = @(options,state,flag)plotScoreSegs(options,state,flag,params);
 
 % Create function
-fCreate = @(GenomeLength,FitnessFcn,options)createIniPopul(GenomeLength,FitnessFcn,options,X{1},params);
+fCreate = @(GenomeLength,FitnessFcn,options)createIniPopul(GenomeLength,FitnessFcn,options,Xdev{1},params);
 
 % Mutation function
 fMutation = @(parents,options,nvars,FitnessFcn,state,thisScore,...
     thisPopulation)mutationFcn(parents,options,nvars,FitnessFcn,...
-    state,thisScore,thisPopulation,params,seg0,X{1});
+    state,thisScore,thisPopulation,params,seg0,Xdev{1});
 
 % Crossover function
 fCrossOver = @(parents,options,nvars,FitnessFcn,unused,thisPopulation)...
-    crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params);
+    crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params,Xdev{1});
 
 % Options GA
-lastGen = 1;
+lastGen = 2;
 if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
         params.Baseline,'_',params.mType,'_',num2str(lastGen),'gens','_',...
         num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'),'file')
@@ -129,6 +129,8 @@ if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.genera
     problem.nvars=size(state.Population,2);
     options = gaoptimset(options,'PopulationSize',params.population);
     options = gaoptimset(options,'Vectorized',params.vectorized);
+    options = gaoptimset(options,'MutationFcn',fMutation);
+    options = gaoptimset(options,'CrossoverFcn',fCrossOver);
     options = gaoptimset(options,'Generations',params.generations-lastGen);
     options = gaoptimset(options,'StallGenLimit',options.StallGenLimit+1);
 else

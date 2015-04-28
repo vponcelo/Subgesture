@@ -64,7 +64,10 @@ if ~isempty(X),
         end
     else
         stest = testLastGen(state,BESTIND(end).model,X,Y);
-    end    
+    end
+    if length(Stest) > 1
+        if stest < Stest(end), stest = Stest(end); end
+    end
     Stest = [Stest stest];
     if length(Stest) > length(x)
         Stest(length(x)) = Stest(end);

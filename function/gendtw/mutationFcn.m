@@ -109,3 +109,5 @@ for i = 1:length(parents)
 %         end
 %     end    
 end
+
+mutationChildren = repairFcn(mutationChildren, params, length(X), nvars);

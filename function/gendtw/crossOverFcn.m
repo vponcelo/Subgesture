@@ -1,4 +1,4 @@
-function xoverKids = crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params)
+function xoverKids = crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params,X)
 
 %% Crossover
 if rand() >= params.thMutCross
@@ -38,3 +38,5 @@ for i = 1:size(xoverKids,1)
     end
     xoverKids(i,cutPoint:params.N*2+1) = inf;    
 end
+
+xoverKids = repairFcn(xoverKids, params, length(X), nvars);

@@ -155,12 +155,10 @@ else    % X evaluate whole seq.
             GTtestk = Y.L == k; GTtestkFr = Y.Lfr == k;
             probs = cell(1,length(sws));
             for i = 1:length(sws)
-                probs{i} = zeros(1,round(size(X,2)/sws(i)));
                 for st = 1:sws(i):size(X,2)-1
                     seq = X(:,st:min(st+sws(i),size(X,2)));
-                    probs{i}(round(st/sws(i))+1) = evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k});
+                    probs{i} = [probs{i} evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k})];
                 end
-                if round(st/sws(i))+1 < length(probs{i}), probs{i}(round(st/sws(i))+2:end) = []; end
             end
             if isempty(model.bestThs)
                 maxim = max(cellfun(@max,probs)); minim = min(cellfun(@min,probs));
