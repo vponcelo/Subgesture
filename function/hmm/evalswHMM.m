@@ -3,9 +3,9 @@ function [model,score,bestScores] = evalswHMM(model, X, Y)
 
 global DATATYPE; global NAT;
 
-if iscell(model.phmm.model), modelpmtk = model.phmm.model{1}; else modelpmtk = model.phmm.model; end
-if iscell(model.phmm.hmmTR_f), TRANS = model.phmm.hmmTR_f{1}; else TRANS = model.phmm.hmmTR_f; end
-if iscell(model.phmm.hmmE_f), EMIS = model.phmm.hmmE_f{1}; else EMIS = model.phmm.hmmE_f; end
+if iscell(model.phmm.model{1}), modelpmtk = model.phmm.model{1}; else modelpmtk = model.phmm.model; end
+if iscell(model.phmm.hmmTR_f{1}), TRANS = model.phmm.hmmTR_f{1}; else TRANS = model.phmm.hmmTR_f; end
+if iscell(model.phmm.hmmE_f{1}), EMIS = model.phmm.hmmE_f{1}; else EMIS = model.phmm.hmmE_f; end
 
 if iscell(X)
     probs = zeros(1,length(X));
