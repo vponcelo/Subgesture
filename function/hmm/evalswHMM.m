@@ -52,11 +52,27 @@ if iscell(X)
             if isnan(scoresA(j,i)), scoresA(j,i) = 0; end
         end
     end
-    % This gives the best
+    %% get the predicted class giving the maximum scores
     k = zeros(1,3); bestScores = zeros(1,3);
-    [bestScores(1),k(1)] = max(mean(scoresP));
-    [bestScores(2),k(2)] = max(mean(scoresR));
-    [bestScores(3),k(3)] = max(mean(scoresA));
+    mScoresP = max(scoresP'); mScoresR = max(scoresR'); mScoresA = max(scoresA');
+    kscoresP = ismember(mScoresP,max(mScoresP));
+    kscoresR = ismember(mScoresR,max(mScoresR)); 
+    kscoresA = ismember(mScoresA,max(mScoresA));
+    if kscoresP(Y{1}(1)) == 1,
+        bestScores(1) = max(mScoresP); k(1) = Y{1}(1);
+    else
+        [bestScores(1),k(1)] = max(mScoresP);
+    end
+    if kscoresR(Y{1}(1)) == 1,
+        bestScores(2) = max(mScoresR); k(2) = Y{1}(1);
+    else
+        [bestScores(2),k(2)] = max(mScoresR);
+    end
+    if kscoresA(Y{1}(1)) == 1,
+        bestScores(3) = max(mScoresA); k(3) = Y{1}(1);
+    else
+        [bestScores(3),k(3)] = max(mScoresA);
+    end 
     score = k(model.score2optim);
 else    % X evaluate whole seq.
     if model.phmm.pmtk, nm=length(modelpmtk); else nm=length(TRANS); end

@@ -56,17 +56,26 @@ predictions = []; scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.n
 if model.classification
     display(sprintf('Classifying %d sequences in %d gesture classes ...',length(Y.L),nm));
     Wc = zeros(length(Y.L),nm);
+%     KT1 = []; KT2 = [];
     for s = 1:length(Y.L)      % save each sequence vs model dtw costs
         if s < length(Y.L)
             seq = X(Y.seg(s):Y.seg(s+1)-1,:);
         else
             seq = X(Y.seg(s):Y.seg(s+1),:);
         end
+        if ~isempty(model.D)
+            % 1:high-arm-wave , 17: side-kick
+%             if isempty(KT1) && strcmp(Yc.cnames(s),'high-arm-wave'), KT1 = getUpdatedCosts(seq,model.SM); end;
+%             if isempty(KT2) && strcmp(Yc.cnames(s),'side-kick'), KT2 = getUpdatedCosts(seq,model.SM); end;
+%             if ~isempty(KT1) && ~isempty(KT2)
+%                 display();
+%             end
+            KT = getUpdatedCosts(seq,model.SM);
+        end
         for k = 1:nm
             %% Compute the costs of the test sequence in terms of SM
             M = model.M{k};
             if ~isempty(model.D)
-                KT = getUpdatedCosts(seq,model.SM);                
                 if ~iscell(M)
                     W = single(dtwc(seq,M,true,Inf,model.D,model.KM{k},KT));
                 else
@@ -102,7 +111,7 @@ if model.classification
                     end
                 end
             end
-            Wc(s,k) = W(end,end);        
+            Wc(s,k) = W(end,end);
         end
     end
     if isempty(model.bestThs)
