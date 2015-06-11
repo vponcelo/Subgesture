@@ -3,6 +3,10 @@ if isnan(X{1}), display(sprintf('%d',sum(sum(isnan(X{1}))))); error('NaN Data in
 if isnan(X{2}), display(sprintf('%d',sum(sum(isnan(X{2}))))); error('NaN Data in X2'); end
 if isinf(X{1}), display(sprintf('%d',sum(sum(isinf(X{1}))))); error('Inf Data in X1'); end
 if isinf(X{2}), display(sprintf('%d',sum(sum(isinf(X{2}))))); error('NaN Data in X2'); end
+
+% Y{1}.L(Y{1}.L == 1000 | Y{1}.L == 1001) = 36;
+% Y{2}.L(Y{2}.L == 1000 | Y{2}.L == 1001) = 36;
+
 for i = 1:2
     if ~isequal(unique(Y{1}.L),unique(Y{2}.L)), error('Error in Labels'); end
     if ~isequal(unique(Y{1}.cnames),unique(Y{2}.cnames)), error('Error in label names'); end
@@ -45,4 +49,4 @@ if ~isequal(Y{1}.seg(end),length(X{1})), error('Inconsistency in the last segmen
 if ~isequal(Y{2}.seg(end),length(X{2})), error('Inconsistency in the last segment of 2'); end
 if ~isequal(Ytest.seg(end),length(Xtest)), error('Inconsistency in the last segment of test'); end
 
-% save(strcat('data/MSRACT3D/MSRACT3D_PCA'),'X','Y','Xtest','Ytest');
+% save(strcat('data/MAD/MAD_5'),'X','Y','Xtest','Ytest');

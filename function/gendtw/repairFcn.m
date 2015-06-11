@@ -25,23 +25,23 @@ for i = 1:size(RP,1)
         RP(i,lensExceed) = randi([params.nmin params.nmax],1,length(lensExceed));                    % force new length of length exceeded segments        
     end
     
-    %% Fix k if it's out of bounds
+    %% Fix k/segs if it's out of bounds
     k = RP(i,1); kf = find(RP(i,:)==inf,1)-1;
     if ~(k >= params.k0 && k <= nvars-1), k = randi([params.k0 nvars-1]); end   % force new k 
     while ~(k >= params.k0 && k <= kf),
-        if (k-params.k0)/(kf-params.k0) > 1                                     % k trends to kf
+        if (k-params.k0)/(kf-params.k0) > 1     % k trends to kf
             if k-5 > params.k0                                                  
                 k = k - 5;
             elseif k-5 < params.k0
                 k = k - 1;
             end
-        else
-            if kf + 10 < nvars                                                  % k trends to k0
+        else                                    % k trends to k0
+            if kf + 10 < nvars
                 RP(i,kf+1:2:kf+10) = randi([1 maxSegs-params.nmax+1],1,5);      % force new start point
                 RP(i,kf+2:2:kf+10) = randi([params.nmin params.nmax],1,5);      % force new length
                 kf = kf + 10;
             else
-                RP(i,kf+1) = randi([1 length(X)-params.nmax+1]);                % force new start point
+                RP(i,kf+1) = randi([1 maxSegs-params.nmax+1]);                % force new start point
                 RP(i,kf+2) = randi([params.nmin params.nmax]);                  % force new length
                 kf = kf + 2;
             end

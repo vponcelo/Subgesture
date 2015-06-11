@@ -223,7 +223,11 @@ while it < maxIter && ~all(convergs)
                     if i ~= idx
                         if strcmp(distance,'dtwCost')
                             if resize,
-                                alig_seqs(i,:,:)=imresize(X{idx(i)},[size(ptr,1),size(X{idx(i)},2)]);
+                                try
+                                    alig_seqs(i,:,:)=imresize(X{idx(i)},[size(ptr,1),size(X{idx(i)},2)]);
+                                catch e
+                                    display();
+                                end
                             else
                                 W=dtwc(X{idx(i)},ptr,1);
                                 [~,~,A] = aligngesture(X{idx(i)},W);

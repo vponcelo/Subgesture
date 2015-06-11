@@ -74,9 +74,9 @@ if ~params.phmm.hmm
 %     [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
 else
     [S_base,model,bestScores] = testHMM(params);
-    KT = getUpdatedCosts(Xtest,model.SM);
-    [~,Dtest] = min(KT);
-    [~,score,bestScores] = evalswHMM(model, Dtest, Ytest);
+%     KT = getUpdatedCosts(Xtest,model.SM);
+%     [~,Dtest] = min(KT);
+%     [~,score,bestScores] = evalswHMM(model, Dtest, Ytest);
 end
 % profreport
 
@@ -106,7 +106,7 @@ fCrossOver = @(parents,options,nvars,FitnessFcn,unused,thisPopulation)...
     crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params,Xdev{1});
 
 % Options GA
-lastGen = 2;
+lastGen = 21;
 if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
         params.Baseline,'_',params.mType,'_',num2str(lastGen),'gens','_',...
         num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'),'file')

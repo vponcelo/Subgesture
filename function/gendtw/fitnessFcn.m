@@ -291,7 +291,7 @@ function [valid,err] = validateI(I,params,maxSeg,X)
     nsegs = sum(transpose(I2(:,2:params.N*2+1) < inf));
     nsegs(mod(nsegs,2) > 0) = nsegs(mod(nsegs,2) > 0) - 1;
     nsegs = nsegs/2;
-    kBad = k < params.k0 | k > params.N | k(:) >= nsegs(:);
+    kBad = k < params.k0 | k > params.N | k(:) > nsegs(:);
     e0 = zeros(1,length(k));
     if ~isempty(k(kBad))
         e0(kBad) = abs(max(k(kBad)-params.k0,params.N-k(kBad)))/10000;
@@ -362,7 +362,7 @@ function [valid,err] = validateI(I,params,maxSeg,X)
             e5(nsBad) = abs(max(mnsegs(nsBad)-params.k0,params.N0-mnsegs(nsBad)))/100;
             valid(nsBad) = 0;
         end
-        kBad = mk < params.k0-1 | mk > params.N0 | mk(:) >= mnsegs(:);
+        kBad = mk < params.k0-1 | mk > params.N0 | mk(:) > mnsegs(:);
         if ~isempty(mk(kBad))
             e6(kBad) = abs(max(mk(kBad)-params.k0-1,params.N0-mk(kBad)))/100;
             valid(kBad) = 0;

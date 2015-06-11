@@ -77,7 +77,7 @@ end
 thisPopulation(parents,:) = P;
 
 %% Mutation type given the probability
-if rand() >= params.thMutCross    
+if rand() >= params.probMut
     mutationChildren = alignMutation(parents,state,options,nvars,thisPopulation,params,seg0);
 else
     mutationChildren = mutationgaussian(parents,options,nvars,FitnessFcn,state,thisScore,thisPopulation,params.scale,params.shrink);

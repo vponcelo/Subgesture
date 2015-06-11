@@ -58,17 +58,21 @@ for v = 1:length(seq)
             seq{v} = seq{v}(idx,:);
             SG = zeros(1,length(unique(Y{v}.L)));
             GT{v}.L = zeros(1,length(SG)*nSampGest);
-            c = 1; k = 1;
-            while ~all(SG == nSampGest)
-                if Y{v}.L(c) <= length(SG)
-                    gesture = Y{v}.L(c);
-                    if SG(gesture) < nSampGest
-                        SG(gesture) = SG(gesture) + 1;
-                        GT{v}.L(k) = Y{v}.L(c);
-                        k = k + 1;
+            c = 1; k = 1; exceed = false;
+            while ~all(SG == nSampGest) && ~exceed
+                if c <= length(Y{v}.L)
+                    if Y{v}.L(c) <= length(SG)
+                        gesture = Y{v}.L(c);
+                        if SG(gesture) < nSampGest
+                            SG(gesture) = SG(gesture) + 1;
+                            GT{v}.L(k) = Y{v}.L(c);
+                            k = k + 1;
+                        end
                     end
+                    c = c + 1;
+                else
+                    exceed = true;
                 end
-                c = c + 1;
             end
         else
             GT{v}.L = Y{v}.L;

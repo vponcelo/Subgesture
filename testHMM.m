@@ -116,6 +116,10 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                 Xtrain = Xtrain_l{l};
             else
                 Xtrain = Xtrain_l{l}(1:min(length(Xtrain_l{l}),nSampGest));
+%                 Xtrain = cell(1,length(Xtrain_l{l}));
+%                 for s = 1:length(Xtrain_l{l})
+%                     Xtrain{s} = Xtrain_l{l}{s}(3:end-2,:);
+%                 end
             end
             len = cellfun(@length,Xtrain); Ytrain{l} = cell(1,length(Xtrain));
             for g = 1:length(len), Ytrain{l}{g} = l*ones(1,len(g)); end
@@ -212,6 +216,10 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                         Xval = Xval_l{l};
                     else
                         Xval = Xval_l{l}(1:min(length(Xval_l{l}),nSampGest));
+%                         Xval = cell(1,length(Xval_l{l}));
+%                         for s = 1:length(Xval_l{l})
+%                             Xval{s} = Xval_l{l}{s}(3:end-2,:);
+%                         end
                     end
                     len = cellfun(@length,Xval); Yval = cell(1,length(Xval));
                     for g = 1:length(len), Yval{g} = l*ones(1,len(g)); end

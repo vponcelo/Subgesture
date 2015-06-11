@@ -13,7 +13,7 @@ DETT=zeros(1,length(clx));
 GTtestkFr=zeros(size(GT));
 detSeqLog=zeros(size(GT));
 
-
+ovs = zeros(1,length(clx));
 for i=1:length(clx),
     
     

@@ -1,7 +1,7 @@
 function xoverKids = crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params,X)
 
 %% Crossover
-if rand() >= params.thMutCross
+if rand() >= params.probCross
     xoverKids = crossoverPairs(parents,options,nvars,FitnessFcn,unused,thisPopulation,params);
 else
     xoverKids = crossoverscattered(parents,options,nvars,FitnessFcn,unused,thisPopulation);

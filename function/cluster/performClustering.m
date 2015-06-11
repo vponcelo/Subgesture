@@ -34,7 +34,7 @@ function Ctrain = performClustering(X,Y,type,numClusters,numIterations)
         case 'kmeans'
             %% k-means clustering
             display('Method: Mathworks k-means');
-            [~,Ctrain] = clusterSkels( X, numClusters );     
+            [~,Ctrain] = clusterSkels( X, numClusters );
         case 'haca'
             %% Hierarchical Aligned Clustering Analysis
             doHaca(X,Y);
