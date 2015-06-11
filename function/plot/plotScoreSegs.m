@@ -24,6 +24,7 @@ xlabel('Number of segments');
 ylabel('Mean scores');
 
 global S; global Stest; global BESTIND;
+try display(sprintf('Best k: %d\n',length(BESTIND(end).model.SM))); catch; end;
 
 if length(S) > 1
     if state.Generation == 2 || S(end) > S(end-1) || Stest(end) >  Stest(end-1)
@@ -52,9 +53,6 @@ if length(S) > 1
             display(e.message);
         end
     end
-end
-if isempty(BESTIND(end).model)
-    error('plotMeanScores:bestModelErr','Best model was not assigned');
 end
 if currentGeneration < params.generations
     bestind.model = []; bestind.state = []; BESTIND = [BESTIND bestind];
