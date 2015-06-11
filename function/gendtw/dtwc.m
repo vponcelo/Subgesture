@@ -17,12 +17,21 @@ function W = dtwc(x,t,align,w,D,KM,KT)
 %% Dynamic Time Warping
 if nargin == 3 
     W=dtw_c(double(x),double(t),logical(align));
+    if sign(W(end,end))<0
+        W=dtw2(double(x),double(t),logical(align));
+    end
 elseif nargin == 4
     W=dtw_c(double(x),double(t),logical(align),w);
+    if sign(W(end,end))<0
+        W=dtw2(double(x),double(t),logical(align),w);
+    end
 elseif nargin == 7
     if size(KM,1) == size(D,1)
         W=dtw_c(double(x),double(t),logical(align),w,double(D),double(KM),double(KT));
     else
+        W=dtw2(double(x),double(t),logical(align),w,double(D),double(KM),double(KT));
+    end
+    if sign(W(end,end))<0
         W=dtw2(double(x),double(t),logical(align),w,double(D),double(KM),double(KT));
     end
 else
