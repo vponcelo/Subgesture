@@ -57,7 +57,11 @@ Xval_l = getGroupedGestures(X,Y,2); if sum(cellfun(@isempty,Xval_l)), error('Emp
 
 %% Compute median models from training/learning data
 % profile -memory on
-if strcmp(DATATYPE,'msr3d') || strcmp(DATATYPE,'msract3d'), nModels = length(Xtrain_l); else nModels = length(Xtrain_l)-1; end  % -1 indicates don't consider iddle gesture
+if strcmp(DATATYPE,'msr3dS') || strcmp(DATATYPE,'msr3d1') || strcmp(DATATYPE,'msr3d2') || ...
+    strcmp(DATATYPE,'msr3d3') || strcmp(DATATYPE,'msr3d4') || strcmp(DATATYPE,'msr3d5') || strcmp(DATATYPE,'msract3d'), 
+    nModels = length(Xtrain_l); 
+else nModels = length(Xtrain_l)-1; 
+end  % -1 indicates don't consider iddle gesture
 if ~params.phmm.hmm, [params.M,params.lmodel] = getModels(Xtrain_l,nModels,params); end
 % profreport
 

@@ -37,10 +37,17 @@ nm = length(model.M);
 %     end
 %     Y.L(nm+1) = []; Y.Lfr(nm+1) = [];
 % end
-seg=r:min(r+sw,length(Yc.Lfr));
-X=Xc(seg,:);
-Y.Lfr=Yc.Lfr(seg);
-Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
+if model.sw == 0,
+    X = Xc; Y = Yc;
+else
+    seg=r:min(r+sw,length(Yc.Lfr));
+    X=Xc(seg,:); Y.Lfr=Yc.Lfr(seg);
+    idxSeg = find(Yc.seg >= seg(1) & Yc.seg <= seg(end));
+    Y.seg = Yc.seg(idxSeg); Y.L = Yc.L(idxSeg(1:end-1));
+    if Y.seg(1) > seg(1), Y.seg = [seg(1) Y.seg]; Y.L = [Y.L(idxSeg(1)-1) Y.L]; end
+    if Y.seg(end) < seg(end), Y.seg = [Y.seg seg(end)]; Y.L = [Y.L Yc.L(idxSeg(end))]; end
+%     Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
+end
 
  %% number of tresholds and interval to test threshs
 if isempty(model.bestThs), 

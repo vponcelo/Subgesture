@@ -77,7 +77,7 @@ if iscell(X)
 else    % X evaluate whole seq.
     if model.phmm.pmtk, nm=length(modelpmtk); else nm=length(TRANS); end
     
-    Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
+%     Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
     predictions = [];
     
     %% number of tresholds and interval to test threshs

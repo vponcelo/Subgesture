@@ -20,10 +20,12 @@ for v = 1:length(seq)
         GT{v}.Lfr = zeros(1,Y{v}.seg(end));
         for j = 1:length(Y{v}.L)
             startSeq = Y{v}.seg(j);
+            GT{v}.seg(j) = startSeq;
             if j < length(Y{v}.L)
                 endSeq = Y{v}.seg(j+1)-1;
             else
                 endSeq = Y{v}.seg(j+1);
+                GT{v}.seg(j+1) = endSeq;
             end
             seq{v}(startSeq:endSeq,:) = X{v}(startSeq:endSeq,:);
             GT{v}.Lfr(startSeq:endSeq) = Y{v}.L(j);
