@@ -46,7 +46,7 @@ if length(S) > length(x)
     S(length(x)) = S(end);
 	S(length(x)+1:end) = [];
 end
-
+display(sprintf('Best validation score: %.4f\n',S(end)));
 plot(x,S_base,'k');
 hold on
 plot(x,S,'b');
@@ -71,12 +71,11 @@ if ~isempty(X),
     elseif length(Stest) < length(x)
         Stest = Stest(end)*ones(1,length(x));
     end
-        
-    plot(x,Stest,'r');
+    display(sprintf('Best test score: %.4f\n',Stest(end)));
+    plot(x,Stest,'r');    
 end    
 hold off
 title(sprintf('Mean scores throughout %d generations',currentGeneration));
 % legend('Euclidean','optModel','Test');
 xlabel('Generation');
 ylabel('Mean scores');
-display(sprintf('Best validation score: %.4f\nBest test score: %.4f',S(end),Stest(end)));
