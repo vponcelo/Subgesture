@@ -298,16 +298,17 @@ else
 %                         error();
 %                     end
 %                 end
-                scoresO(k,i) = sum(GTtestkFr & prexp(i,:,k))./sum(GTtestkFr | prexp(i,:,k));     % overlap (Jaccard Index)
-                % recognition from spotting
-                detSw = getActivations(prexp(i,:,k), GTtestkFr, Y.seg, model);
+                detSw = prexp(i,:,k);
+                scoresO(k,i) = sum(GTtestkFr & detSw)./sum(GTtestkFr | detSw);     % overlap (Jaccard Index)
+                detSw = getActivations(detSw, GTtestkFr, Y.seg, model);
+                
                 % only for MADX database (recognition)
                 if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
                         || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
                         || strcmp(DATATYPE,'mad5') 
-                    [~,~,R] = estimate_overlap_madold(GTtestk, prexp(i,:,k), model.minOverlap);
-                    scoresP(k,i) = R.prec;  % Precision
-                    scoresR(k,i) = R.rec;    % Recall
+                    [~,~,R] = estimate_overlap_madold(GTtestk, detSw, model.minOverlap);
+                    scoresP(k,i) = R.prec2;  % Precision
+                    scoresR(k,i) = R.rec2;    % Recall
                 else
                     scoresP(k,i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
                     scoresR(k,i) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
@@ -325,7 +326,7 @@ else
         [bestScores(k,4),bestThsPos(k,4)] = max(scoresA(k,:));        
         %% save mean scores and learnt thresholds (allow multi-label assignment per frame)
 %         score = mean(bestScores(:,model.score2optim));
-%         bestScores = mean(bestScores);
+%         bestScores = mean(bestScores)
         
 %         gtF = Y.Lfr;
 %         save('predictions.mat','predictionsF','gtF');
@@ -376,7 +377,7 @@ else
                end
            end       
         end
-        
+%         mean(bestScores)
         clear bestScores;
         
         %%% if we want to plot predictions vs GT
@@ -389,13 +390,14 @@ else
         
         % Assign Overlap, Precision, Recall, F1-score
         bestScores(1) = ovlp;  bestScores(2) = R.prec; bestScores(3) = R.rec; bestScores(4) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
+%         bestScores
         for j=1:length(bestScores), if isnan(bestScores(j)), bestScores(j)=0; end; end
         
         switch model.score2optim
             case 1, score=ovlp;
             case 2, score=R.prec;
             case 3, score=R.rec;
-            case 4, score=(2.*R.rec.*R.prec)./(R.rec + R.prec);
+            case 4, score=(2.*R.rec.*R.prec)./(R.rec + R.prec); % F-1 score
         end
         clear prexp R ovlp ofinscores ofin cupred cues;
         if isempty(model.bestThs)

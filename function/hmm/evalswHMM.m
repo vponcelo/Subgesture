@@ -173,7 +173,7 @@ else    % X evaluate whole seq.
             for i = 1:length(sws)
                 probs{i} = [];
                 for st = 1:sws(i):size(X,2)-1
-                    seq = X(:,st:min(st+sws(i),size(X,2)));
+                    seq = X(:,st:min(st+sws(i)-1,size(X,2)));
                     probs{i} = [probs{i} evaluateSequences([], seq, TRANS{k}, EMIS{k}, modelpmtk{k})];
                 end
             end
@@ -194,22 +194,21 @@ else    % X evaluate whole seq.
                     end
                     prexp(j,:,k) = prexp(j,:,k) | det;
                 end
-            end
-            if strcmp(DATATYPE,'chalearn2014') && NAT == 3
-                prexp(j,:,k) =([prexp(j,6:end,k),0,0,0,0,0]);       % correct offset of deep features
-            end                
-            %% compute scores from evaluated probabilities and thresholds
-            scoresO(k,j) = sum(GTtestkFr & prexp(j,:,k))./sum(GTtestkFr | prexp(j,:,k));     % overlap (Jaccard Index)
-            if model.classification
-                % recognition from spotting
-                detSw = getActivations(prexp(j,:,k), GTtestkFr, Y.seg, model);
+                if strcmp(DATATYPE,'chalearn2014') && NAT == 3
+                    prexp(j,:,k) =([prexp(j,6:end,k),0,0,0,0,0]);       % correct offset of deep features
+                end                
+                %% compute scores from evaluated probabilities and thresholds
+                detSw = prexp(j,:,k);
+                scoresO(k,j) = sum(GTtestkFr & detSw)./sum(GTtestkFr | detSw);     % overlap (Jaccard Index)
+
+                detSw = getActivations(detSw, GTtestkFr, Y.seg, model);
                 % only for MADX database (recognition)
                 if strcmp(DATATYPE,'mad1') || strcmp(DATATYPE,'mad2') ...
                         || strcmp(DATATYPE,'mad3') || strcmp(DATATYPE,'mad4') ...
                         || strcmp(DATATYPE,'mad5') 
-                    [~,~,R] = estimate_overlap_mad(GTtestk, prexp(j,:,k), model.minOverlap);
-                    scoresP(k,j) = R.prec;    % Precision
-                    scoresR(k,j) = R.rec;     % Recall
+                    [~,~,R] = estimate_overlap_madold(GTtestk, detSw, model.minOverlap);
+                    scoresP(k,j) = R.prec2;    % Precision
+                    scoresR(k,j) = R.rec2;     % Recall
                 else
                     scoresP(k,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | ~GTtestk & detSw);  % Precision
                     scoresR(k,j) = sum(GTtestk & detSw)./sum(GTtestk & detSw | GTtestk & ~detSw);  % Recall
@@ -226,7 +225,7 @@ else    % X evaluate whole seq.
             [bestScores(k,4),bestThsPos(k,4)] = max(scoresA(k,:));            
             %% save mean scores and learnt thresholds (allow multi-label assignment per frame)  
 %            score = mean(bestScores(:,model.score2optim));
-%            bestScores = mean(bestScores);
+%             bestScores = mean(bestScores)
             
 %            gtF = Y.Lfr;
 %            save('predictions.mat','predictionsF','gtF');
@@ -277,7 +276,7 @@ else    % X evaluate whole seq.
                    end
                end       
             end
-
+%             mean(bestScores)
             clear bestScores;
 
             %%% if we want to plot predictions vs GT
@@ -290,6 +289,7 @@ else    % X evaluate whole seq.
 
             % Assign Overlap, Precision, Recall, F1-score
             bestScores(1) = ovlp;  bestScores(2) = R.prec; bestScores(3) = R.rec; bestScores(4) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
+%             bestScores
             for j=1:length(bestScores), if isnan(bestScores(j)), bestScores(j)=0; end; end
             
             switch model.score2optim
