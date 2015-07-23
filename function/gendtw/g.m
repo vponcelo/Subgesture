@@ -7,46 +7,40 @@ function [model,score,bestScores,predictions] = g(model,Xc,Yc)
 %   Xc: data to test against (cell or whole sequence)
 %   Yc: labels of X (cell or whole sequence)
 
-if iscell(Xc)
+if iscell(Xc) && ~model.classification
     error('g:classErr','Input data cannot be a cell here, need to specify this functionality');
-end
-sw = model.sw;
-if sw > length(Yc.Lfr)
-    error('g:swErr','sliding window is longer than the validation sequence');
-end
-
-if sw == 0
-    sw = length(Xc)-1;
-    r = 1;
-else
+elseif ~model.classification
     sw = model.sw;
-    r = inf;
-    while any(r > length(Yc.Lfr)-sw)
-        r = randperm(round(length(Yc.Lfr)),1);
+    if sw > length(Yc.Lfr)
+        error('g:swErr','sliding window is larger than the validation sequence');
+    end
+
+    if sw == 0
+        sw = length(Xc)-1;
+        r = 1;
+    else
+        sw = model.sw;
+        r = inf;
+        while any(r > length(Yc.Lfr)-sw)
+            r = randperm(round(length(Yc.Lfr)),1);
+        end
     end
 end
 
 %% select sequence subset to evaluate
 nm = length(model.M);
-% if nm < length(unique(Y.Lfr))   % Remove iddle gesture from data
-%     segsDel = find(Y.L==nm+1);
-%     for i = 1:lengh(segsDel)
-%         Xc(Y.seg(segsDel(i)):Y.seg(segsDel(i)+1)-1,:) = [];
-%         Y.seg(segsDel(i)+1:end) = Y.seg(segsDel(i)+1:end)-Y.seg(segsDel(i)+1)+Y.seg(segsDel(i));
-%         Y.seg(end) = [];
-%     end
-%     Y.L(nm+1) = []; Y.Lfr(nm+1) = [];
-% end
 if model.sw == 0,
     X = Xc; Y = Yc;
 else
-    seg=r:min(r+sw,length(Yc.Lfr));
-    X=Xc(seg,:); Y.Lfr=Yc.Lfr(seg);
-    idxSeg = find(Yc.seg >= seg(1) & Yc.seg <= seg(end));
-    Y.seg = Yc.seg(idxSeg); Y.L = Yc.L(idxSeg(1:end-1));
-    if Y.seg(1) > seg(1), Y.seg = [seg(1) Y.seg]; Y.L = [Y.L(idxSeg(1)-1) Y.L]; end
-    if Y.seg(end) < seg(end), Y.seg = [Y.seg seg(end)]; Y.L = [Y.L Yc.L(idxSeg(end))]; end
-%     Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
+    if ~iscell(Xc)
+        seg=r:min(r+sw,length(Yc.Lfr));
+        X=Xc(seg,:); Y.Lfr=Yc.Lfr(seg);
+        idxSeg = find(Yc.seg >= seg(1) & Yc.seg <= seg(end));
+        Y.seg = Yc.seg(idxSeg); Y.L = Yc.L(idxSeg(1:end-1));
+        if Y.seg(1) > seg(1), Y.seg = [seg(1) Y.seg]; Y.L = [Y.L(idxSeg(1)-1) Y.L]; end
+        if Y.seg(end) < seg(end), Y.seg = [Y.seg seg(end)]; Y.L = [Y.L Yc.L(idxSeg(end))]; end
+    %     Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
+    end
 end
 
  %% number of tresholds and interval to test threshs
@@ -61,140 +55,239 @@ predictions = []; scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.n
 % begin evaluation
 %% classification
 if model.classification
-    display(sprintf('Classifying %d sequences in %d gesture classes ...',length(Y.L),nm));
-    Wc = zeros(length(Y.L),nm);
-%     KT1 = []; KT2 = [];
-    for s = 1:length(Y.L)      % save each sequence vs model dtw costs
-        if s < length(Y.L)
-            seq = X(Y.seg(s):Y.seg(s+1)-1,:);
-        else
-            seq = X(Y.seg(s):Y.seg(s+1),:);
-        end
-        if ~isempty(model.D)
-            % 1:high-arm-wave , 17: side-kick
-%             if isempty(KT1) && strcmp(Yc.cnames(s),'high-arm-wave'), KT1 = getUpdatedCosts(seq,model.SM); end;
-%             if isempty(KT2) && strcmp(Yc.cnames(s),'side-kick'), KT2 = getUpdatedCosts(seq,model.SM); end;
-%             if ~isempty(KT1) && ~isempty(KT2)
-%                 display();
-%             end
-            KT = getUpdatedCosts(seq,model.SM);
-        end
-        for k = 1:nm
-            %% Compute the costs of the test sequence in terms of SM
-            M = model.M{k};
-            if ~isempty(model.D)
-                if ~iscell(M)
-                    W = single(dtwc(seq,M,true,Inf,model.D,model.KM{k},KT));
-                else
-                    if ~isempty(M{model.k})
-                        W = single(dtwc(seq,M{model.k},true,Inf,model.D,model.KM{k},KT));
-                    end
-                end
-            else
-                if ~iscell(M)
-                    if ~model.pdtw,
-                        W = single(dtwc(seq,M,true));
-                    else
-                        Pql=zeros(size(seq,1),size(M,1));
-                        for hh=1:size(M,1),
-                            if ~isempty(model.lmodel(k,hh).obj),
-                                Pql(:,hh)= mixGaussLogprob(model.lmodel(k,hh).obj,seq);
-    %                             Pql(:,hh)= log(pdf(model.lmodel(k,hh).obj,seq));
-                                Pql(isinf(Pql(:,hh)))=0;
+    if iscell(X)
+        %% begin evaluation
+        display(sprintf('Classifying sequences in %d gesture classes ...',nm));
+        Wc = cell(1,nm);
+        for l = 1:nm
+            Wc{l} = zeros(length(X{l}),nm);
+            for s = 1:length(X{l})
+                seq = X{l}{s};
+                for k = 1:nm
+                    M = model.M{k};
+                    if ~isempty(model.D)
+                        if model.darwin
+                            KT = model.KT{l}{s};
+                        else
+                            KT = getUpdatedCosts(seq,model.SM);
+                        end
+                        if ~iscell(M)
+                            W = single(dtwc(seq,M,true,Inf,model.D,model.KM{k},KT));
+                        else
+                            if ~isempty(M{model.k})
+                                W = single(dtwc(seq,M{model.k},true,Inf,model.D,model.KM{k},KT));
                             end
                         end
-                        noze = sum(Pql)~=0;
-                        Pql(Pql==0) = mean(mean(Pql(:,noze)));
-                        maval = max(max(abs(Pql)));
-    %                     Dima  = (1-Pql)./maval;
-    %                     DD=pdist2(seq,M);
-    %                     DD = DD./max(max(DD));
-                        Dima = (1-Pql)./maval.*pdist2(seq,M);
-                        W = single(dtw3(seq,M,true,Inf,Dima));
+                    else
+                        if ~iscell(M)
+                            if ~model.pdtw,
+                                W = single(dtwc(seq,M,true));
+                            else
+                                Pql=zeros(size(seq,1),size(M,1));
+                                for hh=1:size(M,1),
+                                    if ~isempty(model.lmodel(k,hh).obj),
+                                        Pql(:,hh)= mixGaussLogprob(model.lmodel(k,hh).obj,seq);
+            %                             Pql(:,hh)= log(pdf(model.lmodel(k,hh).obj,seq));
+                                        Pql(isinf(Pql(:,hh)))=0;
+                                    end
+                                end
+                                noze = sum(Pql)~=0;
+                                Pql(Pql==0) = mean(mean(Pql(:,noze)));
+                                maval = max(max(abs(Pql)));
+            %                     Dima  = (1-Pql)./maval;
+            %                     DD=pdist2(seq,M);
+            %                     DD = DD./max(max(DD));
+                                Dima = (1-Pql)./maval.*pdist2(seq,M);
+                                W = single(dtw3(seq,M,true,Inf,Dima));
+                            end
+                        else
+                            if ~isempty(M{model.k})
+                                W = single(dtwc(seq,M{model.k},true));
+                            end
+                        end
                     end
-                else
-                    if ~isempty(M{model.k})
-                        W = single(dtwc(seq,M{model.k},true));
-                    end
+                    Wc{l}(s,k) = W(end,end);
                 end
             end
-            Wc(s,k) = W(end,end);
-        end
-    end
-    if isempty(model.bestThs)
-        for k = 1:nm     % save dtw costs of each non-iddle sequence vs its model
-            interv = (max(Wc(Y.L==k,k))-min(Wc(Y.L==k,k)))/model.nThreshs;
-            tMin = min(Wc(Y.L==k,k));
-            if interv == 0, interv = tMin*2/model.nThreshs; end
-            thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
-        end
-    end
-%     scoresP = zeros(length(Y.L),model.nThreshs); scoresR = zeros(length(Y.L),model.nThreshs); scoresA = zeros(length(Y.L),model.nThreshs);
-    %% accuracy estimation for single-label prediction 
-    Yones=zeros(size(Y.L,2),nm);
-    for i=1:nm,
-        Yones(Y.L==i,i)=1;
-    end
-    for i = 1:model.nThreshs,
-        for s = 1:nm,            
-            idxDet = Wc(:,s)<=thresholds(s,i);  
-            TP=sum(idxDet & Yones(:,s));            
-            TN=sum(~idxDet & ~Yones(:,s));                        
-            FP=sum(idxDet & ~Yones(:,s));
-            FN=sum(~idxDet & Yones(:,s));                        
-            
-            if model.accuracyglobal,
-                %%% global accuracy: 
-                scoresA(s,i)= (TN+TP)./(TP+TN+FP+FN); 
-            else
-                %%% weighted accuracy (for imbalanced data sets). 
-                scoresA(s,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
+            if isempty(model.bestThs)
+                interv = (max(Wc{l}(:,l))-min(Wc{l}(:,l)))/model.nThreshs;
+                tMin = min(Wc{l}(:,l));
+                if interv == 0, interv = tMin*2/model.nThreshs; end
+                thresholds(l,:) = tMin + ((1:model.nThreshs)-1)*interv;
             end
-            
-            scoresP(s,i) = TP./(TP+FP);
-            scoresR(s,i) = TP./(TP+FN);
-            
-            if isnan(scoresP(s,i)), scoresP(s,i) = 0; end
-            if isnan(scoresR(s,i)), scoresR(s,i) = 0; end
-            if isnan(scoresA(s,i)), scoresA(s,i) = 0; end
+            %% accuracy estimation for single-label prediction 
+            Yones=zeros(length(X{l}),nm); Yones(:,l)=1;
+            for i = 1:model.nThreshs,
+                idxDet = Wc{l} <= thresholds(l,i);
+                TP=sum(sum(idxDet & Yones));
+                TN=sum(sum(~idxDet & ~Yones));
+                FP=sum(sum(idxDet & ~Yones));
+                FN=sum(sum(~idxDet & Yones));
+
+                if model.accuracyglobal,
+                    %%% global accuracy:
+                    scoresA(l,i)= (TN+TP)./(TP+TN+FP+FN);
+                else
+                    %%% weighted accuracy (for imbalanced data sets). 
+                    scoresA(l,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
+                end
+
+                scoresP(l,i) = TP./(TP+FP);
+                scoresR(l,i) = TP./(TP+FN);
+
+                if isnan(scoresP(l,i)), scoresP(l,i) = 0; end
+                if isnan(scoresR(l,i)), scoresR(l,i) = 0; end
+                if isnan(scoresA(l,i)), scoresA(l,i) = 0; end
+            end
         end
-    end
-%     for s = 1:length(Y.L)
-%         for i = 1:model.nThreshs
-%             TP = 0; FP = 0; FN = 0; TN = 0;  % NO SE CONSIDERAN LOS TN, DECIDIR SI LOS USAMOS SEGUN LO HABLADO
-%             idxDet = Wc(s,:) < thresholds(:,i)';
-%             if Y.L(s) < nm+1    % iddle gesture is ignored if it wasn't learnt
-%                 if idxDet(Y.L(s))
-%                     TP = TP + 1;    % DECIDISION DE LA ASIGNACION DE VERDADEROS POSITIVOS
-%                     if sum(idxDet) > 1, FP = FP + sum(idxDet)-1; end
-%                 else
-%                     FN = FN + 1; FP = FP + sum(idxDet); 
-%                 end
-%             else
-%                 FP = FP + sum(idxDet); 
-%             end
-% %             if sum(~idxDet)       % DECISION PARA ASIGNACION DE VERDADEROS NEGATIVOS
-% %                 if ~idxDet(Y.L(s))
-% %                     TN = TN + sum(~idxDet)-1;
-% %                 else
-% %                     TN = TN + sum(~idxDet);
-% %                 end
-% %             end
-%             scoresP(s,i) = TP./(TP+FP);
-%             scoresR(s,i) = TP./(TP+FN);
-%             scoresA(s,i) = (TP)./(TP+FN+FP);    %%% (TP/(TP+FN) + TN/(TN+FP))/2   % METRICA PARA EL BALANCEO ENTRE CLASES
-%             if isnan(scoresP(s,i)), scoresP(s,i) = 0; end
-%             if isnan(scoresR(s,i)), scoresR(s,i) = 0; end
-%             if isnan(scoresA(s,i)), scoresA(s,i) = 0; end
-%         end
-%     end
-    [bestScores(1),bestThsPos(1)] = max(mean(scoresP));
-    [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
-    [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
-    score = bestScores(model.score2optim);
-    model.bestThs = zeros(1,k); model.nThreshs = 1;
-    for i = 1:k
-        model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
+        [bestScores(1),bestThsPos(1)] = max(mean(scoresP));
+        [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
+        [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
+        score = bestScores(model.score2optim);
+        model.bestThs = zeros(1,nm); model.nThreshs = 1;
+        for i = 1:nm
+            model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
+        end
+    else
+        display(sprintf('Classifying %d sequences in %d gesture classes ...',length(Y.L),nm));
+        Wc = zeros(length(Y.L),nm);
+    %     KT1 = []; KT2 = [];
+        for s = 1:length(Y.L)      % save each sequence vs model dtw costs
+            if s < length(Y.L)
+                seq = X(Y.seg(s):Y.seg(s+1)-1,:);
+            else
+                seq = X(Y.seg(s):Y.seg(s+1),:);
+            end
+            if ~isempty(model.D)
+                % 1:high-arm-wave , 17: side-kick
+    %             if isempty(KT1) && strcmp(Yc.cnames(s),'high-arm-wave'), KT1 = getUpdatedCosts(seq,model.SM); end;
+    %             if isempty(KT2) && strcmp(Yc.cnames(s),'side-kick'), KT2 = getUpdatedCosts(seq,model.SM); end;
+    %             if ~isempty(KT1) && ~isempty(KT2)
+    %                 display();
+    %             end
+                if model.darwin
+                    KT = model.KT;
+                else
+                    KT = getUpdatedCosts(seq,model.SM);
+                end
+            end
+            for k = 1:nm
+                %% Compute the costs of the test sequence in terms of SM
+                M = model.M{k};
+                if ~isempty(model.D)
+                    if ~iscell(M)
+                        W = single(dtwc(seq,M,true,Inf,model.D,model.KM{k},KT));
+                    else
+                        if ~isempty(M{model.k})
+                            W = single(dtwc(seq,M{model.k},true,Inf,model.D,model.KM{k},KT));
+                        end
+                    end
+                else
+                    if ~iscell(M)
+                        if ~model.pdtw,
+                            W = single(dtwc(seq,M,true));
+                        else
+                            Pql=zeros(size(seq,1),size(M,1));
+                            for hh=1:size(M,1),
+                                if ~isempty(model.lmodel(k,hh).obj),
+                                    Pql(:,hh)= mixGaussLogprob(model.lmodel(k,hh).obj,seq);
+        %                             Pql(:,hh)= log(pdf(model.lmodel(k,hh).obj,seq));
+                                    Pql(isinf(Pql(:,hh)))=0;
+                                end
+                            end
+                            noze = sum(Pql)~=0;
+                            Pql(Pql==0) = mean(mean(Pql(:,noze)));
+                            maval = max(max(abs(Pql)));
+        %                     Dima  = (1-Pql)./maval;
+        %                     DD=pdist2(seq,M);
+        %                     DD = DD./max(max(DD));
+                            Dima = (1-Pql)./maval.*pdist2(seq,M);
+                            W = single(dtw3(seq,M,true,Inf,Dima));
+                        end
+                    else
+                        if ~isempty(M{model.k})
+                            W = single(dtwc(seq,M{model.k},true));
+                        end
+                    end
+                end
+                Wc(s,k) = W(end,end);
+            end
+        end
+        if isempty(model.bestThs)
+            for k = 1:nm     % save dtw costs of each non-iddle sequence vs its model
+                interv = (max(Wc(Y.L==k,k))-min(Wc(Y.L==k,k)))/model.nThreshs;
+                tMin = min(Wc(Y.L==k,k));
+                if interv == 0, interv = tMin*2/model.nThreshs; end
+                thresholds(k,:) = tMin + ((1:model.nThreshs)-1)*interv;
+            end
+        end
+    %     scoresP = zeros(length(Y.L),model.nThreshs); scoresR = zeros(length(Y.L),model.nThreshs); scoresA = zeros(length(Y.L),model.nThreshs);
+        %% accuracy estimation for single-label prediction 
+        Yones=zeros(size(Y.L,2),nm);
+        for i=1:nm,
+            Yones(Y.L==i,i)=1;
+        end
+        for i = 1:model.nThreshs,
+            for s = 1:nm,            
+                idxDet = Wc(:,s)<=thresholds(s,i);  
+                TP=sum(idxDet & Yones(:,s));            
+                TN=sum(~idxDet & ~Yones(:,s));                        
+                FP=sum(idxDet & ~Yones(:,s));
+                FN=sum(~idxDet & Yones(:,s));                        
+
+                if model.accuracyglobal,
+                    %%% global accuracy: 
+                    scoresA(s,i)= (TN+TP)./(TP+TN+FP+FN); 
+                else
+                    %%% weighted accuracy (for imbalanced data sets). 
+                    scoresA(s,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
+                end
+
+                scoresP(s,i) = TP./(TP+FP);
+                scoresR(s,i) = TP./(TP+FN);
+
+                if isnan(scoresP(s,i)), scoresP(s,i) = 0; end
+                if isnan(scoresR(s,i)), scoresR(s,i) = 0; end
+                if isnan(scoresA(s,i)), scoresA(s,i) = 0; end
+            end
+        end
+    %     for s = 1:length(Y.L)
+    %         for i = 1:model.nThreshs
+    %             TP = 0; FP = 0; FN = 0; TN = 0;  % NO SE CONSIDERAN LOS TN, DECIDIR SI LOS USAMOS SEGUN LO HABLADO
+    %             idxDet = Wc(s,:) < thresholds(:,i)';
+    %             if Y.L(s) < nm+1    % iddle gesture is ignored if it wasn't learnt
+    %                 if idxDet(Y.L(s))
+    %                     TP = TP + 1;    % DECIDISION DE LA ASIGNACION DE VERDADEROS POSITIVOS
+    %                     if sum(idxDet) > 1, FP = FP + sum(idxDet)-1; end
+    %                 else
+    %                     FN = FN + 1; FP = FP + sum(idxDet); 
+    %                 end
+    %             else
+    %                 FP = FP + sum(idxDet); 
+    %             end
+    % %             if sum(~idxDet)       % DECISION PARA ASIGNACION DE VERDADEROS NEGATIVOS
+    % %                 if ~idxDet(Y.L(s))
+    % %                     TN = TN + sum(~idxDet)-1;
+    % %                 else
+    % %                     TN = TN + sum(~idxDet);
+    % %                 end
+    % %             end
+    %             scoresP(s,i) = TP./(TP+FP);
+    %             scoresR(s,i) = TP./(TP+FN);
+    %             scoresA(s,i) = (TP)./(TP+FN+FP);    %%% (TP/(TP+FN) + TN/(TN+FP))/2   % METRICA PARA EL BALANCEO ENTRE CLASES
+    %             if isnan(scoresP(s,i)), scoresP(s,i) = 0; end
+    %             if isnan(scoresR(s,i)), scoresR(s,i) = 0; end
+    %             if isnan(scoresA(s,i)), scoresA(s,i) = 0; end
+    %         end
+    %     end
+        [bestScores(1),bestThsPos(1)] = max(mean(scoresP));
+        [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
+        [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
+        score = bestScores(model.score2optim);
+        model.bestThs = zeros(1,k); model.nThreshs = 1;
+        for i = 1:k
+            model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
+        end
     end
 else
     %% Spotting
@@ -203,7 +296,9 @@ else
     %% Compute the costs of the test sequence in terms of SM 
     if ~isempty(model.D)
         display('Computing the costs of the test sequence in terms of SM ...');
-        model.KT = getUpdatedCosts(X,model.SM);
+        if ~model.darwin
+            model.KT = getUpdatedCosts(X,model.SM);
+        end
     end
     scoresO = zeros(nm,model.nThreshs);
     prexp = false(model.nThreshs,length(Y.Lfr),nm);

@@ -1,7 +1,7 @@
 function runGenDTW(measure,lastGen)
 
 close all
-% clear all
+clear all
 addPath
 
 %% Generate global variables for the GA, cache and parameters
@@ -51,9 +51,12 @@ NORMTYPE = 'none'; COORDS = 'world'; NAT = 3;
 % pause();
 
 %% Obtain all samples grouped (labeled) by gestures
-Xtrain_l = getGroupedGestures(X,Y,1); if sum(cellfun(@isempty,Xtrain_l)), error('Empty gesture classes'); end
-Xval_l = getGroupedGestures(X,Y,2); if sum(cellfun(@isempty,Xval_l)), error('Empty gesture classes'); end
 %Xtrain_l = getGroupedGestures(X,Y,0);
+Xtrain_l = getGroupedGestures(X,Y,1,[],[]); if sum(cellfun(@isempty,Xtrain_l)), error('Empty gesture classes'); end
+Xval_l = getGroupedGestures(X,Y,2,[],[]); if sum(cellfun(@isempty,Xval_l)), error('Empty gesture classes'); end
+if ~isempty(Xtest) && ~isempty(Ytest)
+    Xtest_l = getGroupedGestures(X,Y,3,Xtest,Ytest); if sum(cellfun(@isempty,Xtest_l)), error('Empty gesture classes'); end
+end
 
 %% Compute median models from training/learning data
 % profile -memory on
@@ -73,14 +76,20 @@ l = [];
 %% Baseline 
 % First evaluation with euclidean distance
 % profile -memory on
-if ~params.phmm.hmm
-    [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
-%     [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
+if params.darwin
+    S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
+%     S_base = testDarwin(Xdev{1},Xtest,Ydev{1},Ytest);
 else
-    [S_base,model,bestScores] = testHMM(params);
-%     KT = getUpdatedCosts(Xtest,model.SM);
-%     [~,Dtest] = min(KT);
-%     [~,score,bestScores] = evalswHMM(model, Dtest, Ytest);
+    if ~params.phmm.hmm
+%         [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
+        [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2});
+%         [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
+    else
+        [S_base,model,bestScores] = testHMM(params);
+        KT = getUpdatedCosts(Xtest,model.SM);
+        [~,Dtest] = min(KT);
+        [~,score,bestScores] = evalswHMM(model, Dtest, Ytest);
+    end
 end
 % profreport
 
@@ -93,7 +102,7 @@ elseif strcmp(params.scoreMeasure,'levenshtein') || params.phmm.hmm
 end
 
 % Display functions
-fPlotComp = @(options,state,flag)plotMeanScores(options,state,flag,params,S_base,Xtest,Ytest);
+fPlotComp = @(options,state,flag)plotMeanScores(options,state,flag,params,S_base,Xtest,Ytest,Xtest_l);
 fPlotSI = @(options,state,flag)plotScoresPopul(options,state,flag,params);
 fPlotSG = @(options,state,flag)plotScoreSegs(options,state,flag,params);
 
@@ -110,7 +119,7 @@ fCrossOver = @(parents,options,nvars,FitnessFcn,unused,thisPopulation)...
     crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params,Xdev{1});
 
 % Options GA
-lastGen = 21;
+lastGen = 10;
 if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
         params.Baseline,'_',params.mType,'_',num2str(lastGen),'gens','_',...
         num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'),'file')

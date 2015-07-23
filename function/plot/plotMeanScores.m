@@ -1,4 +1,4 @@
-function state = plotMeanScores(options,state,~,params,S_base,X,Y)
+function state = plotMeanScores(options,state,~,params,S_base,X,Y,X_l)
 % plot mean scores
 % S_base: Mean score directly obtained from DTW with euclidean distance
 
@@ -53,13 +53,24 @@ plot(x,S,'b');
 if ~isempty(X),
     global Stest; global BESTIND;
     if length(BESTIND) > 1
-        if ~isequal(BESTIND(end).model,BESTIND(end-1).model)
-            stest = testLastGen(state,BESTIND(end).model,X,Y);
+        if ~isequal(BESTIND(end).model,BESTIND(end-1).model) 
+            if isempty(BESTIND(end).model)
+                BESTIND(end).model = BESTIND(end-1).model;
+            end
+            try
+                stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
+            catch e
+                display(e);
+            end
         else
             stest = Stest(end);
         end
     else
-        stest = testLastGen(state,BESTIND(end).model,X,Y);
+        try
+            stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
+        catch e
+            display(e);
+        end
     end
     if length(Stest) > 1
         if stest < Stest(end), stest = Stest(end); end

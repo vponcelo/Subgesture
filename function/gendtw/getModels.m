@@ -104,7 +104,7 @@ for i = 1:k
                  [~,idx]=max(slengths);
 %                 [~,idx]=min(slengths);
             end
-            ptr = X{i}{idx}; 
+            ptr = X{i}{idx};
             alig_seqs = zeros(length(X{i}),size(ptr,1),size(ptr,2));
             for j = 1:length(X{i})
                 if j ~= idx                  

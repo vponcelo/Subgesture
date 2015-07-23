@@ -7,88 +7,129 @@ if iscell(model.phmm.model{1}), modelpmtk = model.phmm.model{1}; else modelpmtk 
 if iscell(model.phmm.hmmTR_f{1}), TRANS = model.phmm.hmmTR_f{1}; else TRANS = model.phmm.hmmTR_f; end
 if iscell(model.phmm.hmmE_f{1}), EMIS = model.phmm.hmmE_f{1}; else EMIS = model.phmm.hmmE_f; end
 
-if iscell(X)
-    probs = zeros(1,length(X));
-    for i = 1:length(X)
-        for j = 1:length(TRANS)
-            probs(i,j) = evaluateSequences([],X{i}, TRANS{j}, EMIS{j}, modelpmtk{j});
+if model.phmm.pmtk, nm=length(modelpmtk); else nm=length(TRANS); end
+%% number of tresholds and interval to test threshs
+if isempty(model.bestThs), 
+    thresholds = zeros(nm,model.nThreshs);
+else
+    thresholds(:,1) = model.bestThs; 
+    if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
+end
+predictions = []; scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
+
+if iscell(X) && model.classification
+    %% begin evaluation
+    display(sprintf('Classifying sequences in %d gesture classes ...',nm));
+    probs = cell(1,nm);
+    for l = 1:nm
+        probs{l} = zeros(length(X{l}),nm);
+        for k = 1:nm
+            probs{l}(:,k) = evaluateSequences([],X{l}, TRANS{k}, EMIS{k}, modelpmtk{k});
         end
-    end
-    %% number of tresholds and interval to test threshs
-    
-    scoresP = zeros(length(TRANS),model.nThreshs);
-    scoresR = zeros(length(TRANS),model.nThreshs);
-    scoresA = zeros(length(TRANS),model.nThreshs);
-    
-    thresholds = zeros(length(TRANS),model.nThreshs);
-    
-    %% accuracy estimation for single-label prediction
-    Yones = ones(1,length(X))';
-    for j = 1:length(TRANS)
-        interv = (max(probs(:,j))-min(probs(:,j)))/model.nThreshs;
-        tMin = min(probs(:,j));
-        if interv == 0, interv = tMin*2/model.nThreshs; end
-        thresholds(j,:) = tMin + ((1:model.nThreshs)-1)*interv;
+        if isempty(model.bestThs)
+            interv = (max(probs{l}(:,l))-min(probs{l}(:,l)))/model.nThreshs;
+            tMin = min(probs{l}(:,l));
+            if interv == 0, interv = tMin*2/model.nThreshs; end
+            thresholds(l,:) = tMin + ((1:model.nThreshs)-1)*interv;
+        end
+        %% accuracy estimation for single-label prediction 
+        Yones=zeros(length(X{l}),nm); Yones(:,l)=1;
         for i = 1:model.nThreshs,
-            idxDet = probs(:,j) >= thresholds(j,i);
-            TP=sum(idxDet & Yones);            
-            TN=sum(~idxDet & ~Yones);
-            FP=sum(idxDet & ~Yones);
-            FN=sum(~idxDet & Yones);
+            idxDet = probs{l} >= thresholds(l,i);
+            TP=sum(sum(idxDet & Yones));
+            TN=sum(sum(~idxDet & ~Yones));
+            FP=sum(sum(idxDet & ~Yones));
+            FN=sum(sum(~idxDet & Yones));
 
             if model.accuracyglobal,
                 %%% global accuracy:
-                scoresA(j,i)= (TN+TP)./(TP+TN+FP+FN);
+                try
+                    scoresA(l,i)= (TN+TP)./(TP+TN+FP+FN);
+                catch e
+                    display();
+                end
             else
                 %%% weighted accuracy (for imbalanced data sets). 
-                scoresA(j,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
+                scoresA(l,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
             end
 
-            scoresP(j,i) = TP./(TP+FP);
-            scoresR(j,i) = TP./(TP+FN);
+            scoresP(l,i) = TP./(TP+FP);
+            scoresR(l,i) = TP./(TP+FN);
 
-            if isnan(scoresP(j,i)), scoresP(j,i) = 0; end
-            if isnan(scoresR(j,i)), scoresR(j,i) = 0; end
-            if isnan(scoresA(j,i)), scoresA(j,i) = 0; end
+            if isnan(scoresP(l,i)), scoresP(l,i) = 0; end
+            if isnan(scoresR(l,i)), scoresR(l,i) = 0; end
+            if isnan(scoresA(l,i)), scoresA(l,i) = 0; end
         end
     end
-    %% get the predicted class giving the maximum scores
-    k = zeros(1,3); bestScores = zeros(1,3);
-    mScoresP = max(scoresP'); mScoresR = max(scoresR'); mScoresA = max(scoresA');
-    kscoresP = ismember(mScoresP,max(mScoresP));
-    kscoresR = ismember(mScoresR,max(mScoresR)); 
-    kscoresA = ismember(mScoresA,max(mScoresA));
-    if kscoresP(Y{1}(1)) == 1,
-        bestScores(1) = max(mScoresP); k(1) = Y{1}(1);
-    else
-        [bestScores(1),k(1)] = max(mScoresP);
+    [bestScores(1),bestThsPos(1)] = max(mean(scoresP));
+    [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
+    [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
+    score = bestScores(model.score2optim);
+    model.bestThs = zeros(1,nm); model.nThreshs = 1;
+    for i = 1:nm
+        model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
     end
-    if kscoresR(Y{1}(1)) == 1,
-        bestScores(2) = max(mScoresR); k(2) = Y{1}(1);
-    else
-        [bestScores(2),k(2)] = max(mScoresR);
-    end
-    if kscoresA(Y{1}(1)) == 1,
-        bestScores(3) = max(mScoresA); k(3) = Y{1}(1);
-    else
-        [bestScores(3),k(3)] = max(mScoresA);
-    end 
-    score = k(model.score2optim);
+    
+%     %% number of tresholds and interval to test threshs
+%     scoresP = zeros(length(TRANS),model.nThreshs);
+%     scoresR = zeros(length(TRANS),model.nThreshs);
+%     scoresA = zeros(length(TRANS),model.nThreshs);
+%     
+%     thresholds = zeros(length(TRANS),model.nThreshs);
+%     
+%     %% accuracy estimation for single-label prediction
+%     Yones = ones(1,length(X))';
+%     for j = 1:length(TRANS)
+%         interv = (max(probs(:,j))-min(probs(:,j)))/model.nThreshs;
+%         tMin = min(probs(:,j));
+%         if interv == 0, interv = tMin*2/model.nThreshs; end
+%         thresholds(j,:) = tMin + ((1:model.nThreshs)-1)*interv;
+%         for i = 1:model.nThreshs,
+%             idxDet = probs(:,j) >= thresholds(j,i);
+%             TP=sum(idxDet & Yones);            
+%             TN=sum(~idxDet & ~Yones);
+%             FP=sum(idxDet & ~Yones);
+%             FN=sum(~idxDet & Yones);
+% 
+%             if model.accuracyglobal,
+%                 %%% global accuracy:
+%                 scoresA(j,i)= (TN+TP)./(TP+TN+FP+FN);
+%             else
+%                 %%% weighted accuracy (for imbalanced data sets). 
+%                 scoresA(j,i)= (TP/(TP+FN) + TN/(TN+FP))/2;
+%             end
+% 
+%             scoresP(j,i) = TP./(TP+FP);
+%             scoresR(j,i) = TP./(TP+FN);
+% 
+%             if isnan(scoresP(j,i)), scoresP(j,i) = 0; end
+%             if isnan(scoresR(j,i)), scoresR(j,i) = 0; end
+%             if isnan(scoresA(j,i)), scoresA(j,i) = 0; end
+%         end
+%     end
+%     %% get the predicted class giving the maximum scores
+%     k = zeros(1,3); bestScores = zeros(1,3);
+%     mScoresP = max(scoresP'); mScoresR = max(scoresR'); mScoresA = max(scoresA');
+%     kscoresP = ismember(mScoresP,max(mScoresP));
+%     kscoresR = ismember(mScoresR,max(mScoresR)); 
+%     kscoresA = ismember(mScoresA,max(mScoresA));
+%     if kscoresP(Y{1}(1)) == 1,
+%         bestScores(1) = max(mScoresP); k(1) = Y{1}(1);
+%     else
+%         [bestScores(1),k(1)] = max(mScoresP);
+%     end
+%     if kscoresR(Y{1}(1)) == 1,
+%         bestScores(2) = max(mScoresR); k(2) = Y{1}(1);
+%     else
+%         [bestScores(2),k(2)] = max(mScoresR);
+%     end
+%     if kscoresA(Y{1}(1)) == 1,
+%         bestScores(3) = max(mScoresA); k(3) = Y{1}(1);
+%     else
+%         [bestScores(3),k(3)] = max(mScoresA);
+%     end 
+%     score = k(model.score2optim);
 else    % X evaluate whole seq.
-    if model.phmm.pmtk, nm=length(modelpmtk); else nm=length(TRANS); end
-    
-%     Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
-    predictions = [];
-    
-    %% number of tresholds and interval to test threshs
-    if isempty(model.bestThs), 
-        thresholds = zeros(nm,model.nThreshs);
-    else
-        thresholds(:,1) = model.bestThs; 
-        if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
-    end
-    predictions = []; scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
-    
     %% begin evaluation    
     if model.classification
         display(sprintf('Classifying %d sequences in %d gesture classes ...',length(Y.L),nm));
@@ -153,17 +194,9 @@ else    % X evaluate whole seq.
         %% Spotting
         display(sprintf('Spotting the %d classes in a sequence of %d frames ...',nm,length(Y.Lfr)));
         global DATATYPE; global NAT;
+
         sws = 10:10:60;     % size of gesture sequences is usually < 60
-        
-        %% number of tresholds and interval to test threshs
-        if ~isempty(model.bestThs)
-            if model.nThreshs > 1, error('g:nThErr','Only 1 threshold should have been learnt per class'); end
-            thresholds(:,1) = model.bestThs;
-        else
-            thresholds = zeros(nm,model.nThreshs);
-        end
-        
-        scoresO = zeros(nm,model.nThreshs); scoresP = zeros(nm,model.nThreshs); scoresR = zeros(nm,model.nThreshs); scoresA = zeros(nm,model.nThreshs);
+        scoresO = zeros(nm,model.nThreshs); 
         prexp = false(model.nThreshs,length(Y.Lfr),nm);
         bestScores = zeros(nm,4); bestThsPos = zeros(nm,4);
         %% Estimate scores & predictions from probabilities of generating X from each model
