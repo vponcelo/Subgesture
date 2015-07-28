@@ -81,8 +81,9 @@ if params.darwin
 %     S_base = testDarwin(Xdev{1},Xtest,Ydev{1},Ytest);
 else
     if ~params.phmm.hmm
-%         [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
-        [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2});
+        [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
+%         [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2}); %% was
+% %         active
 %         [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
     else
         [S_base,model,bestScores] = testHMM(params);
