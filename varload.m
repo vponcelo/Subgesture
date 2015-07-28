@@ -20,7 +20,7 @@ global MEDIANTYPE;      % Type of median models
 global JOINTS;          % Selected joints
 global NAT;             % Type of Descriptor
 
-DATATYPE = 'msract3d';
+DATATYPE = 'mad1';
 NORMTYPE = 'neck';
 COORDS = 'pixel';
 VISUALIZE = false;
@@ -49,9 +49,9 @@ secsBatch = 60;         % reference seconds for the test sequence
 nSampGest = 0;        % Number of samples per gesture for the test sequence
 
 %% classification type parameter
-params.classification = true;       % flag that indicates to perform global category classification
+params.classification = false;       % flag that indicates to perform global category classification
 params.accuracyglobal = true;        % global accuracy or weighted accuracy (for imbalanced data sets).
-params.darwin = true;                % flag that indicates to perform videoDarwin-based classification
+params.darwin = false;                % flag that indicates to perform videoDarwin-based classification
 params.svm = false;                  % flag that indicates to perform SVM-based classification
 
 %% parameters hmm
@@ -63,7 +63,7 @@ params.phmm.kD = 300;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
 params.phmm.hmm = false;            % flag that indicates to train with hmm training 
-params.phmm.pmtk = true;           % flag that indicates to use the pmtk3 library implementation
+params.phmm.pmtk = false;           % flag that indicates to use the pmtk3 library implementation
 
 %% parameters genetic temporal clustering
 params.version = ...
@@ -79,7 +79,7 @@ params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
 params.vectorized = 'off';   % vectorize the GA
 params.population = 5;     % population of the GA
-params.generations = 1004;  % number of generations of the GA
+params.generations = 20;  % number of generations of the GA
 params.Baseline = ...
     BASELINE{2};            % Baseline for the GA
 params.threshMov = 3;       % maximum number of low movement frames
@@ -97,9 +97,9 @@ params.usemax_l = true;        % use the median or the max-length gesture as ref
 params.resize = true;          % Use resizing instead of mean DTW alignment
 params.gmm = false;            % Use gmm instead of other non-probabilistic representations
 params.pdtw = false;           % flag for indicating the use of gmms in feature modeling
-params.score2optim = 'a';        % Score to optimize --> Overlap: 'o', Precision: 'p', Recall: 'r', Accuracy/F1-Score(spotting): 'a'
+params.score2optim = 'o';        % Score to optimize --> Overlap: 'o', Precision: 'p', Recall: 'r', Accuracy/F1-Score(spotting): 'a'
 params.minOverlap = 0.5;        % Minimum overlap to detect the label
-params.sw = 0;              % sliding window (frame seq length): '0' means the whole sequence
+params.sw = 4000;              % sliding window (frame seq length): '0' means the whole sequence
 params.k = 0;               % current k to evaluate for the K-Nearest Neighbour DTW models
 CACHE.pos = int32(1);       % Index positions
 % GENRESULTS.P = cell(1,params.generations);
