@@ -85,7 +85,7 @@ else
         [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
         [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
 %         [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2});
-%         [~,S_base,bestScores,~] = g(model,Xtest_l,Ydev{2});
+%         [~,S_base,bestScores,~] = g(model,Xtest_l,Ytest);
         
     else
         [S_base,model,bestScores] = testHMM(params);
