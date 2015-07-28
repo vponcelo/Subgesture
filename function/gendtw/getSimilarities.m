@@ -27,7 +27,7 @@ if n > 1
     B = A./max(max(A));
     S = B + B';
 else
-    S = 1;
+    S = 0;
 end
 
 
