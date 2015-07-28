@@ -1,7 +1,7 @@
 function runGenDTW(measure,lastGen)
 
 close all
-clear all
+% clear all
 addPath
 
 %% Generate global variables for the GA, cache and parameters
@@ -76,20 +76,30 @@ l = [];
 %% Baseline 
 % First evaluation with euclidean distance
 % profile -memory on
+S_base = 0;
 if params.darwin
-    S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
-%     S_base = testDarwin(Xdev{1},Xtest,Ydev{1},Ytest);
+%     S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
+    S_base = testDarwin(Xdev{1},Xtest,Ydev{1},Ytest);
 else
     if ~params.phmm.hmm
         [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
-%         [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2}); %% was
-% %         active
-%         [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
+        [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
+%         [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2});
+%         [~,S_base,bestScores,~] = g(model,Xtest_l,Ydev{2});
+        
     else
         [S_base,model,bestScores] = testHMM(params);
-        KT = getUpdatedCosts(Xtest,model.SM);
-        [~,Dtest] = min(KT);
-        [~,score,bestScores] = evalswHMM(model, Dtest, Ytest);
+        if params.classification
+            Dtest = cell(1,length(Xtest_l));
+            for sample = 1:length(Xtest_l)
+                KT = getUpdatedCosts(Xtest_l{sample},model.SM);
+                [~,Dtest{sample}] = min(KT);
+            end
+        else
+            KT = getUpdatedCosts(Xtest,model.SM);
+            [~,Dtest] = min(KT);
+        end
+        [~,S_base,bestScores] = evalswHMM(model, Dtest, Ytest);
     end
 end
 % profreport
