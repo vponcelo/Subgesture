@@ -39,7 +39,8 @@ else
         Y.seg = Yc.seg(idxSeg); Y.L = Yc.L(idxSeg(1:end-1));
         if Y.seg(1) > seg(1), Y.seg = [seg(1) Y.seg]; Y.L = [Yc.L(idxSeg(1)-1) Y.L]; end
         if Y.seg(end) < seg(end), Y.seg = [Y.seg seg(end)]; Y.L = [Y.L Yc.L(idxSeg(end))]; end
-        Y.L=Y.Lfr; d=diff(Y.Lfr); Y.L(d==0)=[]; Y.seg=[1 find(d~=0)+1 length(Y.Lfr)];
+        % IMPLEMENT: generate Y.seg form Y.L. This is not necessary for now,
+        % just in case we might need a sliding window of size model.sw > 0
     end
 end
 
@@ -294,7 +295,7 @@ else
     display(sprintf('Spotting the %d classes in a sequence of %d frames ...',nm,length(Y.Lfr)));
     global DATATYPE; global NAT;
     %% Compute the costs of the test sequence in terms of SM 
-    if (~isempty(model.D) & ~isscalar(model.D))
+    if ~isempty(model.D)
         display('Computing the costs of the test sequence in terms of SM ...');
         if ~model.darwin
             model.KT = getUpdatedCosts(X,model.SM);
@@ -310,7 +311,7 @@ else
             warning('g:missedLabel','Label %d is missing in the test sequence',k);
         end
         W = [];
-        if (~isempty(model.D) & ~isscalar(model.D))
+        if ~isempty(model.D)
             if ~iscell(model.M{k})
                 W = single(dtwc(X,model.M{k},false,Inf,model.D,model.KM{k},model.KT));
             else
