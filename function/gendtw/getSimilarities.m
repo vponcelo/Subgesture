@@ -5,7 +5,11 @@ function S = getSimilarities(X,params)
 %       params: set of parameters
 %   Output -
 %       S: Similary matrix
-n = size(X,1);
+if params.darwin
+    n = size(X,1);
+else
+    n = size(X,2);
+end
 A = zeros(n,n);
 if n > 1
     for i = 1:n
@@ -14,7 +18,7 @@ if n > 1
                 if params.darwin
                     A(i,j) = pdist2(X(i,:),X(j,:));
                 else
-                    W = dtwc(X{i},X{j},1);
+                    W = dtwc(X{i},X{j},true);
                     A(i,j) = W(end,end);
                 end
             end 
