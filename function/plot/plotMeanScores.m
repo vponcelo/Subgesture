@@ -58,8 +58,7 @@ if ~isempty(X),
                 BESTIND(end).model = BESTIND(end-1).model;
             end
             try
-%                 stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
-                stest = testLastGen(state,BESTIND(end).model,X,Y);
+                stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
             catch e
                 display(e);
             end
@@ -68,13 +67,14 @@ if ~isempty(X),
         end
     else
         try
-%             stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
-            stest = testLastGen(state,BESTIND(end).model,X,Y);
+            stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
         catch e
             display(e);
         end
     end
     if length(Stest) > 1
+        stest
+        BESTIND(end).model
         if stest < Stest(end), stest = Stest(end); end
     end
     Stest = [Stest stest];

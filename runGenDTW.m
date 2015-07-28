@@ -82,18 +82,23 @@ if params.darwin
     S_base = testDarwin(Xdev{1},Xtest,Ydev{1},Ytest);
 else
     if ~params.phmm.hmm
-        [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
-        [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
-%         [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2});
-%         [~,S_base,bestScores,~] = g(model,Xtest_l,Ytest);
-        
+        if params.classification
+            [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2});
+            [~,S_base,bestScores,~] = g(model,Xtest_l,Ytest);
+        else
+            [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
+            [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
+        end
     else
         [S_base,model,bestScores] = testHMM(params);
         if params.classification
             Dtest = cell(1,length(Xtest_l));
-            for sample = 1:length(Xtest_l)
-                KT = getUpdatedCosts(Xtest_l{sample},model.SM);
-                [~,Dtest{sample}] = min(KT);
+            for l = 1:length(Xtest_l)
+                Dtest{l} = cell(1,length(Xtest_l{l}));
+                for sample = 1:length(Xtest_l{l})
+                    KT = getUpdatedCosts(Xtest_l{l}{sample},model.SM);
+                    [~,Dtest{l}{sample}] = min(KT);
+                end
             end
         else
             KT = getUpdatedCosts(Xtest,model.SM);
