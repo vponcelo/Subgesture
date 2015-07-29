@@ -1,24 +1,34 @@
-function [O1,O2,R,overlap] = estimate_overlap_mad(GT,PREDSEQ,perc)
+function [O1,O2,R,overlap] = estimate_overlap_mad(Y,PREDSEQ,perc)
 
 %% O1 - Without considering the iddle gesture as class
 %% O2 - Considering the iddle gesture as class
 %% perc - threshold on overlap to be considered as recognized
 
 % fpth=110; %% number of frames to consider a gesture as detected (false pos.)
-clx=unique(GT); clx(clx==0)=[];
+clx=unique(Y.Lfr); clx(clx==0)=[];
 % O1=zeros(1,length(clx)-1);
 % O2=zeros(1,length(clx));
 % DETT=zeros(1,length(clx));
 O1=NaN;
 O2=NaN;
-GTtestkFr=zeros(size(GT));
-detSeqLog=zeros(size(GT));
+GTtestkFr=zeros(size(Y.Lfr));
+detSeqLog=zeros(size(Y.Lfr));
 
 ovs = zeros(1,length(clx));
 
-SGT=findsegments(GT);
+%%
+% SGT2=findsegments(Y.Lfr);
+%% Allow consecutive segments having the same label. It runs a little bit faster
+SGT = zeros(length(Y.L),3);
+for s = 1:length(Y.L)
+    SGT(s,1) = Y.seg(s);
+    if s < length(Y.L), SGT(s,2) = Y.seg(s+1)-1; else SGT(s,2) = Y.seg(s+1); end
+    SGT(s,3) = Y.L(s);
+end
+%%
+
 SPRED=findsegments(PREDSEQ);
-SPRED(find(SPRED(:,3)==-1),3)=36;
+SPRED(SPRED(:,3)==-1,3)=36;
 for i=1:length(clx),
     ofin=find(GT==clx(i));
     ofin2=find(PREDSEQ==clx(i));
@@ -66,10 +76,10 @@ for i=1:length(clx),
     clear O2Pc O2c
 end
 overlap=mean(ovs);
-Prec(find(isnan(Prec)))=0;
-Rec(find(isnan(Rec)))=0;
+Prec(isnan(Prec))=0;
+Rec(isnan(Rec))=0;
 F1= (2* Prec.* Rec)./ (Prec + Rec);
-F1(find(isnan(F1)))=0;
+F1(isnan(F1))=0;
 
 R.prec=mean(Prec);
 R.rec=mean(Rec);

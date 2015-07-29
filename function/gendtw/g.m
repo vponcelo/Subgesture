@@ -482,7 +482,7 @@ else
         % plot(nY,':r');
 
         % now estimate overlap, prec, rec, and f1 (no accuracy right now)
-        [~,~,R,ovlp] = estimate_overlap_mad(Y.Lfr,predictions,model.minOverlap);
+        [~,~,R,ovlp] = estimate_overlap_mad(Y,predictions,model.minOverlap);
         R.prec
         R.rec
         % Assign Overlap, Precision, Recall, F1-score
