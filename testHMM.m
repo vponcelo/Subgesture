@@ -10,6 +10,9 @@ if ~exist('params','var')
     params.scoreMeasure = 'overlap';  % Score Measure: 'overlap' or 'levenshtein'    
     clear CACHE S BASELINE OPTIONS STATE;
 end
+if ~isfield('params','scoreMeasure'),
+    params.scoreMeasure = 'overlap';  % Score Measure: 'overlap' or 'levenshtein'    
+end
 nSampGest = 10;
 switch params.score2optim
     case 'o', if ~params.classification, params.score2optim = 1; else error('g:optErr','Spotting is not allowed in classification ...for now... (ODL!)'); end
@@ -207,6 +210,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     seg=r(1):min(r(1)+params.sw,length(Ydev{2}.Lfr));
                     Xval=Xdev{2}(seg,:); Yval.Lfr=Ydev{2}.Lfr(seg);                         % gesture vector
 %                     Xval = Xval(Yval.Lfr == l,:);  % baseline 1+2: get current gesture label
+%                     Yval.L=Yval.Lfr;d=diff(Yval.Lfr);Yval.L(d==0)=[]; Yval.seg=[1 find(d~=0)+1 length(Yval.Lfr)];
                 end
             else
                 if params.phmm.hmm
@@ -270,6 +274,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     seg=r(1):min(r(1)+sw,length(Yval.Lfr));
                     Dval=Dval(seg);
                     Yval.Lfr=Yval.Lfr(seg);
+                    Yval.L=Yval.Lfr;d=diff(Yval.Lfr);Yval.L(d==0)=[]; Yval.seg=[1 find(d~=0)+1 length(Yval.Lfr)];
                 end
                 [model,score,bestScores] = evalswHMM(params, Dval, Yval);
                 model.SM = params.phmm.SM{k};
