@@ -273,7 +273,6 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
                     seg=r(1):min(r(1)+sw,length(Yval.Lfr));
                     Dval=Dval(seg);
                     Yval.Lfr=Yval.Lfr(seg);
-                    
                 end
                 [model,score,bestScores] = evalswHMM(params, Dval, Yval);
                 model.SM = params.phmm.SM{k};

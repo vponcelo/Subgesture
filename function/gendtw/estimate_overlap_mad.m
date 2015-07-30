@@ -30,7 +30,7 @@ end
 SPRED=findsegments(PREDSEQ);
 SPRED(SPRED(:,3)==-1,3)=36;
 for i=1:length(clx),
-    ofin=find(GT==clx(i));
+    ofin=find(Y.Lfr==clx(i));
     ofin2=find(PREDSEQ==clx(i));
     
     cGTtestkFr =GTtestkFr;

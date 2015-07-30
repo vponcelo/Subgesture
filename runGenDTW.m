@@ -107,6 +107,7 @@ else
         [~,S_base,bestScores] = evalswHMM(model, Dtest, Ytest);
     end
 end
+S_base
 % profreport
 
 %% Genetic algorithm optimization
