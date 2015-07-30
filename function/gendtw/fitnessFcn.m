@@ -1,4 +1,4 @@
-function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,Xtest,Xtest_l,Ytest,params)
+function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     % Validate the data sequences by means of either k-means-DTW and mean DTW models.
 
     % output:
@@ -65,17 +65,9 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,Xtest,Xtest_l,Ytest
 %     cd('results/temp/');
 %     save('temp.mat','seg','X','XtrainT','Ytrain','params','k');
     if params.classification, 
-        if params.svm
-            Xv = Xtest_l; 
-        else
-            Xv = Xval_l;
-        end
+        Xv = Xval_l;
     else
-        if params.svm
-            Xv = Xtest;
-        else
-            Xv = Xval; 
-        end
+        Xv = Xval; 
     end
     if length(idx) > 1
         sc = zeros(1,length(k));

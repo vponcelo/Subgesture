@@ -79,8 +79,9 @@ clear X Y
 % profile -memory on
 S_base = 0;
 if params.darwin
+    [X,Y] = getFullDev(Xdev,Ydev);
 %     S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
-    S_base = testDarwin(Xdev{1},Xtest,Ydev{1},Ytest);
+    S_base = testDarwin(X,Xtest,Y,Ytest);
 else
     if ~params.phmm.hmm
         if params.classification
@@ -114,9 +115,9 @@ S_base
 %% Genetic algorithm optimization
 % Evaluation function
 if strcmp(params.scoreMeasure,'overlap')
-    fEval = @(I) -fitnessFcn(I,Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},Xtest,Xtest_l,Ytest,params);    
+    fEval = @(I) -fitnessFcn(I,Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},params);    
 elseif strcmp(params.scoreMeasure,'levenshtein') || params.phmm.hmm
-    fEval = @(I) fitnessFcn(I,Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},Xtest,Xtest_l,Ytest,params);
+    fEval = @(I) fitnessFcn(I,Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},params);
 end
 
 % Display functions

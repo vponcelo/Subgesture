@@ -144,7 +144,7 @@ for v = 1:length(seq)
                 end
             end
         else
-            GT{v}.L = Y{v}.L;
+            GT{v}.L = Y{v}.L; GTT.L = Ytest.L;
         end
     else
         fps = 20;
