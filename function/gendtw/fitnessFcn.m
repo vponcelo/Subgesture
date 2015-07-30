@@ -1,4 +1,4 @@
-function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
+function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,Xtest,Xtest_l,Ytest,params)
     % Validate the data sequences by means of either k-means-DTW and mean DTW models.
 
     % output:
@@ -6,7 +6,6 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     % input:
     %   I: Individual for the genetic algorithm
     %   X: whole training data    
-    %   XtrainT: the training data sequence for testing (without noise)
     %   Xtrain_l: training data grouped (labeled) by classes (gestures)
     %   Ytrain: training data labels    
     %   Xval: the validation data sequence for testing (including noise)    
@@ -65,7 +64,19 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     [I2,k,seg,mk,mnsegs] = decode(I2(idx,:),params);
 %     cd('results/temp/');
 %     save('temp.mat','seg','X','XtrainT','Ytrain','params','k');
-    if params.classification, Xv = Xval_l; else Xv = Xval; end
+    if params.classification, 
+        if params.svm
+            Xv = Xtest_l; 
+        else
+            Xv = Xval_l;
+        end
+    else
+        if params.svm
+            Xv = Xtest;
+        else
+            Xv = Xval; 
+        end
+    end
     if length(idx) > 1
         sc = zeros(1,length(k));
         if params.classification, sc2 = zeros(length(k),3); else sc2 = zeros(length(k),4); end
@@ -100,7 +111,7 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             else
                 segA = reshape(seg(i,:,:),size(seg,2),size(seg,3));
             end
-            model{i} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k(i),segA,mnsegs(i),mk(i));
+            model{i} = evalFit(X,Xtrain_l,Ytrain,params,k(i),segA,mnsegs(i),mk(i));
             Yv = Yval;      % Parfor doesn't accept modifying the value of Yval directly
             display('Optimizing model parameters over validation ...');
             if ~params.phmm.hmm
@@ -166,9 +177,9 @@ function s = fitnessFcn(I,X,XtrainT,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
         predictions = cell(1);
         model = cell(1);
         if iscell(seg)
-            model{1} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,cell2mat(seg),mnsegs,mk);
+            model{1} = evalFit(X,Xtrain_l,Ytrain,params,k,cell2mat(seg),mnsegs,mk);
         else
-            model{1} = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
+            model{1} = evalFit(X,Xtrain_l,Ytrain,params,k,reshape(seg,size(seg,2),size(seg,3)),mnsegs,mk);
         end
         display('Optimizing model parameters over validation ...');
         if ~params.phmm.hmm
@@ -462,7 +473,7 @@ function [exists,s] = getCacheVal(I,params)
     end
 end
 
-function model = evalFit(X,XtrainT,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
+function model = evalFit(X,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
 % Output:
 %   s: scores
 %   model: model structure

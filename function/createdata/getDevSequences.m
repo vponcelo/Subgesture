@@ -1,9 +1,13 @@
-function [seq,GT] = getDevSequences(X,Y,l,noise,secs,nSampGest)
+function [seq,GT,seqT,GTT] = getDevSequences(X,Y,Xtest,Ytest,l,noise,secs,nSampGest)
 % Obtain a frame sequence and labels given the whole batches
 % Output: 
-%   seq: test sequences generated for training and validation
+%   seq: sequences generated from training and validation sequences
 %   GT: ground truths of the training and validation sequences
+%   seqT: sequences generated from test sequences
+%   GTT: ground truths of the test sequences
 % Input:
+%   X: data sequences
+%   Y: data labels
 %   X: data sequences
 %   Y: data labels
 %   l: list with the number of batches to consider
@@ -11,13 +15,31 @@ function [seq,GT] = getDevSequences(X,Y,l,noise,secs,nSampGest)
 %   secs: reference seconds for the test sequence
 %   nSampGest: Number of samples per gesture for the test sequence   
 
-seq = cell(1,2);
-GT = cell(1,2);
+seq = cell(1,2); GT = cell(1,2); seqT = [];
+if ~isempty(Xtest)
+    seqT = cell(1,1); GTT = cell(1,1);
+end
 
 for v = 1:length(seq)
     if isempty(l)
         seq{v} = zeros(Y{v}.seg(end),size(X{v},2));
         GT{v}.Lfr = zeros(1,Y{v}.seg(end));
+        if ~isempty(seqT)
+            seqT = zeros(Ytest.seg(end),size(Xtest,2));
+            GTT.Lfr = zeros(1,Ytest.seg(end));
+            for j = 1:length(Ytest.L)
+                startSeq = Ytest.seg(j);
+                GTT.seg(j) = startSeq;
+                if j < length(Ytest.L)
+                    endSeq = Ytest.seg(j+1)-1;
+                else
+                    endSeq = Ytest.seg(j+1);
+                    GTT.seg(j+1) = endSeq;
+                end
+                seqT(startSeq:endSeq,:) = Xtest(startSeq:endSeq,:);
+                GTT.Lfr(startSeq:endSeq) = Ytest.L(j);
+            end
+        end
         for j = 1:length(Y{v}.L)
             startSeq = Y{v}.seg(j);
             GT{v}.seg(j) = startSeq;
@@ -32,6 +54,51 @@ for v = 1:length(seq)
         end
         if nSampGest > 0
             GTf = zeros(size(GT{v}.Lfr)); seqf = zeros(size(seq{v}));
+            if ~isempty(seqT)
+                GTTf = zeros(size(GTT.Lfr)); seqTf = zeros(size(seqT));
+                for k = 1:length(unique(GTT.Lfr))
+                    idx = find(GTT.Lfr == k);
+                    if isempty(idx)
+                        error('getTestSequences:NotEnoughSamples','There are no samples of gesture %d in the data',k);
+                    end
+                    g = 1; j = 2;
+                    in = idx(1);
+                    while g <= nSampGest && j < length(idx)
+                        if idx(j)-idx(j-1) > 1
+                            fi = idx(j-1);
+                            GTTf(in:fi) = GTT.Lfr(in:fi);
+                            seqTf(in:fi,:) = seqT(in:fi,:);
+                            in = idx(j);
+                            g = g + 1;
+                        end
+                        j = j + 1;
+                    end            
+                end
+                idx = GTTf ~= 0;
+                GTT.Lfr = GTT.Lfr(idx);
+                seqT = seqT(idx,:);
+                SG = zeros(1,length(unique(Ytest.L)));
+                GTT.L = zeros(1,length(SG)*nSampGest);
+                c = 1; k = 1; exceed = false;
+                while ~all(SG == nSampGest) && ~exceed
+                    if c <= length(Ytest.L)
+                        if Ytest.L(c) <= length(SG)
+                            gesture = Ytest.L(c);
+                            if SG(gesture) < nSampGest
+                                SG(gesture) = SG(gesture) + 1;
+                                GTT.L(k) = Ytest.L(c);
+                                k = k + 1;
+                            end
+                        end
+                        c = c + 1;
+                    else
+                        exceed = true;
+                    end
+                end
+            else
+                GTT.L = Ytest.L;
+            end
+            
             for k = 1:length(unique(GT{v}.Lfr))
                 idx = find(GT{v}.Lfr == k);
                 if isempty(idx)

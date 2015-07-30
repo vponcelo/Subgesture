@@ -52,29 +52,27 @@ hold on
 plot(x,S,'b');
 if ~isempty(X),
     global Stest; global BESTIND;
-    if length(BESTIND) > 1
+    if length(BESTIND) > 1 
         if ~isequal(BESTIND(end).model,BESTIND(end-1).model) 
             if isempty(BESTIND(end).model)
                 BESTIND(end).model = BESTIND(end-1).model;
             end
-            try
+            if ~BESTIND(end).model.svm
                 stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
-            catch e
-                display(e);
+            else
+                stest = s;
             end
         else
             stest = Stest(end);
         end
     else
-        try
+        if ~BESTIND(end).model.svm
             stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
-        catch e
-            display(e);
+        else
+            stest = s;
         end
     end
     if length(Stest) > 1
-        stest
-        BESTIND(end).model
         if stest < Stest(end), stest = Stest(end); end
     end
     Stest = [Stest stest];

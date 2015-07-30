@@ -71,7 +71,8 @@ if ~params.phmm.hmm, [params.M,params.lmodel] = getModels(Xtrain_l,nModels,param
 %% Generate development sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
 l = [];
-[Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,nSampGest);
+[Xdev,Ydev,Xtest,Ytest] = getDevSequences(X,Y,Xtest,Ytest,l,noise,secsBatch,nSampGest);
+clear X Y
 
 %% Baseline 
 % First evaluation with euclidean distance
@@ -113,9 +114,9 @@ S_base
 %% Genetic algorithm optimization
 % Evaluation function
 if strcmp(params.scoreMeasure,'overlap')
-    fEval = @(I) -fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},params);    
+    fEval = @(I) -fitnessFcn(I,Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},Xtest,Xtest_l,Ytest,params);    
 elseif strcmp(params.scoreMeasure,'levenshtein') || params.phmm.hmm
-    fEval = @(I) fitnessFcn(I,X{1},Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},params);
+    fEval = @(I) fitnessFcn(I,Xdev{1},Xtrain_l(1:nModels),Ydev{1},Xval_l(1:nModels),Xdev{2},Ydev{2},Xtest,Xtest_l,Ytest,params);
 end
 
 % Display functions

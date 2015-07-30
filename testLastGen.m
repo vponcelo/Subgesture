@@ -34,11 +34,7 @@ if ~model.phmm.hmm
         display('Obtaining Validation Sequence from Subgestures U ...')
         [~,model.KT] = computeSGFromU(model.Us,Xval);
     end
-    if model.svm
-        s = testDarwin(model.KM, model.KT);
-    else
-        [~,s,~] = g(model,Xval,Yval);    % learn&optimize over validation
-    end
+    [~,s,~] = g(model,Xval,Yval);    % learn&optimize over validation
 else
     if ~strcmp(model.phmm.clustType,'none')
         display('Discretizing validation sequence in Key Poses ...');

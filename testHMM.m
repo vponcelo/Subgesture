@@ -36,7 +36,8 @@ Xval_l = getGroupedGestures(X,Y,2); if sum(cellfun(@isempty,Xval_l)), error('Emp
 %% Generate learning sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
 l = [];
-[Xdev,Ydev] = getDevSequences(X,Y,l,noise,secsBatch,0);
+[Xdev,Ydev,Xtest,~] = getDevSequences(X,Y,Xtest,Ytest,l,noise,secsBatch,0);
+clear X Y
 Xval = Xdev{2}; Yval = Ydev{2};
 
 %% Obtain Cross Validation subsets over training data
