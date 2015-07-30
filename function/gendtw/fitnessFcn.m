@@ -120,7 +120,7 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,Xtest,Xtest_l,Ytest
                     display('Obtaining Validation Sequences from Subgesture Ranks ...')
                     [~,model{i}.KT] = computeSGFromU(model{i}.Us,Xv);
                 end
-                if params.svm
+                if params.svm && params.darwin
                     sc(i) = testDarwin(model{i}.KM, model{i}.KT);
                 else
                     [model{i},sc(i),~,preds{i}] = g(model{i},Xv,Yval);    % learn&optimize over validation
@@ -188,7 +188,7 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,Xtest,Xtest_l,Ytest
                 display('Obtaining Validation Sequences from Subgesture Ranks U ...')
                 [~,model{1}.KT] = computeSGFromU(model{1}.Us,Xv);
             end
-            if params.svm
+            if params.svm && params.darwin
                 s2 = testDarwin(model{1}.KM, model{1}.KT); sc2 = -inf;
             else
                 [model{1},s2,sc2,predictions{1}] = g(model{1},Xv,Yval);   % learn&optimize over validation
