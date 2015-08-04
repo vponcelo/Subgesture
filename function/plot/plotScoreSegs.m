@@ -25,7 +25,7 @@ ylabel('Mean scores');
 
 global S; global Stest; global BESTIND;
 if params.darwin
-    try display(sprintf('Best k: %d\n',size(BESTIND(end).model.Us),1)); catch; end;
+    try display(sprintf('Best k: %d\n',size(BESTIND(end).model.Us,1))); catch; end;
 else
     try display(sprintf('Best k: %d\n',length(BESTIND(end).model.SM))); catch; end;
 end
