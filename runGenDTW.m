@@ -90,6 +90,9 @@ else
             [~,S_base,bestScores,~] = g(model,Xtest_l,Ytest);
         else
             [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
+            for s = 2:length(Ytest.seg),
+                Ytest.L(s-1)=unique(Ytest.Lfr(Ytest.seg(s-1):Ytest.seg(s)-1));
+            end
             [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
         end
     else
@@ -106,6 +109,9 @@ else
         else
             KT = getUpdatedCosts(Xtest,model.SM);
             [~,Dtest] = min(KT);
+        end
+        for s = 2:length(Ytest.seg),
+            Ytest.L(s-1)=unique(Ytest.Lfr(Ytest.seg(s-1):Ytest.seg(s)-1));
         end
         [~,S_base,bestScores] = evalswHMM(model, Dtest, Ytest);
     end
