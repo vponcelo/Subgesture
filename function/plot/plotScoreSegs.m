@@ -24,7 +24,11 @@ xlabel('Number of segments');
 ylabel('Mean scores');
 
 global S; global Stest; global BESTIND;
-try display(sprintf('Best k: %d\n',length(BESTIND(end).model.SM))); catch; end;
+if params.darwin
+    try display(sprintf('Best k: %d\n',size(BESTIND(end).model.Us),1)); catch; end;
+else
+    try display(sprintf('Best k: %d\n',length(BESTIND(end).model.SM))); catch; end;
+end
 
 if length(S) > 1
     if state.Generation == 2 || S(end) > S(end-1) || Stest(end) >  Stest(end-1)
@@ -49,6 +53,7 @@ if length(S) > 1
         try        
             save(strcat(filename,'.mat'),'S','Stest','CACHE','state','BESTIND','options','-v7.3');
             hgsave(gcf,filename,'-v7.3');
+            saveas(gcf,strcat(filename,'.png'));
         catch e
             display(e.message);
         end
