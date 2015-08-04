@@ -57,20 +57,12 @@ if ~isempty(X),
             if isempty(BESTIND(end).model)
                 BESTIND(end).model = BESTIND(end-1).model;
             end
-            if ~BESTIND(end).model.svm
-                stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
-            else
-                stest = s;
-            end
+            stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
         else
             stest = Stest(end);
         end
     else
-        if ~BESTIND(end).model.svm
-            stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
-        else
-            stest = s;
-        end
+        stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
     end
     if length(Stest) > 1
         if stest < Stest(end), stest = Stest(end); end
