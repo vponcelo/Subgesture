@@ -82,6 +82,7 @@ if params.darwin
     [X,Y] = getFullDev(Xdev,Ydev);
 %     S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
     S_base = testDarwin(X,Xtest,Y,Ytest);
+    clear X Y
 else
     if ~params.phmm.hmm
         if params.classification
@@ -138,7 +139,7 @@ fCrossOver = @(parents,options,nvars,FitnessFcn,unused,thisPopulation)...
     crossOverFcn(parents,options,nvars,FitnessFcn,unused,thisPopulation,params,Xdev{1});
 
 % Options GA
-lastGen = 10;
+lastGen = 1;
 if exist(strcat('results/',DATATYPE,'/validation/Exp3/gen',num2str(params.generations),'popul',num2str(params.population),'/',...
         params.Baseline,'_',params.mType,'_',num2str(lastGen),'gens','_',...
         num2str(length(JOINTS)),'joints',COORDS,'_','mod',num2str(NAT),'.mat'),'file')
@@ -178,7 +179,11 @@ else
     options = gaoptimset(options,'MutationFcn',fMutation);
     options = gaoptimset(options,'CrossoverFcn',fCrossOver);
     options = gaoptimset(options,'Vectorized',params.vectorized);
-    problem.nvars=1+params.N*2;
+    if params.k0 < 0
+        problem.nvars=params.N*2;
+    else
+        problem.nvars=1+params.N*2;
+    end
     if strcmp(params.mType,MEDIANTYPE{2}) || ...
             strcmp(params.mType,MEDIANTYPE{4}), problem.nvars = problem.nvars+2; 
     end
