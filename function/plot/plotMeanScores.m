@@ -50,33 +50,34 @@ display(sprintf('Best validation score: %.4f\n',S(end)));
 plot(x,S_base,'k');
 hold on
 plot(x,S,'b');
-if ~isempty(X),
-    global Stest; global BESTIND;
-    if length(BESTIND) > 1 
-        if ~isequal(BESTIND(end).model,BESTIND(end-1).model) 
-            if isempty(BESTIND(end).model)
-                BESTIND(end).model = BESTIND(end-1).model;
-            end
-            stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
-        else
-            stest = Stest(end);
+
+global BESTIND; global Stest; stest = -inf;
+if length(BESTIND) > 1 
+    if ~isequal(BESTIND(end).model,BESTIND(end-1).model) 
+        if isempty(BESTIND(end).model)
+            BESTIND(end).model = BESTIND(end-1).model;
         end
+        if ~isempty(X), stest = testLastGen(state,BESTIND(end).model,X,Y,X_l); end
     else
-        stest = testLastGen(state,BESTIND(end).model,X,Y,X_l);
+        stest = Stest(end);
     end
-    if length(Stest) > 1
-        if stest < Stest(end), stest = Stest(end); end
-    end
-    Stest = [Stest stest];
-    if length(Stest) > length(x)
-        Stest(length(x)) = Stest(end);
-        Stest(length(x)+1:end) = [];
-    elseif length(Stest) < length(x)
-        Stest = Stest(end)*ones(1,length(x));
-    end
-    display(sprintf('Best test score: %.4f\n',Stest(end)));
-    plot(x,Stest,'r');    
-end    
+else
+    if ~isempty(X), stest = testLastGen(state,BESTIND(end).model,X,Y,X_l); end
+end
+    
+try BESTIND(end).state = state; catch e, display(e); end
+if length(Stest) > 1
+    if stest < Stest(end), stest = Stest(end); end
+end 
+if ~isinf(stest), Stest = [Stest stest]; end
+if length(Stest) > length(x)
+    Stest(length(x)) = Stest(end);
+    Stest(length(x)+1:end) = [];
+elseif length(Stest) < length(x)
+    Stest = Stest(end)*ones(1,length(x));
+end
+display(sprintf('Best test score: %.4f\n',Stest(end)));
+plot(x,Stest,'r');
 hold off
 title(sprintf('Mean scores throughout %d generations',currentGeneration));
 % legend('Euclidean','optModel','Test');
