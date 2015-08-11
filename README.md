@@ -5,12 +5,14 @@
 
 # testDTWalign:
 
-  Simple test of both the implemented DTW computation and the aligment
+  Simple tests for the implementations of both the DTW computation and the mean aligment
+
+# testHMM:
+
+  Test the HMM setting to discretize the gesture samples, learn a HMM model for each class and evaluate the models.
   
 # runGenDTW:
 
-  Run the evolutive optimization and temporal segmentation of the training data using K-Means DTW.
+  Main file to run the evolutionary algorithm and temporal segmentation of the training data using the parameter settings from the file varload.
   
-# testHMM:
 
-  Test the system learning a HMM model to discretize and learn the training samples
