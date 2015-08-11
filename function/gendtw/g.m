@@ -483,8 +483,6 @@ else
 
         % now estimate overlap, prec, rec, and f1 (no accuracy right now)
         [~,~,R,ovlp] = estimate_overlap_mad(Y,predictions,model.minOverlap);
-        R.prec
-        R.rec
         % Assign Overlap, Precision, Recall, F1-score
         bestScores(1) = ovlp;  bestScores(2) = R.prec; bestScores(3) = R.rec; bestScores(4) = (2.*R.rec.*R.prec)./(R.rec + R.prec);
 %         bestScores
