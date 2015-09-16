@@ -1,8 +1,8 @@
-function [D,U] = computeSGFromU(Us,X)
+function [D,U] = computeSGFromU(Us,X,Y)
 % input:
     % Us: Subgesture sequences of U
     % X: sequence or set of sequences for each class
-    % params: set of parameters
+    % Y: data labels
 % output:
     % D: Subgesture representations of X in Us
     % U: Weighted Matrix of the updated ranking machine
@@ -36,22 +36,47 @@ if iscell(X)
         end
     end
 else
-    U = inf*ones(size(Us,1),size(X,1));
-    sws = 10:10:length(X);
-    for i = 1:length(sws)
-        for st = 1:sws(i):size(X,1)-1
-            fi = min(st+sws(i)-1,size(X,1));
-            if fi > 1
-                seq = X(st:fi,:);
-                W = genRepresentation(seq,1);
-                for s = 1:size(Us,1)
-                    d = pdist2(W',Us(s,:));
-                    for c = st:fi
-                        if d < U(s,c), U(s,c) = d; end
+    if size(X,1) > 10000 && ~exist('Y','var')
+        Xs = X; t = 500;        % t fixed parts. Other possibility is to discretize each gesture from its label
+        if mod(length(Xs),t) > 0,
+            ns = round(length(Xs)/t) + 1;
+        else
+            ns = length(Xs)/t;
+        end
+    elseif exist('Y','var') 
+        Xs = X; ns = length(Y.L); offset = 1;
+    else
+        ns = 1;
+    end
+    U = cell(1,ns); 
+    for n = 1:ns
+        if ns > 1,
+            if ~exist('Y','var')
+                X = Xs(1+(n-1)*t:min(n*t,length(Xs)),:); 
+            else
+                if n == length(Y.L), offset = 0; end
+                X = Xs(Y.seg(n):Y.seg(n+1)-offset,:);
+            end
+        end
+        U{n} = inf*ones(size(Us,1),size(X,1));
+        sws = 10:10:length(X);
+        for i = 1:length(sws)
+            for st = 1:sws(i):size(X,1)-1
+                fi = min(st+sws(i)-1,size(X,1));
+                if fi > 1
+                    seq = X(st:fi,:);
+                    W = genRepresentation(seq,1);
+                    for s = 1:size(Us,1)
+                        d = pdist2(W',Us(s,:));
+                        for c = st:fi
+                            if d < U{n}(s,c), U{n}(s,c) = d; end
+                        end
                     end
                 end
             end
         end
     end
+    emptyCells = cellfun(@isempty,U); U(emptyCells) = [];
+    U = cell2mat(U);
     [~,D] = min(U);
 end

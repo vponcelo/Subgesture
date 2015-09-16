@@ -33,13 +33,13 @@ end
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
-% [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
+[X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % display('Press a key to continue...');
 % pause();
 
 %% Compute initial segmentation from motion
 seg0 = [];
-% [seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
+[seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
 
 %% Prepare training data depending on the chosen option and parameters
 NORMTYPE = 'none'; COORDS = 'world'; NAT = 3;
@@ -80,7 +80,7 @@ clear X Y
 S_base = 0;
 if params.darwin
     [X,Y] = getFullDev(Xdev,Ydev);
-%     S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
+    S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
     S_base = testDarwin(X,Xtest,Y,Ytest);
     clear X Y
 else
@@ -179,18 +179,12 @@ else
     options = gaoptimset(options,'MutationFcn',fMutation);
     options = gaoptimset(options,'CrossoverFcn',fCrossOver);
     options = gaoptimset(options,'Vectorized',params.vectorized);
-    if params.k0 < 0
-        problem.nvars=params.N*2;
-    else
-        problem.nvars=1+params.N*2;
-    end
+    problem.nvars=1+params.N*2;
     if strcmp(params.mType,MEDIANTYPE{2}) || ...
             strcmp(params.mType,MEDIANTYPE{4}), problem.nvars = problem.nvars+2; 
     end
-    
     % Cache with the populations
     CACHE.ind = int32(zeros(params.population*100,problem.nvars,'int32'));
-
 end
 % Problem GA
 problem.fitnessfcn=fEval;

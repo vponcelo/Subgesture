@@ -20,7 +20,7 @@ global MEDIANTYPE;      % Type of median models
 global JOINTS;          % Selected joints
 global NAT;             % Type of Descriptor
 
-DATATYPE = 'mad1';
+DATATYPE = 'chalearn2013';
 NORMTYPE = 'neck';
 COORDS = 'pixel';
 VISUALIZE = false;
@@ -49,10 +49,11 @@ secsBatch = 60;         % reference seconds for the test sequence
 nSampGest = 0;        % Number of samples per gesture for the test sequence
 
 %% classification type parameter
-params.classification = false;       % flag that indicates to perform global category classification
+params.classification = true;       % flag that indicates to perform global category classification
 params.accuracyglobal = true;        % global accuracy or weighted accuracy (for imbalanced data sets).
-params.darwin = false;                % flag that indicates to perform videoDarwin-based classification
+params.darwin = true;                % flag that indicates to perform videoDarwin-based classification
 params.svm = false;                  % flag that indicates to perform SVM-based classification
+params.tc = false;                   % flag that indicates whether to perform temporal clustering
 
 %% parameters hmm
 params.phmm.folds = 1;                 % k for k-fold Cross Validation
@@ -62,14 +63,14 @@ params.phmm.clustType = 'none';        % clustering method: 'none' 'kmlsample' '
 params.phmm.kD = 300;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
-params.phmm.hmm = false;            % flag that indicates to train with hmm training 
-params.phmm.pmtk = false;           % flag that indicates to use the pmtk3 library implementation
+params.phmm.hmm = true;            % flag that indicates to train with hmm training 
+params.phmm.pmtk = true;           % flag that indicates to use the pmtk3 library implementation
 
 %% parameters genetic temporal clustering
 params.version = ...
     char(KMEANSDTWv{5});    % versions of the k-means DTW algorithm to execute';
 params.dist = DISTANCES{1}; % distance metric
-params.k0 = 3;              % initial data clusters for subgesturing
+params.k0 = 3;              % initial data clusters for subgesturing (< 0: 'no clustering')
 params.nmin = 5;            % minimum subsequence width
 params.nmax = 25;           % maximum subsequence width
 params.N = 500;             % Number of segments to split the learning sequence
@@ -78,14 +79,14 @@ params.nThreshs = 20;       % Number of thresholds for testing (tunned to 20 and
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
 params.vectorized = 'off';   % vectorize the GA
-params.population = 5;     % population of the GA
-params.generations = 20;  % number of generations of the GA
+params.population = 20;     % population of the GA
+params.generations = 1006;  % number of generations of the GA
 params.Baseline = ...
     BASELINE{2};            % Baseline for the GA
 params.threshMov = 3;       % maximum number of low movement frames
 params.thMinMov = 1.3;      % Minimum portion of movement
 params.drawMovSkels = false;% flag indicating whether to draw skels
-params.probMut = 1;         % probability of performing standard or specific GA mutation '1':= only standard
+params.probMut = 0.6;         % probability of performing standard or specific GA mutation '1':= only standard
 params.probCross = 0.6;     % probability of performing standard or specific GA crossover '1':= only standard
 params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation
@@ -97,9 +98,9 @@ params.usemax_l = true;        % use the median or the max-length gesture as ref
 params.resize = true;          % Use resizing instead of mean DTW alignment
 params.gmm = false;            % Use gmm instead of other non-probabilistic representations
 params.pdtw = false;           % flag for indicating the use of gmms in feature modeling
-params.score2optim = 'o';        % Score to optimize --> Overlap: 'o', Precision: 'p', Recall: 'r', Accuracy/F1-Score(spotting): 'a'
+params.score2optim = 'p';        % Score to optimize --> Overlap: 'o', Precision: 'p', Recall: 'r', Accuracy/F1-Score(spotting): 'a'
 params.minOverlap = 0.5;        % Minimum overlap to detect the label
-params.sw = 4000;              % sliding window (frame seq length): '0' means the whole sequence
+params.sw = 0;              % sliding window (frame seq length): '0' means the whole sequence
 params.k = 0;               % current k to evaluate for the K-Nearest Neighbour DTW models
 CACHE.pos = int32(1);       % Index positions
 % GENRESULTS.P = cell(1,params.generations);

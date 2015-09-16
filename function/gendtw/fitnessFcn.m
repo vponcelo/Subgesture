@@ -109,8 +109,8 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             if ~params.phmm.hmm
 %                 model{i}.sw = 0;           % Evaluate the whole validation sequence
                 if params.darwin
-                    display('Obtaining Validation Sequences from Subgesture Ranks ...')
-                    [~,model{i}.KT] = computeSGFromU(model{i}.Us,Xv);
+                    display('Obtaining Validation Sequences from Subgesture Ranks U ...')
+                    [~,model{i}.KT] = computeSGFromU(model{i}.Us,Xv,Yv);
                 end
                 if params.svm && params.darwin
                     sc(i) = testDarwin(model{i}.KM, model{i}.KT);
@@ -151,7 +151,7 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                     end
                 else
                     if params.darwin
-                        Dval = computeSGFromU(model{i}.Us,Xva);
+                        Dval = computeSGFromU(model{i}.Us,Xva,Yv);
                     else
                         KT = getUpdatedCosts(Xva,model{i}.SM);
                         [~,Dval] = min(KT);
@@ -178,7 +178,7 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
 %             model{1}.sw = 0;           % Evaluate the whole validation sequence 
             if params.darwin
                 display('Obtaining Validation Sequences from Subgesture Ranks U ...')
-                [~,model{1}.KT] = computeSGFromU(model{1}.Us,Xv);
+                [~,model{1}.KT] = computeSGFromU(model{1}.Us,Xv,Yval);
             end
             if params.svm && params.darwin
                 s2 = testDarwin(model{1}.KM, model{1}.KT); sc2 = -inf;
@@ -220,7 +220,7 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
                 end
             else
                 if params.darwin
-                    Dval = computeSGFromU(model{1}.Us,Xva);
+                    Dval = computeSGFromU(model{1}.Us,Xva,Yval);
                 else
                     KT = getUpdatedCosts(Xva,model{1}.SM);
                     [~,Dval] = min(KT);
@@ -495,20 +495,28 @@ function model = evalFit(X,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
             Xtrain(i-1,:)=W';
         end
         display('Done!');
-        [~,model.Us] = kmeans(Xtrain,k,'EmptyAction','singleton');
+        if ~params.tc
+            model.Us = Xtrain;
+        else
+            [~,model.Us] = kmeans(Xtrain,k,'EmptyAction','singleton');
+        end
         model.D = getSimilarities(model.Us,model);
         if sum(~any(model.D))
             error('fitnessFcn:D','Some elements of the dissimilarity matrix are wrong');
         end
     else
-        %% Temporal Clustering
-        display('Computing Subgestures as Temporal Clusters for each X partition ...')
-        [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,k,[],[],[],Ytrain,[],X_I,[]);
-        [~,kV] = min(mErrsV);
-        model.C = CsTrain{kV}{timeV(kV)};
+        if ~params.tc
+            model.SM = X_I;
+        else
+            %% Temporal Clustering
+            display('Computing Subgestures as Temporal Clusters for each X partition ...')
+            [CsTrain,~,mErrsV,~,timeV,~,Z] = runKMeansDTW(params,k,k,[],[],[],Ytrain,[],X_I,[]);
+            [~,kV] = min(mErrsV);
+            model.C = CsTrain{kV}{timeV(kV)};
 
-        %% Obtain Subgesture Model for training/learning data
-        model.SM = Z{kV}{timeV}; emptyCells = cellfun(@isempty,model.SM); model.SM(emptyCells) = [];
+            %% Obtain Subgesture Model for training/learning data
+            model.SM = Z{kV}{timeV}; emptyCells = cellfun(@isempty,model.SM); model.SM(emptyCells) = [];
+        end
     end
     if ~params.phmm.hmm
         if params.darwin

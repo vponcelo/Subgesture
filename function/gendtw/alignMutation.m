@@ -38,16 +38,10 @@ for i=1:length(parents)
                 if strcmp(params.Baseline,BASELINE{2})
                     % generate derivate population
                     [~,pos] = min(abs(seg0ini-parent(j)));
-                    try
-                        P(i,j) = seg0ini(pos(1));
-                    catch e;
-                        display(e.message);
-                        pos
-                        parent(j)
-                        seg0ini
-                        seg0fi
-                        seg0
+                    if numel(pos)==0
+                        display('pos');
                     end
+                    P(i,j) = seg0ini(pos(1));
                 end
             end
         else
@@ -55,6 +49,9 @@ for i=1:length(parents)
                 if strcmp(params.Baseline,BASELINE{2})
                     % generate derivate population 
                     [~,pos] = min(abs(seg0fi-(parent(j-1)+parent(j)-1)));
+                    if numel(pos)==0
+                        display('pos');
+                    end
                     if seg0fi(pos(1)) < parent(j-1)
                         if pos(1)+1 > length(seg0fi);
                             [~,posIn] = min(abs(seg0ini-parent(j-1)));

@@ -295,11 +295,9 @@ else
     display(sprintf('Spotting the %d classes in a sequence of %d frames ...',nm,length(Y.Lfr)));
     global DATATYPE; global NAT;
     %% Compute the costs of the test sequence in terms of SM 
-    if ~isempty(model.D)
+    if ~isempty(model.D) && ~model.darwin
         display('Computing the costs of the test sequence in terms of SM ...');
-        if ~model.darwin
-            model.KT = getUpdatedCosts(X,model.SM);
-        end
+        model.KT = getUpdatedCosts(X,model.SM);
     end
     scoresO = zeros(nm,model.nThreshs);
     prexp = false(model.nThreshs,length(Y.Lfr),nm);
