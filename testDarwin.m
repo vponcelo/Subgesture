@@ -10,7 +10,7 @@ if iscell(X) && iscell(Xt)
     for i = 1:length(X)
         for j = 1:length(X{i})
             W = genRepresentation(X{i}{j}',CVAL);
-            if mod(i,10)==0, display(sprintf('Current gesture %d/%d of class %d/%d\n',j,length(X{i}),i,length(X))); end
+            if mod(i,100)==0, display(sprintf('Current gesture %d/%d of class %d/%d\n',j,length(X{i}),i,length(X))); end
             Xtrain(k,:)=W';
             Ytrain(k,1)=i;
             k = k + 1;
@@ -21,7 +21,7 @@ if iscell(X) && iscell(Xt)
     for i = 1:length(Xt)
         for j = 1:length(Xt{i})
             W = genRepresentation(Xt{i}{j}',CVAL);
-            if mod(i,10)==0, display(sprintf('Current gesture %d/%d of class %d/%d\n',j,length(Xt{i}),i,length(Xt))); end
+            if mod(i,100)==0, display(sprintf('Current gesture %d/%d of class %d/%d\n',j,length(Xt{i}),i,length(Xt))); end
             Xtest(k,:)=W';
             Ytest(k,1)=i;
             k = k + 1;
@@ -35,7 +35,7 @@ else
         if i == ntr, fi = Y.seg(i); else fi = Y.seg(i)-1; end
         X1=X(Y.seg(i-1):fi,:);
         W = genRepresentation(X1,CVAL);
-        if mod(i,10)==0, display(sprintf('Current gesture segment %d of %d\n',i,ntr)); end
+        if mod(i,100)==0, display(sprintf('Current gesture segment %d of %d\n',i,ntr)); end
         Xtrain(i-1,:)=W';
         Ytrain(i-1,1)=Y.L(i-1);
     end
@@ -44,7 +44,7 @@ else
         if i == nte, fi = Yt.seg(i); else fi = Yt.seg(i)-1; end
         X1=Xt(Yt.seg(i-1):fi,:);    
         W = genRepresentation(X1,CVAL);
-        if mod(i,10)==0, display(sprintf('Current gesture segment %d of %d\n',i,nte)); end
+        if mod(i,100)==0, display(sprintf('Current gesture segment %d of %d\n',i,nte)); end
         Xtest(i-1,:)=W';
         Ytest(i-1,1)=Yt.L(i-1);
     end
