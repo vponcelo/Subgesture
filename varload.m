@@ -20,7 +20,7 @@ global MEDIANTYPE;      % Type of median models
 global JOINTS;          % Selected joints
 global NAT;             % Type of Descriptor
 
-DATATYPE = 'chalearn2013';
+DATATYPE = 'cooking';
 NORMTYPE = 'neck';
 COORDS = 'pixel';
 VISUALIZE = false;
@@ -63,14 +63,14 @@ params.phmm.clustType = 'none';        % clustering method: 'none' 'kmlsample' '
 params.phmm.kD = 300;                   % number of clusters for discretizing
 params.phmm.cIters = 100;              % number of iterations for discretizing
 params.phmm.varType = 'discrete';  % type of variable for the HMM: 'gauss' 'mixgausstied' 'discrete' 
-params.phmm.hmm = true;            % flag that indicates to train with hmm training 
+params.phmm.hmm = false;            % flag that indicates to train with hmm training 
 params.phmm.pmtk = true;           % flag that indicates to use the pmtk3 library implementation
 
 %% parameters genetic temporal clustering
 params.version = ...
     char(KMEANSDTWv{5});    % versions of the k-means DTW algorithm to execute';
 params.dist = DISTANCES{1}; % distance metric
-params.k0 = 3;              % initial data clusters for subgesturing (< 0: 'no clustering')
+params.k0 = 3;              % initial data clusters for subgesturing
 params.nmin = 5;            % minimum subsequence width
 params.nmax = 25;           % maximum subsequence width
 params.N = 500;             % Number of segments to split the learning sequence
@@ -79,14 +79,14 @@ params.nThreshs = 20;       % Number of thresholds for testing (tunned to 20 and
 params.D = [];              % Dissimilarity matrix
 params.bestThs = [];        % Thresholds learnt on training
 params.vectorized = 'off';   % vectorize the GA
-params.population = 20;     % population of the GA
-params.generations = 1006;  % number of generations of the GA
+params.population = 5;     % population of the GA
+params.generations = 1001;  % number of generations of the GA
 params.Baseline = ...
     BASELINE{2};            % Baseline for the GA
 params.threshMov = 3;       % maximum number of low movement frames
 params.thMinMov = 1.3;      % Minimum portion of movement
 params.drawMovSkels = false;% flag indicating whether to draw skels
-params.probMut = 0.6;         % probability of performing standard or specific GA mutation '1':= only standard
+params.probMut = 1;         % probability of performing standard or specific GA mutation '1':= only standard
 params.probCross = 0.6;     % probability of performing standard or specific GA crossover '1':= only standard
 params.scale = 0.5;         % scale parameter for Gaussian mutation
 params.shrink = 0.75;       % shrink parameter for Gaussian mutation

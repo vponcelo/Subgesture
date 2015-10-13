@@ -33,7 +33,7 @@ for i = 1:length(XLearn_l)
     k = datapart;
     if datapart == 0, k = 1; end
     if k == 3, Yc = Ytest; Xc = Xtest; elseif k < 3, Yc = Y{k}; Xc = X{k}; end
-    if length(fieldnames(Yc)) == 3
+    if ~isempty(fieldnames(Yc))
         XLearn_l{i} = cell(1,sum(labelsLearn==i)); 
     end
     idxLval = find(labelsLearn == i);

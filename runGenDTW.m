@@ -33,13 +33,13 @@ end
 %% Prepare training data depending on the chosen option and parameters
 % Load data:
 %     if nframesSeg is 0, then initial segmentation is generated from the skeleton labels
-[X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
+% [X,Y,Xtest,Ytest] = prepareData(nrsamples,nseqs,nframesSeg,params.k0);
 % display('Press a key to continue...');
 % pause();
 
 %% Compute initial segmentation from motion
 seg0 = [];
-[seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
+% [seg0,fr_fixed,params] = computeMagnitudes(X{1},params);
 
 %% Prepare training data depending on the chosen option and parameters
 NORMTYPE = 'none'; COORDS = 'world'; NAT = 3;
@@ -60,7 +60,7 @@ end
 
 %% Compute median models from training/learning data
 % profile -memory on
-if strcmp(DATATYPE,'msr3dS') || strcmp(DATATYPE,'msr3d1') || strcmp(DATATYPE,'msr3d2') || ...
+if strcmp(DATATYPE,'msr3dS') || strcmp(DATATYPE,'msr3d1') || strcmp(DATATYPE,'msr3d2') || strcmp(DATATYPE,'cooking') || ...
     strcmp(DATATYPE,'msr3d3') || strcmp(DATATYPE,'msr3d4') || strcmp(DATATYPE,'msr3d5') || strcmp(DATATYPE,'msract3d'), 
     nModels = length(Xtrain_l); 
 else nModels = length(Xtrain_l)-1; 
@@ -78,38 +78,38 @@ clear X Y
 % First evaluation with euclidean distance
 % profile -memory on
 S_base = 0;
-if params.darwin
-    [X,Y] = getFullDev(Xdev,Ydev);
-    S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
-    S_base = testDarwin(X,Xtest,Y,Ytest);
-    clear X Y
-else
-    if ~params.phmm.hmm
-        if params.classification
-            [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2});
-            [~,S_base,bestScores,~] = g(model,Xtest_l,Ytest);
-        else
-            [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
-            [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
-        end
-    else
-        [S_base,model,bestScores] = testHMM(params);
-        if params.classification
-            Dtest = cell(1,length(Xtest_l));
-            for l = 1:length(Xtest_l)
-                Dtest{l} = cell(1,length(Xtest_l{l}));
-                for sample = 1:length(Xtest_l{l})
-                    KT = getUpdatedCosts(Xtest_l{l}{sample},model.SM);
-                    [~,Dtest{l}{sample}] = min(KT);
-                end
-            end
-        else
-            KT = getUpdatedCosts(Xtest,model.SM);
-            [~,Dtest] = min(KT);
-        end
-        [~,S_base,bestScores] = evalswHMM(model, Dtest, Ytest);
-    end
-end
+% if params.darwin
+%     [X,Y] = getFullDev(Xdev,Ydev);
+%     S_base = testDarwin(Xdev{1},Xdev{2},Ydev{1},Ydev{2});
+%     S_base = testDarwin(X,Xtest,Y,Ytest);
+%     clear X Y
+% else
+%     if ~params.phmm.hmm
+%         if params.classification
+%             [model,S_base,bestScores,~] = g(params,Xval_l,Ydev{2});
+%             [~,S_base,bestScores,~] = g(model,Xtest_l,Ytest);
+%         else
+%             [model,S_base,bestScores,~] = g(params,Xdev{2},Ydev{2});
+%             [~,S_base,bestScores,~] = g(model,Xtest,Ytest);
+%         end
+%     else
+%         [S_base,model,bestScores] = testHMM(params);
+%         if params.classification
+%             Dtest = cell(1,length(Xtest_l));
+%             for l = 1:length(Xtest_l)
+%                 Dtest{l} = cell(1,length(Xtest_l{l}));
+%                 for sample = 1:length(Xtest_l{l})
+%                     KT = getUpdatedCosts(Xtest_l{l}{sample},model.SM);
+%                     [~,Dtest{l}{sample}] = min(KT);
+%                 end
+%             end
+%         else
+%             KT = getUpdatedCosts(Xtest,model.SM);
+%             [~,Dtest] = min(KT);
+%         end
+%         [~,S_base,bestScores] = evalswHMM(model, Dtest, Ytest);
+%     end
+% end
 S_base
 % profreport
 

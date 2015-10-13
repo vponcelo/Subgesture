@@ -240,5 +240,12 @@ switch DATATYPE
         else
             load(strcat('data/MSRACT3D/MSRACT3DPCA_HH_Split.mat'));
         end
+    case 'cooking'
+        display('Loading Cooking data ...');
+        if ~exist(strcat('data/Cooking/cooking_25pca_1_ok_ok.mat'),'file'),
+            error('prepareData:noDB','The selected data base does not exist');
+        else
+            load(strcat('data/Cooking/cooking_25pca_1_ok_ok.mat'));
+        end
 end
 display('Done!');
