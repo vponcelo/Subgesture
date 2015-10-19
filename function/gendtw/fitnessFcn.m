@@ -27,7 +27,6 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
     %   state: GA state of the current generation
 
     global CACHE; global PREDICTIONS; global BESTIND;
-    
     [I2,idxUniques] = unique(I,'rows');    
     idxRepsI = ~ismember(1:size(I,1),idxUniques);
     [~,posRepsI2] = ismember(I(idxRepsI,:),I2,'rows');
@@ -185,7 +184,6 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             else
                 [model{1},s2,sc2,predictions{1}] = g(model{1},Xv,Yval);   % learn&optimize over validation
             end
-            s2
         else
             if ~strcmp(params.phmm.clustType,'none')
                 display('Discretizing validation sequences in Key Poses ...');
@@ -228,8 +226,8 @@ function s = fitnessFcn(I,X,Xtrain_l,Ytrain,Xval_l,Xval,Yval,params)
             end            
             [model{1},s2,sc2] = evalswHMM(model{1}, Dval, Yval);
             predictions{1} = 0;
-            s2
         end
+        s2
     end
 
     %%%% if want to plot the performance of the best solution so far
@@ -498,6 +496,7 @@ function model = evalFit(X,Xtrain_l,Ytrain,params,k,seg,mnseg,mk)
         if ~params.tc
             model.Us = Xtrain;
         else
+            display('Computing kmeans clustering over Subgesture Ranks U');
             [~,model.Us] = kmeans(Xtrain,k,'EmptyAction','singleton');
         end
         model.D = getSimilarities(model.Us,model);

@@ -15,6 +15,9 @@ switch params.score2optim
     case 'p', if ~params.classification, params.score2optim = 2; else params.score2optim = 1; end
     case 'r', if ~params.classification, params.score2optim = 3; else params.score2optim = 2; end
     case 'a', if ~params.classification, params.score2optim = 4; else params.score2optim = 3; end
+    case 'mAP', if ~params.classification, params.score2optim = 5; else params.score2optim = 4; end
+    case 'pr', if ~params.classification, params.score2optim = 6; else params.score2optim = 5; end
+    case 'rc', if ~params.classification, params.score2optim = 7; else params.score2optim = 6; end
 end
 params.scoreMeasure = measure;  % Score Measure: 'overlap' or 'levenshtein'
 if strcmp(measure,'overlap')
