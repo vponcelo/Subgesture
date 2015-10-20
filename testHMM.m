@@ -19,6 +19,9 @@ switch params.score2optim
     case 'p', if ~params.classification, params.score2optim = 2; else params.score2optim = 1; end
     case 'r', if ~params.classification, params.score2optim = 3; else params.score2optim = 2; end
     case 'a', if ~params.classification, params.score2optim = 4; else params.score2optim = 3; end
+    case 'mAP', if ~params.classification, params.score2optim = 5; else params.score2optim = 4; end
+    case 'pr', if ~params.classification, params.score2optim = 6; else params.score2optim = 5; end
+    case 'rc', if ~params.classification, params.score2optim = 7; else params.score2optim = 6; end
 end
 
 %% Prepare training data depending on the chosen option and parameters
@@ -32,6 +35,11 @@ COORDS = 'world'; NAT = 3;
 %% Obtain all training samples grouped (labeled) by gestures
 Xtrain_l = getGroupedGestures(X,Y,1); if sum(cellfun(@isempty,Xtrain_l)), error('Empty gesture classes'); end
 Xval_l = getGroupedGestures(X,Y,2); if sum(cellfun(@isempty,Xval_l)), error('Empty gesture classes'); end
+if strcmp(DATATYPE(1:end-1),'msr3d') || strcmp(DATATYPE,'cooking') || strcmp(DATATYPE,'msract3d'),
+    nModels = length(Xtrain_l); 
+else nModels = length(Xtrain_l)-1; 
+end  % -1 indicates don't consider iddle gesture
+
 
 %% Generate learning sequences
 % l = [24 78 150];    % 78 (more samples for each gesture when k=3);
@@ -41,8 +49,8 @@ clear X Y
 Xval = Xdev{2}; Yval = Ydev{2};
 
 %% Obtain Cross Validation subsets over training data
-Indices = cell(1,length(Xtrain_l)-1);
-for l = 1:length(Xtrain_l)-1
+Indices = cell(1,nModels);
+for l = 1:nModels
     Indices{l} = cell(1,params.phmm.folds);
     Indices{l} = crossvalind('Kfold',length(Xtrain_l{l}),params.phmm.folds);        
 end
@@ -66,15 +74,15 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
     for k = 1:params.phmm.folds,
         display(sprintf('\n Fold %d',k));
         if strcmp(params.phmm.varType,'discrete') 
-            params.phmm.Dtrain{k} = cell(1,length(Xtrain_l)-1);
+            params.phmm.Dtrain{k} = cell(1,nModels);
         end
-%         params.phmm.pTrain_f{k} = cell(1,length(Xtrain_l)-1); params.phmm.pVal_f{k} = cell(1,length(Xval_l)-1);        
-%         params.phmm.mapHMMtrain{k} = cell(1,length(Xtrain_l)-1); params.phmm.mapHMMval{k} = cell(1,length(Xval_l)-1);
-%         params.phmm.minProb{k} = zeros(1,length(Xtrain_l)-1);
-%         params.phmm.accTrain{k} = cell(1,length(Xtrain_l)-1); params.phmm.accLearn{k} = cell(1,length(Xval_l)-1);
-        params.phmm.predTrain{k} = cell(1,length(Xtrain_l)-1); params.phmm.predVal{k} = cell(1,length(Xval_l)-1);
-        params.phmm.hmmTR_f{k} = cell(1,length(Xtrain_l)-1); params.phmm.hmmE_f{k} = cell(1,length(Xval_l)-1);
-        params.phmm.model{k} = cell(1,length(Xtrain_l)-1); params.phmm.path{k} = cell(1,length(Xval_l)-1);
+%         params.phmm.pTrain_f{k} = cell(1,nModels); params.phmm.pVal_f{k} = cell(1,nModels);        
+%         params.phmm.mapHMMtrain{k} = cell(1,nModels); params.phmm.mapHMMval{k} = cell(1,nModels);
+%         params.phmm.minProb{k} = zeros(1,nModels);
+%         params.phmm.accTrain{k} = cell(1,nModels); params.phmm.accLearn{k} = cell(1,nModels);
+        params.phmm.predTrain{k} = cell(1,nModels); params.phmm.predVal{k} = cell(1,nModels);
+        params.phmm.hmmTR_f{k} = cell(1,nModels); params.phmm.hmmE_f{k} = cell(1,nModels);
+        params.phmm.model{k} = cell(1,nModels); params.phmm.path{k} = cell(1,nModels);
         
         %% Select a sample containing gesture samples of each class
         Xtrain = [];
@@ -113,8 +121,8 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         end
         
         % Training HMM models
-        Ytrain = cell(1,length(Xtrain_l)-1);
-        for l = 1:length(Xtrain_l)-1
+        Ytrain = cell(1,nModels);
+        for l = 1:nModels
             %% Obtain Training data for each gesture class
             if ~nSampGest
                 Xtrain = Xtrain_l{l};
@@ -195,7 +203,7 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
         end
         
         %% Evaluating sequences for each model learnt
-        for l = 1:length(Xtrain_l)-1
+        for l = 1:nModels
             %% Obtain Training data
             % Xval = Xdev{2}(Ydev{2}.Lfr==l,:);    % gesture vector
             if params.sw > 0
@@ -311,9 +319,9 @@ if ~exist(strcat('results/',DATATYPE,'/validation/hmm/learningResults.mat'),'fil
 %             plotResults(params.phmm.pTrain_f{k}{mapHMM},params.phmm.pVal_f{k}{mapHMM}, ...
 %                params.phmm.hmmE_f{k}{mapHMM},params.phmm.states,k);
         end
-        CFTrain = confusionmat(cell2mat(params.phmm.predTrain{k}),1:length(Xtrain_l)-1);
+        CFTrain = confusionmat(cell2mat(params.phmm.predTrain{k}),1:nModels);
         imshow(CFTrain)
-        CFTest = confusionmat(cell2mat(params.phmm.predVal{k}),1:length(Xval_l)-1);
+        CFTest = confusionmat(cell2mat(params.phmm.predVal{k}),1:nModels);
         imshow(CFTest)
     end
     display(sprintf('Saving model and results ...'));
@@ -332,8 +340,8 @@ else
         end
     end
     %% Test results
-    params.phmm.pTest_f = zeros(1,length(Xtrain_l)-1); params.phmm.accTest = zeros(1,length(Xtrain_l)-1);
-    for l = 1:length(Xtrain_l)-1        
+    params.phmm.pTest_f = zeros(1,nModels); params.phmm.accTest = zeros(1,nModels);
+    for l = 1:nModels        
 %         plotResults(params.phmm.pTrain_f{kBest}{l},params.phmm.pVal_f{kBest}{l},...
 %             params.phmm.hmmE_f{kBest}{l},params.phmm.states,kBest);
         if ~exist(strcat('results/',DATATYPE,'/validation/hmm/resProbTestSeqs.mat'),'file'),   

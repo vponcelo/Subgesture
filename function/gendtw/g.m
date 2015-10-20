@@ -59,8 +59,8 @@ if model.classification
     if iscell(X)
         %% begin evaluation
         display(sprintf('Classifying sequences in %d gesture classes ...',nm));
-        Wc = cell(1,nm);
-        if model.score2optim > 3, allYones=[]; Allbestp=[]; end
+        Wc = cell(1,nm); LABELS=zeros(size(Y.L,2),nm); 
+        if model.score2optim > 3, PREDS = zeros(size(Y.L,2),nm); end
         for l = 1:nm
             Wc{l} = zeros(length(X{l}),nm);
             for s = 1:length(X{l})
@@ -118,14 +118,13 @@ if model.classification
                 thresholds(l,:) = tMin + ((1:model.nThreshs)-1)*interv;
             end
             %% accuracy estimation for single-label prediction 
-            Yones=zeros(length(X{l}),nm); Yones(:,l)=1; idxDet = cell(1,model.nThreshs);
-            if model.score2optim > 3, allYones=[allYones;Yones]; end
+            LABELS(Y.L==l,l)=1; idxDet = cell(1,model.nThreshs);
             for i = 1:model.nThreshs,
                 idxDet{i} = Wc{l} <= thresholds(l,i);
-                TP=sum(sum(idxDet{i} & Yones));
-                TN=sum(sum(~idxDet{i} & ~Yones));
-                FP=sum(sum(idxDet{i} & ~Yones));
-                FN=sum(sum(~idxDet{i} & Yones));
+                TP=sum(sum(idxDet{i} & LABELS(:,l)));
+                TN=sum(sum(~idxDet{i} & ~LABELS(:,l)));
+                FP=sum(sum(idxDet{i} & ~LABELS(:,l)));
+                FN=sum(sum(~idxDet{i} & LABELS(:,l)));
 
                 if model.accuracyglobal,
                     %%% global accuracy:
@@ -144,11 +143,11 @@ if model.classification
             end
             if model.score2optim > 3
                 switch model.score2optim
-                    case 4, [~,sb] = max(scoresA(l,:));
+                    case 4, [~,sb] = max(scoresP(l,:));
                     case 5, [~,sb] = max(scoresP(l,:));
                     case 6, [~,sb] = max(scoresR(l,:));
                 end
-                Allbestp = [Allbestp;idxDet{sb}];
+                PREDS(:,s) = idxDet{sb};
             end
         end
         
@@ -157,11 +156,10 @@ if model.classification
         [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
         if model.score2optim > 3
             %% calculate mAP
-            LABELS=allYones; LABELS(allYones==0)=-1;
-            PRED=Allbestp; PRED(Allbestp==0)=-1;
-            ap = zeros(1,size(Yones,2)); rc = zeros(1,size(Yones,2)); pr = zeros(1,size(Yones,2));
-            for jj=1:size(Yones,2),
-                [r, p, infp] = vl_pr(LABELS(:,jj), PRED(:,jj));
+            LABELS(LABELS==0)=-1; PREDS(PREDS==0)=-1;
+            ap = zeros(1,size(LABELS,2)); rc = zeros(1,size(LABELS,2)); pr = zeros(1,size(LABELS,2));
+            for jj=1:size(LABELS,2),
+                [r, p, infp] = vl_pr(LABELS(:,jj), PREDS(:,jj));
                 ap(jj)=infp.ap; rc(jj) = mean(r); pr(jj) = mean(p);
             end
             bestScores(4) = mean(ap); bestScores(5) = mean(pr); bestScores(6) = mean(rc);

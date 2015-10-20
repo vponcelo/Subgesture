@@ -63,8 +63,7 @@ end
 
 %% Compute median models from training/learning data
 % profile -memory on
-if strcmp(DATATYPE,'msr3dS') || strcmp(DATATYPE,'msr3d1') || strcmp(DATATYPE,'msr3d2') || strcmp(DATATYPE,'cooking') || ...
-    strcmp(DATATYPE,'msr3d3') || strcmp(DATATYPE,'msr3d4') || strcmp(DATATYPE,'msr3d5') || strcmp(DATATYPE,'msract3d'), 
+if strcmp(DATATYPE(1:end-1),'msr3d') || strcmp(DATATYPE,'cooking') || strcmp(DATATYPE,'msract3d'),
     nModels = length(Xtrain_l); 
 else nModels = length(Xtrain_l)-1; 
 end  % -1 indicates don't consider iddle gesture

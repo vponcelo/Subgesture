@@ -21,7 +21,6 @@ if iscell(X) && model.classification
     %% begin evaluation
     display(sprintf('Classifying sequences in %d gesture classes ...',nm));
     probs = cell(1,nm);
-    if model.score2optim > 3, allYones=[]; Allbestp=[]; end
     for l = 1:nm
         probs{l} = zeros(length(X{l}),nm);
         for k = 1:nm
@@ -34,14 +33,13 @@ if iscell(X) && model.classification
             thresholds(l,:) = tMin + ((1:model.nThreshs)-1)*interv;
         end
         %% accuracy estimation for single-label prediction 
-        Yones=zeros(length(X{l}),nm); Yones(:,l)=1; idxDet = cell(1,model.nThreshs);
-        if model.score2optim > 3, allYones=[allYones;Yones]; end
+        Yones=zeros(length(X{l}),nm); Yones(:,l)=1;
         for i = 1:model.nThreshs,
-            idxDet{i} = probs{l} >= thresholds(l,i);
-            TP=sum(sum(idxDet{i} & Yones));
-            TN=sum(sum(~idxDet{i} & ~Yones));
-            FP=sum(sum(idxDet{i} & ~Yones));
-            FN=sum(sum(~idxDet{i} & Yones));
+            idxDet = probs{l} >= thresholds(l,i);
+            TP=sum(sum(idxDet & Yones));
+            TN=sum(sum(~idxDet & ~Yones));
+            FP=sum(sum(idxDet & ~Yones));
+            FN=sum(sum(~idxDet & Yones));
 
             if model.accuracyglobal,
                 %%% global accuracy:
@@ -58,43 +56,17 @@ if iscell(X) && model.classification
             if isnan(scoresR(l,i)), scoresR(l,i) = 0; end
             if isnan(scoresA(l,i)), scoresA(l,i) = 0; end
         end
-        if model.score2optim > 3
-            switch model.score2optim
-                case 4, [~,sb] = max(scoresA(l,:));
-                case 5, [~,sb] = max(scoresP(l,:));
-                case 6, [~,sb] = max(scoresR(l,:));
-            end
-            Allbestp = [Allbestp;idxDet{sb}];
-        end
     end
     
     [bestScores(1),bestThsPos(1)] = max(mean(scoresP));
     [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
     [bestScores(3),bestThsPos(3)] = max(mean(scoresA));    
-    if model.score2optim > 3
-        %% calculate mAP
-        LABELS=allYones; LABELS(allYones==0)=-1;
-        PRED=Allbestp; PRED(Allbestp==0)=-1;
-        ap = zeros(1,size(Yones,2)); rc = zeros(1,size(Yones,2)); pr = zeros(1,size(Yones,2));
-        for jj=1:size(Yones,2),
-            [r, p, infp] = vl_pr(LABELS(:,jj), PRED(:,jj));
-            ap(jj)=infp.ap; rc(jj) = mean(r); pr(jj) = mean(p);
-        end
-        bestScores(4) = mean(ap); bestScores(5) = mean(pr); bestScores(6) = mean(rc);
-        switch model.score2optim
-            case 4, optThScore = 3;
-            case 5, optThScore = 1;
-            case 6, optThScore = 2;
-        end
-    else
-        optThScore = model.score2optim;
-    end
     score = bestScores(model.score2optim);
     
     %% set best threshold per class
     model.bestThs = zeros(1,nm); model.nThreshs = 1;
     for i = 1:nm
-        model.bestThs(i) = thresholds(i,bestThsPos(optThScore));
+        model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
     end
 
 %     %% number of tresholds and interval to test threshs
@@ -161,7 +133,8 @@ else    % X evaluate whole seq.
     if model.classification
         display(sprintf('Classifying %d sequences in %d gesture classes ...',length(Y.L),nm));
         %% Estimate scores & predictions from probabilities of generating X from each model
-        probs = zeros(length(Y.L),nm);
+        probs = zeros(length(Y.L),nm); LABELS=zeros(size(Y.L,2),nm); 
+        if model.score2optim > 3, PREDS=zeros(size(Y.L,2),nm); end
         for s = 1:length(Y.L)      % save each sequence vs model dtw costs
             if s < length(Y.L)
                 seq = X(Y.seg(s):Y.seg(s+1)-1);
@@ -181,17 +154,14 @@ else    % X evaluate whole seq.
             end
         end
         %% accuracy estimation for single-label prediction 
-        Yones=zeros(size(Y.L,2),nm);
-        for i=1:nm,
-            Yones(Y.L==i,i)=1;
-        end
-        for i = 1:model.nThreshs,
-            for s = 1:nm,
-                idxDet = probs(:,s) >= thresholds(s,i);  
-                TP=sum(idxDet & Yones(:,s));            
-                TN=sum(~idxDet & ~Yones(:,s));
-                FP=sum(idxDet & ~Yones(:,s));
-                FN=sum(~idxDet & Yones(:,s));
+        for s = 1:nm,
+            LABELS(Y.L==s,s) = 1; idxDet = cell(1,model.nThreshs);
+            for i = 1:model.nThreshs,
+                idxDet{i} = probs(:,s) >= thresholds(s,i);  
+                TP=sum(idxDet{i} & LABELS(:,s));            
+                TN=sum(~idxDet{i} & ~LABELS(:,s));
+                FP=sum(idxDet{i} & ~LABELS(:,s));
+                FN=sum(~idxDet{i} & LABELS(:,s));
 
                 if model.accuracyglobal,
                     %%% global accuracy:
@@ -208,14 +178,41 @@ else    % X evaluate whole seq.
                 if isnan(scoresR(s,i)), scoresR(s,i) = 0; end
                 if isnan(scoresA(s,i)), scoresA(s,i) = 0; end
             end
+            if model.score2optim > 3
+                switch model.score2optim
+                    case 4, [~,sb] = max(scoresP(s,:));
+                    case 5, [~,sb] = max(scoresP(s,:));
+                    case 6, [~,sb] = max(scoresR(s,:));
+                end
+                PREDS(:,s) = idxDet{sb};
+            end
         end
         [bestScores(1),bestThsPos(1)] = max(mean(scoresP));
         [bestScores(2),bestThsPos(2)] = max(mean(scoresR));
         [bestScores(3),bestThsPos(3)] = max(mean(scoresA));
+        if model.score2optim > 3
+            %% calculate mAP
+            LABELS(LABELS==0)=-1; PREDS(PREDS==0)=-1;
+            ap = zeros(1,size(LABELS,2)); rc = zeros(1,size(LABELS,2)); pr = zeros(1,size(LABELS,2));
+            for jj=1:size(LABELS,2),
+                [r, p, infp] = vl_pr(LABELS(:,jj), PREDS(:,jj));
+                ap(jj)=infp.ap; rc(jj) = mean(r); pr(jj) = mean(p);
+            end
+            bestScores(4) = mean(ap); bestScores(5) = mean(pr); bestScores(6) = mean(rc);
+            switch model.score2optim
+                case 4, optThScore = 1;
+                case 5, optThScore = 1;
+                case 6, optThScore = 2;
+            end
+        else
+            optThScore = model.score2optim;
+        end
         score = bestScores(model.score2optim);
+
+        %% set best threshold per class
         model.bestThs = zeros(1,nm); model.nThreshs = 1;
         for i = 1:nm
-            model.bestThs(i) = thresholds(i,bestThsPos(model.score2optim));
+            model.bestThs(i) = thresholds(i,bestThsPos(optThScore));
         end
     else
         %% Spotting
