@@ -39,7 +39,7 @@ if iscell(X) && model.classification
         if model.score2optim > 3, LABELS=[LABELS;Yones]; end
         idxDet = cell(1,model.nThreshs);
         for i = 1:model.nThreshs,
-            idxDet = probs{l} >= thresholds(l,i);
+            idxDet{i} = probs{l} >= thresholds(l,i);
             TP=sum(sum(idxDet{i} & Yones));
             TN=sum(sum(~idxDet{i} & ~Yones));
             FP=sum(sum(idxDet{i} & ~Yones));
