@@ -149,6 +149,7 @@ if model.classification
                     case 4, [~,sb] = max(scoresA(l,:));
                     case 5, [~,sb] = max(scoresP(l,:));
                     case 6, [~,sb] = max(scoresR(l,:));
+                    case 7, [~,sb] = max(scoresR(l,:));
                 end
 %                 PREDS(Y.L==l,:) = idxDet{sb};
                 PREDS = [PREDS;idxDet{sb}];
@@ -162,15 +163,19 @@ if model.classification
             %% calculate mAP
             LABELS(LABELS==0)=-1; PREDS(PREDS==0)=-1;
             ap = zeros(1,nm); rc = zeros(1,nm); pr = zeros(1,nm);
+            Predmc = zeros(size(PREDS,1),1); gtt = zeros(size(PREDS,1),1);
             for jj=1:nm,
                 [r, p, infp] = vl_pr(LABELS(:,jj), PREDS(:,jj));
                 ap(jj)=infp.ap; rc(jj) = mean(r); pr(jj) = mean(p);
+                Predmc(PREDS(:,jj)==1) = jj; gtt(LABELS(:,jj)==1) = jj;
             end
             bestScores(4) = mean(ap); bestScores(5) = mean(pr); bestScores(6) = mean(rc);
+            bestScores(7) = (length(find((Predmc-gtt)==0))./length(PREDS));
             switch model.score2optim
                 case 4, optThScore = 3;
                 case 5, optThScore = 1;
                 case 6, optThScore = 2;
+                case 7, optThScore = 2;
             end
         else
             optThScore = model.score2optim;
