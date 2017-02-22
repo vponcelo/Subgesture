@@ -1,12 +1,12 @@
 # SubGesture library
 
-###### Author:
+### Author:
 ###### Víctor Ponce López.
 ###### University of Barcelona, Open University of Catalonia, Computer Vision Center.
 ######© 2015. All rights reserved ©
 
 
-##### Please cite the following publication if you make any usage of this code
+##### Please, cite the following publication if you make any usage of this code
 
 V. Ponce-López, H.J. Escalante, S. Escalera, X. Baró. Gesture and Action Recognition by Evolved Dynamic Subgestures. Proceedings of the British Machine Vision Conference (BMVC), pp. 129.1-129.13, 2015.
 
@@ -25,16 +25,18 @@ V. Ponce-López, H.J. Escalante, S. Escalera, X. Baró. Gesture and Action Recog
 	isbn={1-901725-53-7},
 }
 ```
-##### Thanks for using this code. 
+##### Thanks for using this code.
 
-# testDTWalign:
+### Main functions:
 
-  Simple tests for the implementations of both the DTW computation and the mean aligment
+##### testDTWalign:
 
-# testHMM:
+Simple tests with the implementations both for the DTW computation and for the mean aligment.
 
-  Test the HMM setting to discretize the gesture samples, learn a HMM model for each class and evaluate the models.
+##### testHMM:
 
-# runGenDTW:
+Test the HMM setting to discretize the gesture samples, learn a HMM model for each class and evaluate the models.
 
-  Main file to run the evolutionary algorithm and temporal segmentation of the training data using the parameter settings from the file varload.
+##### runGenDTW:
+
+Main file to run the whole evolutionary algorithm with temporal segmentation over training data, using the parameter settings from the file `varload.m`.
